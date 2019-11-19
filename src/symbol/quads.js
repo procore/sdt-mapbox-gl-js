@@ -58,6 +58,7 @@ export function getIconQuads(
     const quads = [];
 
     const image = shapedIcon.image;
+    const pixelRatio = image.pixelRatio;
     const imageWidth = image.paddedRect.w - 2 * border;
     const imageHeight = image.paddedRect.h - 2 * border;
 
@@ -72,9 +73,6 @@ export function getIconQuads(
     const stretchHeight = stretchY.reduce(reduceRanges, 0);
     const fixedWidth = imageWidth - stretchWidth;
     const fixedHeight = imageHeight - stretchHeight;
-
-    const xCuts = stretchZonesToCuts(stretchX, fixedWidth, stretchWidth);
-    const yCuts = stretchZonesToCuts(stretchY, fixedHeight, stretchHeight);
 
     const makeBox = (left, top, right, bottom) => {
 
@@ -94,8 +92,8 @@ export function getIconQuads(
         const tr = new Point(rightEm, topEm);
         const br = new Point(rightEm, bottomEm);
         const bl = new Point(leftEm, bottomEm);
-        const pixelOffsetTL = new Point(leftPx, topPx);
-        const pixelOffsetBR = new Point(rightPx, bottomPx);
+        const pixelOffsetTL = new Point(leftPx / pixelRatio, topPx / pixelRatio);
+        const pixelOffsetBR = new Point(rightPx / pixelRatio, bottomPx / pixelRatio);
 
         const angle = iconRotate * Math.PI / 180;
 
@@ -129,13 +127,24 @@ export function getIconQuads(
         return quad;
     }
 
-    for (let xi = 0; xi < xCuts.length - 1; xi++) {
-        const x1 = xCuts[xi];
-        const x2 = xCuts[xi + 1];
-        for (let yi = 0; yi < yCuts.length - 1; yi++) {
-            const y1 = yCuts[yi];
-            const y2 = yCuts[yi + 1];
-            quads.push(makeBox(x1, y1, x2, y2));
+    if (!image.stretchX && !image.stretchY) {
+        quads.push(makeBox(
+            { fixed: 0, stretch: -1 },
+            { fixed: 0, stretch: -1 },
+            { fixed: 0, stretch: imageWidth + 1},
+            { fixed: 0, stretch: imageHeight + 1 }));
+    } else {
+        const xCuts = stretchZonesToCuts(stretchX, fixedWidth, stretchWidth);
+        const yCuts = stretchZonesToCuts(stretchY, fixedHeight, stretchHeight);
+
+        for (let xi = 0; xi < xCuts.length - 1; xi++) {
+            const x1 = xCuts[xi];
+            const x2 = xCuts[xi + 1];
+            for (let yi = 0; yi < yCuts.length - 1; yi++) {
+                const y1 = yCuts[yi];
+                const y2 = yCuts[yi + 1];
+                quads.push(makeBox(x1, y1, x2, y2));
+            }
         }
     }
 

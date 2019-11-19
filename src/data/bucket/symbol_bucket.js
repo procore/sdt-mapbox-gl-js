@@ -113,8 +113,8 @@ function addVertex(array, anchorX, anchorY, ox, oy, tx, ty, sizeVertex, pixelOff
         ty, // y coordinate of symbol on glyph atlas texture
         sizeVertex ? sizeVertex[0] : 0,
         sizeVertex ? sizeVertex[1] : 0,
-        pixelOffsetX,
-        pixelOffsetY
+        pixelOffsetX * 16,
+        pixelOffsetY * 16
     );
 }
 
