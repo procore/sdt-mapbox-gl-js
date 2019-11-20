@@ -1,4 +1,4 @@
-const border = 10;
+const border = 25;
 map.on('styleimagemissing', function(e) {
     var id = e.id; // id of the missing image
 
@@ -33,8 +33,10 @@ map.on('styleimagemissing', function(e) {
     }
 
     map.addImage(id, {width: width, height: width, data: data}, {
+        content: [border, border, width - border, width- border],
         stretchX: [[border, width - border]],
         stretchY: [[border, width - border]]
+        //stretchY: [[border, width]]
     });
 });
 
@@ -86,7 +88,7 @@ map.on('load', function () {
 "text-field": ["get", "text"],
 "icon-text-fit": "both",
 "text-size": ["get", "size"],
-"icon-text-fit-padding": [border, border, border, border],
+//"icon-text-fit-padding": [border, border, border, border],
 "icon-image": ["concat", "square-rgb-", ["get", "color"]]
 }
 });

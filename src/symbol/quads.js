@@ -64,31 +64,52 @@ export function getIconQuads(
     const imageWidth = image.paddedRect.w - 2 * border;
     const imageHeight = image.paddedRect.h - 2 * border;
 
-    const iconWidth = shapedIcon.right - shapedIcon.left;
-    const iconHeight = shapedIcon.bottom - shapedIcon.top;
+    let iconWidth = shapedIcon.right - shapedIcon.left;
+    let iconHeight = shapedIcon.bottom - shapedIcon.top;
 
     const stretchX = image.stretchX || [[0, imageWidth]];
     const stretchY = image.stretchY || [[0, imageHeight]];
 
     const reduceRanges = (sum, range) => sum + range[1] - range[0];
-    const stretchWidth = stretchX.reduce(reduceRanges, 0);
-    const stretchHeight = stretchY.reduce(reduceRanges, 0);
+    let stretchWidth = stretchX.reduce(reduceRanges, 0);
+    let stretchHeight = stretchY.reduce(reduceRanges, 0);
     const fixedWidth = imageWidth - stretchWidth;
     const fixedHeight = imageHeight - stretchHeight;
 
+    let stretchOffsetX = 0;
+    let stretchContentWidth = stretchWidth;
+    let stretchOffsetY = 0;
+    let stretchContentHeight = stretchHeight;
+    let fixedOffsetX = 0;
+    let fixedContentWidth = fixedWidth;
+    let fixedOffsetY = 0;
+    let fixedContentHeight = fixedHeight;
+
+    if (image.content) {
+        const content = image.content;
+        stretchOffsetX = sumWithinRange(stretchX, 0, content[0]);
+        stretchOffsetY = sumWithinRange(stretchY, 0, content[1]);
+        stretchContentWidth = sumWithinRange(stretchX, content[0], content[2]);
+        stretchContentHeight = sumWithinRange(stretchY, content[1], content[3]);
+        fixedOffsetX = content[0] - stretchOffsetX;
+        fixedOffsetY = content[1] - stretchOffsetY;
+        fixedContentWidth = content[2] - content[0] - stretchContentWidth;
+        fixedContentHeight = content[3] - content[1] - stretchContentHeight;
+    }
+
     const makeBox = (left, top, right, bottom) => {
 
-        const leftEm = getEmOffset(left.stretch, stretchWidth, iconWidth, shapedIcon.left);
-        const leftPx = getPxOffset(left.fixed, fixedWidth, left.stretch, stretchWidth);
+        const leftEm = getEmOffset(left.stretch - stretchOffsetX, stretchContentWidth, iconWidth, shapedIcon.left);
+        const leftPx = getPxOffset(left.fixed - fixedOffsetX, fixedContentWidth, left.stretch, stretchWidth);
 
-        const topEm = getEmOffset(top.stretch, stretchHeight, iconHeight, shapedIcon.top);
-        const topPx = getPxOffset(top.fixed, fixedHeight, top.stretch, stretchHeight);
+        const topEm = getEmOffset(top.stretch - stretchOffsetY, stretchContentHeight, iconHeight, shapedIcon.top);
+        const topPx = getPxOffset(top.fixed - fixedOffsetY, fixedContentHeight, top.stretch, stretchHeight);
 
-        const rightEm = getEmOffset(right.stretch, stretchWidth, iconWidth, shapedIcon.left);
-        const rightPx = getPxOffset(right.fixed, fixedWidth, right.stretch, stretchWidth);
+        const rightEm = getEmOffset(right.stretch - stretchOffsetX, stretchContentWidth, iconWidth, shapedIcon.left);
+        const rightPx = getPxOffset(right.fixed - fixedOffsetX, fixedContentWidth, right.stretch, stretchWidth);
 
-        const bottomEm = getEmOffset(bottom.stretch, stretchHeight, iconHeight, shapedIcon.top);
-        const bottomPx = getPxOffset(bottom.fixed, fixedHeight, bottom.stretch, stretchHeight);
+        const bottomEm = getEmOffset(bottom.stretch - stretchOffsetY, stretchContentHeight, iconHeight, shapedIcon.top);
+        const bottomPx = getPxOffset(bottom.fixed - fixedOffsetY, fixedContentHeight, bottom.stretch, stretchHeight);
 
         const tl = new Point(leftEm, topEm);
         const tr = new Point(rightEm, topEm);
@@ -123,8 +144,8 @@ export function getIconQuads(
         };
 
 
-        const minFontScaleX = fixedWidth / iconWidth;
-        const minFontScaleY = fixedHeight / iconHeight;
+        const minFontScaleX = fixedContentWidth / pixelRatio / iconWidth; 
+        const minFontScaleY = fixedContentHeight / pixelRatio / iconHeight;
 
         // Icon quad is padded, so texture coordinates also need to be padded.
         const quad = {tl, tr, bl, br, tex: subRect, writingMode: undefined, glyphOffset: [0, 0], sectionIndex: 0, pixelOffsetTL, pixelOffsetBR, minFontScaleX, minFontScaleY };
@@ -153,6 +174,14 @@ export function getIconQuads(
     }
 
     return quads;
+}
+
+function sumWithinRange(ranges, min, max) {
+    let sum = 0;
+    for (const range of ranges) {
+        sum += Math.max(min, Math.min(max, range[1])) - Math.max(min, Math.min(max, range[0]));
+    }
+    return sum;
 }
 
 function stretchZonesToCuts(stretchZones, fixedSize, stretchSize) {

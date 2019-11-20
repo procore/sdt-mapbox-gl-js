@@ -152,6 +152,7 @@ class ImageManager extends Evented {
                     version: image.version,
                     stretchX: image.stretchX,
                     stretchY: image.stretchY,
+                    content: image.content,
                     hasRenderCallback: Boolean(image.userImage && image.userImage.render)
                 };
             } else {
