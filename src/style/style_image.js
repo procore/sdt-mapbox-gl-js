@@ -10,6 +10,7 @@ export type StyleImage = {
     sdf: boolean,
     stretchX: any,
     stretchY: any,
+    content: any,
     version: number,
     hasRenderCallback?: boolean,
     userImage?: StyleImageInterface

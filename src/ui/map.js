@@ -1283,13 +1283,13 @@ class Map extends Camera {
      */
     addImage(id: string,
              image: HTMLImageElement | ImageData | {width: number, height: number, data: Uint8Array | Uint8ClampedArray} | StyleImageInterface,
-             {pixelRatio = 1, sdf = false, stretchX, stretchY, content}: {pixelRatio?: number, sdf?: boolean, stretchX?: Array<Array<number>>, stretchY?: Array<Array<number>>} = {}) {
+             {pixelRatio = 1, sdf = false, stretchX, stretchY, content}: {pixelRatio?: number, sdf?: boolean, stretchX?: Array<Array<number>>, stretchY?: Array<Array<number>>, content?: Array<number>} = {}) {
 
         const version = 0;
 
         if (image instanceof HTMLImageElement) {
             const {width, height, data} = browser.getImageData(image);
-            this.style.addImage(id, {data: new RGBAImage({width, height}, data), pixelRatio, stretchX, stretchY, sdf, version});
+            this.style.addImage(id, {data: new RGBAImage({width, height}, data), pixelRatio, stretchX, stretchY, content, sdf, version});
         } else if (image.width === undefined || image.height === undefined) {
             return this.fire(new ErrorEvent(new Error(
                 'Invalid arguments to map.addImage(). The second argument must be an `HTMLImageElement`, `ImageData`, ' +

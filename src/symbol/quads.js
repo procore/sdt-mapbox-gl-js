@@ -64,15 +64,15 @@ export function getIconQuads(
     const imageWidth = image.paddedRect.w - 2 * border;
     const imageHeight = image.paddedRect.h - 2 * border;
 
-    let iconWidth = shapedIcon.right - shapedIcon.left;
-    let iconHeight = shapedIcon.bottom - shapedIcon.top;
+    const iconWidth = shapedIcon.right - shapedIcon.left;
+    const iconHeight = shapedIcon.bottom - shapedIcon.top;
 
     const stretchX = image.stretchX || [[0, imageWidth]];
     const stretchY = image.stretchY || [[0, imageHeight]];
 
     const reduceRanges = (sum, range) => sum + range[1] - range[0];
-    let stretchWidth = stretchX.reduce(reduceRanges, 0);
-    let stretchHeight = stretchY.reduce(reduceRanges, 0);
+    const stretchWidth = stretchX.reduce(reduceRanges, 0);
+    const stretchHeight = stretchY.reduce(reduceRanges, 0);
     const fixedWidth = imageWidth - stretchWidth;
     const fixedHeight = imageHeight - stretchHeight;
 
@@ -143,21 +143,19 @@ export function getIconQuads(
             h: y2 - y1
         };
 
-
-        const minFontScaleX = fixedContentWidth / pixelRatio / iconWidth; 
+        const minFontScaleX = fixedContentWidth / pixelRatio / iconWidth;
         const minFontScaleY = fixedContentHeight / pixelRatio / iconHeight;
 
         // Icon quad is padded, so texture coordinates also need to be padded.
-        const quad = {tl, tr, bl, br, tex: subRect, writingMode: undefined, glyphOffset: [0, 0], sectionIndex: 0, pixelOffsetTL, pixelOffsetBR, minFontScaleX, minFontScaleY };
-        return quad;
-    }
+        return {tl, tr, bl, br, tex: subRect, writingMode: undefined, glyphOffset: [0, 0], sectionIndex: 0, pixelOffsetTL, pixelOffsetBR, minFontScaleX, minFontScaleY};
+    };
 
     if (!image.stretchX && !image.stretchY) {
         quads.push(makeBox(
-            { fixed: 0, stretch: -1 },
-            { fixed: 0, stretch: -1 },
-            { fixed: 0, stretch: imageWidth + 1},
-            { fixed: 0, stretch: imageHeight + 1 }));
+            {fixed: 0, stretch: -1},
+            {fixed: 0, stretch: -1},
+            {fixed: 0, stretch: imageWidth + 1},
+            {fixed: 0, stretch: imageHeight + 1}));
     } else {
         const xCuts = stretchZonesToCuts(stretchX, fixedWidth, stretchWidth);
         const yCuts = stretchZonesToCuts(stretchY, fixedHeight, stretchHeight);
@@ -185,7 +183,7 @@ function sumWithinRange(ranges, min, max) {
 }
 
 function stretchZonesToCuts(stretchZones, fixedSize, stretchSize) {
-    const cuts = [{ fixed: -border, stretch: 0 }];
+    const cuts = [{fixed: -border, stretch: 0}];
 
     for (const [c1, c2] of stretchZones) {
         const last = cuts[cuts.length - 1];
@@ -200,7 +198,7 @@ function stretchZonesToCuts(stretchZones, fixedSize, stretchSize) {
     }
     cuts.push({
         fixed: fixedSize + border,
-        stretch: stretchSize 
+        stretch: stretchSize
     });
     return cuts;
 }
@@ -212,7 +210,6 @@ function getEmOffset(stretchOffset, stretchSize, iconSize, iconOffset) {
 function getPxOffset(fixedOffset, fixedSize, stretchOffset, stretchSize) {
     return fixedOffset - fixedSize * stretchOffset / stretchSize;
 }
-
 
 /**
  * Create the quads used for rendering a text label.

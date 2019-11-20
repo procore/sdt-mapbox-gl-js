@@ -23,13 +23,14 @@ export class ImagePosition {
     version: number;
     stretchY: Array<Array<number>> | void;
     stretchX: Array<Array<number>> | void;
+    content: Array<number> | void;
 
     constructor(paddedRect: Rect, {pixelRatio, version, stretchX, stretchY, content}: StyleImage) {
         this.paddedRect = paddedRect;
         this.pixelRatio = pixelRatio;
-        this.stretchX = stretchX;
-        this.stretchY = stretchY;
-        this.content = content;
+        if (stretchX) this.stretchX = stretchX;
+        if (stretchY) this.stretchY = stretchY;
+        if (content) this.content = content;
         this.version = version;
     }
 

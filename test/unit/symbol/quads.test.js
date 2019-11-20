@@ -23,7 +23,17 @@ test('getIconQuads', (t) => {
             tex: {x: 0, y: 0, w: 17, h: 13},
             writingMode: null,
             glyphOffset: [0, 0],
-            sectionIndex: 0
+            sectionIndex: 0,
+            minFontScaleX: 0,
+            minFontScaleY: 0,
+            pixelOffsetBR: {
+                x: 0,
+                y: 0
+            },
+            pixelOffsetTL: {
+                x: 0,
+                y: 0
+            }
         }], 'icon-anchor: center');
 
         t.deepEqual(getIconQuads({
@@ -40,7 +50,17 @@ test('getIconQuads', (t) => {
             tex: {x: 0, y: 0, w: 17, h: 13},
             writingMode: null,
             glyphOffset: [0, 0],
-            sectionIndex: 0
+            sectionIndex: 0,
+            minFontScaleX: 0,
+            minFontScaleY: 0,
+            pixelOffsetBR: {
+                x: 0,
+                y: 0
+            },
+            pixelOffsetTL: {
+                x: 0,
+                y: 0
+            }
         }], 'icon-anchor: center icon, icon-scale: 2');
 
         t.deepEqual(getIconQuads({
@@ -57,7 +77,17 @@ test('getIconQuads', (t) => {
             tex: {x: 0, y: 0, w: 17, h: 13},
             writingMode: null,
             glyphOffset: [0, 0],
-            sectionIndex: 0
+            sectionIndex: 0,
+            minFontScaleX: 0,
+            minFontScaleY: 0,
+            pixelOffsetBR: {
+                x: 0,
+                y: 0
+            },
+            pixelOffsetTL: {
+                x: 0,
+                y: 0
+            }
         }], 'icon-anchor: top-right');
 
         t.deepEqual(getIconQuads({
@@ -74,7 +104,17 @@ test('getIconQuads', (t) => {
             tex: {x: 0, y: 0, w: 17, h: 13},
             writingMode: null,
             glyphOffset: [0, 0],
-            sectionIndex: 0
+            sectionIndex: 0,
+            minFontScaleX: 0,
+            minFontScaleY: 0,
+            pixelOffsetBR: {
+                x: 0,
+                y: 0
+            },
+            pixelOffsetTL: {
+                x: 0,
+                y: 0
+            }
         }], 'icon-text-fit: both');
 
         t.end();
@@ -95,7 +135,17 @@ test('getIconQuads', (t) => {
             tex: {x: 0, y: 0, w: 17, h: 13},
             writingMode: null,
             glyphOffset: [0, 0],
-            sectionIndex: 0
+            sectionIndex: 0,
+            minFontScaleX: 0,
+            minFontScaleY: 0,
+            pixelOffsetBR: {
+                x: 0,
+                y: 0
+            },
+            pixelOffsetTL: {
+                x: 0,
+                y: 0
+            }
         }]);
         t.end();
     });
