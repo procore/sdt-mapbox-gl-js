@@ -100,7 +100,7 @@ const shaderOpacityAttributes = [
     {name: 'a_fade_opacity', components: 1, type: 'Uint8', offset: 0}
 ];
 
-function addVertex(array, anchorX, anchorY, ox, oy, tx, ty, sizeVertex, pixelOffsetX, pixelOffsetY) {
+function addVertex(array, anchorX, anchorY, ox, oy, tx, ty, sizeVertex, pixelOffsetX, pixelOffsetY, minFontScaleX, minFontScaleY) {
     array.emplaceBack(
         // a_pos_offset
         anchorX,
@@ -114,7 +114,9 @@ function addVertex(array, anchorX, anchorY, ox, oy, tx, ty, sizeVertex, pixelOff
         sizeVertex ? sizeVertex[0] : 0,
         sizeVertex ? sizeVertex[1] : 0,
         pixelOffsetX * 16,
-        pixelOffsetY * 16
+        pixelOffsetY * 16,
+        minFontScaleX * 256,
+        minFontScaleY * 256
     );
 }
 
@@ -578,15 +580,17 @@ class SymbolBucket implements Bucket {
                 br = symbol.br,
                 tex = symbol.tex,
                 pixelOffsetTL = symbol.pixelOffsetTL,
-                pixelOffsetBR = symbol.pixelOffsetBR;
+                pixelOffsetBR = symbol.pixelOffsetBR,
+                mfsx = symbol.minFontScaleX,
+                mfsy = symbol.minFontScaleY;
 
             const index = segment.vertexLength;
 
             const y = symbol.glyphOffset[1];
-            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, tl.x, y + tl.y, tex.x, tex.y, sizeVertex, pixelOffsetTL.x, pixelOffsetTL.y);
-            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, tr.x, y + tr.y, tex.x + tex.w, tex.y, sizeVertex, pixelOffsetBR.x, pixelOffsetTL.y);
-            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, bl.x, y + bl.y, tex.x, tex.y + tex.h, sizeVertex, pixelOffsetTL.x, pixelOffsetBR.y);
-            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, br.x, y + br.y, tex.x + tex.w, tex.y + tex.h, sizeVertex, pixelOffsetBR.x, pixelOffsetBR.y);
+            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, tl.x, y + tl.y, tex.x, tex.y, sizeVertex, pixelOffsetTL.x, pixelOffsetTL.y, mfsx, mfsy);
+            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, tr.x, y + tr.y, tex.x + tex.w, tex.y, sizeVertex, pixelOffsetBR.x, pixelOffsetTL.y, mfsx, mfsy);
+            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, bl.x, y + bl.y, tex.x, tex.y + tex.h, sizeVertex, pixelOffsetTL.x, pixelOffsetBR.y, mfsx, mfsy);
+            addVertex(layoutVertexArray, labelAnchor.x, labelAnchor.y, br.x, y + br.y, tex.x + tex.w, tex.y + tex.h, sizeVertex, pixelOffsetBR.x, pixelOffsetBR.y, mfsx, mfsy);
 
             addDynamicAttributes(dynamicLayoutVertexArray, labelAnchor, angle);
 

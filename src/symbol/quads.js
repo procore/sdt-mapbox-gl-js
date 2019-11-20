@@ -39,7 +39,9 @@ export type SymbolQuad = {
     pixelOffsetBR: Point,
     writingMode: any | void,
     glyphOffset: [number, number],
-    sectionIndex: number
+    sectionIndex: number,
+    minFontScaleX: number,
+    minFontScaleY: number
 };
 
 // If you have a 10px icon that isn't perfectly aligned to the pixel grid it will cover 11 actual
@@ -121,9 +123,11 @@ export function getIconQuads(
         };
 
 
+        const minFontScaleX = fixedWidth / iconWidth;
+        const minFontScaleY = fixedHeight / iconHeight;
 
         // Icon quad is padded, so texture coordinates also need to be padded.
-        const quad = {tl, tr, bl, br, tex: subRect, writingMode: undefined, glyphOffset: [0, 0], sectionIndex: 0, pixelOffsetTL, pixelOffsetBR };
+        const quad = {tl, tr, bl, br, tex: subRect, writingMode: undefined, glyphOffset: [0, 0], sectionIndex: 0, pixelOffsetTL, pixelOffsetBR, minFontScaleX, minFontScaleY };
         return quad;
     }
 
@@ -279,7 +283,9 @@ export function getGlyphQuads(anchor: Anchor,
 
         const pixelOffsetTL = new Point(0, 0);
         const pixelOffsetBR = new Point(0, 0);
-        quads.push({tl, tr, bl, br, tex: rect, writingMode: shaping.writingMode, glyphOffset, sectionIndex: positionedGlyph.sectionIndex, pixelOffsetTL, pixelOffsetBR});
+        const minFontScaleX = 0;
+        const minFontScaleY = 0;
+        quads.push({tl, tr, bl, br, tex: rect, writingMode: shaping.writingMode, glyphOffset, sectionIndex: positionedGlyph.sectionIndex, pixelOffsetTL, pixelOffsetBR, minFontScaleX, minFontScaleY});
     }
 
     return quads;
