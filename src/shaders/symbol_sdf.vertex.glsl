@@ -51,16 +51,16 @@ void main() {
     vec2 a_tex = a_data.xy;
     vec2 a_size = a_data.zw;
 
-    float a_size_min = floor(a_size[0] * 0.5);
+    float a_size_min = a_size[0];
     vec2 a_pxoffset = a_pixeloffset.xy;
 
     highp float segment_angle = -a_projected_pos[2];
     float size;
 
     if (!u_is_size_zoom_constant && !u_is_size_feature_constant) {
-        size = mix(a_size_min, a_size[1], u_size_t) / 128.0;
+        size = mix(a_size_min, a_size[1], u_size_t);
     } else if (u_is_size_zoom_constant && !u_is_size_feature_constant) {
-        size = a_size_min / 128.0;
+        size = a_size_min;
     } else {
         size = u_size;
     }
