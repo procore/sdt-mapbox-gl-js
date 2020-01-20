@@ -51,7 +51,7 @@ void main() {
     vec2 a_tex = a_data.xy;
     vec2 a_size = a_data.zw;
 
-    float a_size_min = a_size[0];
+    float a_size_min = floor(a_size[0] * 0.5);
     vec2 a_pxoffset = a_pixeloffset.xy;
 
     highp float segment_angle = -a_projected_pos[2];
