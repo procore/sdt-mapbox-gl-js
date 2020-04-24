@@ -2,7 +2,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (global = global || self, factory(global.mapboxGlStyleSpecification = {}));
-}(this, function (exports) { 'use strict';
+}(this, (function (exports) { 'use strict';
 
   var $version = 8;
   var $root = {
@@ -9453,29 +9453,6 @@
    */
   var EXTENT = 8192;
 
-  function calcBBox(bbox, geom, type) {
-      if (type === 'Point') {
-          updateBBox(bbox, geom);
-      } else if (type === 'MultiPoint' || type === 'LineString') {
-          for (var i = 0; i < geom.length; ++i) {
-              updateBBox(bbox, geom[i]);
-          }
-      } else if (type === 'Polygon' || type === 'MultiLineString') {
-          for (var i$1 = 0; i$1 < geom.length; i$1++) {
-              for (var j = 0; j < geom[i$1].length; j++) {
-                  updateBBox(bbox, geom[i$1][j]);
-              }
-          }
-      } else if (type === 'MultiPolygon') {
-          for (var i$2 = 0; i$2 < geom.length; i$2++) {
-              for (var j$1 = 0; j$1 < geom[i$2].length; j$1++) {
-                  for (var k = 0; k < geom[i$2][j$1].length; k++) {
-                      updateBBox(bbox, geom[i$2][j$1][k]);
-                  }
-              }
-          }
-      }
-  }
   function updateBBox(bbox, coord) {
       bbox[0] = Math.min(bbox[0], coord[0]);
       bbox[1] = Math.min(bbox[1], coord[1]);
@@ -9497,22 +9474,16 @@
       }
       return true;
   }
-  function getLngLatPoint(coord, canonical) {
+  function getTileCoordinates(p, canonical) {
+      var coord = MercatorCoordinate.fromLngLat({
+          lng: p[0],
+          lat: p[1]
+      }, 0);
       var tilesAtZoom = Math.pow(2, canonical.z);
-      var x = (coord.x / EXTENT + canonical.x) / tilesAtZoom;
-      var y = (coord.y / EXTENT + canonical.y) / tilesAtZoom;
-      var p = new MercatorCoordinate(x, y).toLngLat();
       return [
-          p.lng,
-          p.lat
+          Math.round(coord.x * tilesAtZoom * EXTENT),
+          Math.round(coord.y * tilesAtZoom * EXTENT)
       ];
-  }
-  function getLngLatPoints(line, canonical) {
-      var coords = [];
-      for (var i = 0; i < line.length; ++i) {
-          coords.push(getLngLatPoint(line[i], canonical));
-      }
-      return coords;
   }
   function onBoundary(p, p1, p2) {
       var x1 = p[0] - p1[0];
@@ -9540,15 +9511,12 @@
       return inside;
   }
   function pointWithinPolygons(point, polygons) {
-      if (polygons.type === 'Polygon') {
-          return pointWithinPolygon(point, polygons.coordinates);
-      }
-      for (var i = 0; i < polygons.coordinates.length; i++) {
-          if (!pointWithinPolygon(point, polygons.coordinates[i])) {
-              return false;
+      for (var i = 0; i < polygons.length; i++) {
+          if (pointWithinPolygon(point, polygons[i])) {
+              return true;
           }
       }
-      return true;
+      return false;
   }
   function perp(v1, v2) {
       return v1[0] * v2[1] - v1[1] * v2[0];
@@ -9607,63 +9575,146 @@
       return true;
   }
   function lineStringWithinPolygons(line, polygons) {
-      if (polygons.type === 'Polygon') {
-          return lineStringWithinPolygon(line, polygons.coordinates);
-      }
-      for (var i = 0; i < polygons.coordinates.length; i++) {
-          if (!lineStringWithinPolygon(line, polygons.coordinates[i])) {
-              return false;
+      for (var i = 0; i < polygons.length; i++) {
+          if (lineStringWithinPolygon(line, polygons[i])) {
+              return true;
           }
       }
-      return true;
+      return false;
   }
-  function pointsWithinPolygons(ctx, polygonGeometry, polyBBox) {
+  function getTilePolygon(coordinates, bbox, canonical) {
+      var polygon = [];
+      for (var i = 0; i < coordinates.length; i++) {
+          var ring = [];
+          for (var j = 0; j < coordinates[i].length; j++) {
+              var coord = getTileCoordinates(coordinates[i][j], canonical);
+              updateBBox(bbox, coord);
+              ring.push(coord);
+          }
+          polygon.push(ring);
+      }
+      return polygon;
+  }
+  function getTilePolygons(coordinates, bbox, canonical) {
+      var polygons = [];
+      for (var i = 0; i < coordinates.length; i++) {
+          var polygon = getTilePolygon(coordinates[i], bbox, canonical);
+          polygons.push(polygon);
+      }
+      return polygons;
+  }
+  function pointsWithinPolygons(ctx, polygonGeometry) {
       var pointBBox = [
           Infinity,
           Infinity,
           -Infinity,
           -Infinity
       ];
-      var lngLatPoints = [];
-      for (var i$2 = 0, list$1 = ctx.geometry(); i$2 < list$1.length; i$2 += 1) {
-          var points = list$1[i$2];
-          for (var i$1 = 0, list = points; i$1 < list.length; i$1 += 1) {
-              var point = list[i$1];
-              var p = getLngLatPoint(point, ctx.canonicalID());
-              lngLatPoints.push(p);
+      var polyBBox = [
+          Infinity,
+          Infinity,
+          -Infinity,
+          -Infinity
+      ];
+      var canonical = ctx.canonicalID();
+      var shifts = [
+          canonical.x * EXTENT,
+          canonical.y * EXTENT
+      ];
+      var tilePoints = [];
+      for (var i$1 = 0, list$1 = ctx.geometry(); i$1 < list$1.length; i$1 += 1) {
+          var points = list$1[i$1];
+          for (var i = 0, list = points; i < list.length; i += 1) {
+              var point = list[i];
+              var p = [
+                  point.x + shifts[0],
+                  point.y + shifts[1]
+              ];
               updateBBox(pointBBox, p);
+              tilePoints.push(p);
           }
       }
-      if (!boxWithinBox(pointBBox, polyBBox)) {
-          return false;
-      }
-      for (var i = 0; i < lngLatPoints.length; ++i) {
-          if (!pointWithinPolygons(lngLatPoints[i], polygonGeometry)) {
+      if (polygonGeometry.type === 'Polygon') {
+          var tilePolygon = getTilePolygon(polygonGeometry.coordinates, polyBBox, canonical);
+          if (!boxWithinBox(pointBBox, polyBBox)) {
               return false;
+          }
+          for (var i$2 = 0, list$2 = tilePoints; i$2 < list$2.length; i$2 += 1) {
+              var point$1 = list$2[i$2];
+              if (!pointWithinPolygon(point$1, tilePolygon)) {
+                  return false;
+              }
+          }
+      }
+      if (polygonGeometry.type === 'MultiPolygon') {
+          var tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
+          if (!boxWithinBox(pointBBox, polyBBox)) {
+              return false;
+          }
+          for (var i$3 = 0, list$3 = tilePoints; i$3 < list$3.length; i$3 += 1) {
+              var point$2 = list$3[i$3];
+              if (!pointWithinPolygons(point$2, tilePolygons)) {
+                  return false;
+              }
           }
       }
       return true;
   }
-  function linesWithinPolygons(ctx, polygonGeometry, polyBBox) {
+  function linesWithinPolygons(ctx, polygonGeometry) {
       var lineBBox = [
           Infinity,
           Infinity,
           -Infinity,
           -Infinity
       ];
-      var lineCoords = [];
-      for (var i$1 = 0, list = ctx.geometry(); i$1 < list.length; i$1 += 1) {
-          var line = list[i$1];
-          var lineCoord = getLngLatPoints(line, ctx.canonicalID());
-          lineCoords.push(lineCoord);
-          calcBBox(lineBBox, lineCoord, 'LineString');
+      var polyBBox = [
+          Infinity,
+          Infinity,
+          -Infinity,
+          -Infinity
+      ];
+      var canonical = ctx.canonicalID();
+      var shifts = [
+          canonical.x * EXTENT,
+          canonical.y * EXTENT
+      ];
+      var tileLines = [];
+      for (var i$1 = 0, list$1 = ctx.geometry(); i$1 < list$1.length; i$1 += 1) {
+          var line = list$1[i$1];
+          var tileLine = [];
+          for (var i = 0, list = line; i < list.length; i += 1) {
+              var point = list[i];
+              var p = [
+                  point.x + shifts[0],
+                  point.y + shifts[1]
+              ];
+              updateBBox(lineBBox, p);
+              tileLine.push(p);
+          }
+          tileLines.push(tileLine);
       }
-      if (!boxWithinBox(lineBBox, polyBBox)) {
-          return false;
-      }
-      for (var i = 0; i < lineCoords.length; ++i) {
-          if (!lineStringWithinPolygons(lineCoords[i], polygonGeometry)) {
+      if (polygonGeometry.type === 'Polygon') {
+          var tilePolygon = getTilePolygon(polygonGeometry.coordinates, polyBBox, canonical);
+          if (!boxWithinBox(lineBBox, polyBBox)) {
               return false;
+          }
+          for (var i$2 = 0, list$2 = tileLines; i$2 < list$2.length; i$2 += 1) {
+              var line$1 = list$2[i$2];
+              if (!lineStringWithinPolygon(line$1, tilePolygon)) {
+                  return false;
+              }
+          }
+      }
+      if (polygonGeometry.type === 'MultiPolygon') {
+          var tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
+          if (!boxWithinBox(lineBBox, polyBBox)) {
+              return false;
+          }
+          for (var i$3 = 0, list$3 = tileLines; i$3 < list$3.length; i$3 += 1) {
+              var line$2 = list$3[i$3];
+              if (!lineStringWithinPolygons(line$2, tilePolygons)) {
+                  return false;
+              }
           }
       }
       return true;
@@ -9672,13 +9723,6 @@
       this.type = BooleanType;
       this.geojson = geojson;
       this.geometries = geometries;
-      this.polyBBox = [
-          Infinity,
-          Infinity,
-          -Infinity,
-          -Infinity
-      ];
-      calcBBox(this.polyBBox, this.geometries.coordinates, this.geometries.type);
   };
   Within.parse = function parse(args, context) {
       if (args.length !== 2) {
@@ -9707,9 +9751,9 @@
   Within.prototype.evaluate = function evaluate(ctx) {
       if (ctx.geometry() != null && ctx.canonicalID() != null) {
           if (ctx.geometryType() === 'Point') {
-              return pointsWithinPolygons(ctx, this.geometries, this.polyBBox);
+              return pointsWithinPolygons(ctx, this.geometries);
           } else if (ctx.geometryType() === 'LineString') {
-              return linesWithinPolygons(ctx, this.geometries, this.polyBBox);
+              return linesWithinPolygons(ctx, this.geometries);
           }
       }
       return false;
@@ -14512,7 +14556,6 @@
   break;
   case 6:
   return this.$ = $$[$0-1];
-  break;
   case 13:
   this.$ = {}; Object.defineProperty(this.$, '__line__', {
               value: this._$.first_line,
@@ -14590,7 +14633,7 @@
               }
               return token;
           }
-      var symbol, preErrorSymbol, state, action, r, yyval = {}, p, len, newState, expected;
+      var symbol, state, action, r, yyval = {}, p, len, newState, expected;
       while (true) {
           state = stack[stack.length - 1];
           if (this.defaultActions[state]) {
@@ -14632,14 +14675,11 @@
               lstack.push(lexer.yylloc);
               stack.push(action[1]);
               symbol = null;
-              if (!preErrorSymbol) {
+              {
                   yyleng = lexer.yyleng;
                   yytext = lexer.yytext;
                   yylineno = lexer.yylineno;
                   yyloc = lexer.yylloc;
-              } else {
-                  symbol = preErrorSymbol;
-                  preErrorSymbol = null;
               }
               break;
           case 2:
@@ -15016,31 +15056,18 @@
   case 0:/* skip whitespace */
   break;
   case 1:return 6
-  break;
   case 2:yy_.yytext = yy_.yytext.substr(1,yy_.yyleng-2); return 4
-  break;
   case 3:return 17
-  break;
   case 4:return 18
-  break;
   case 5:return 23
-  break;
   case 6:return 24
-  break;
   case 7:return 22
-  break;
   case 8:return 21
-  break;
   case 9:return 10
-  break;
   case 10:return 11
-  break;
   case 11:return 8
-  break;
   case 12:return 14
-  break;
   case 13:return 'INVALID'
-  break;
   }
   },
   rules: [/^(?:\s+)/,/^(?:(-?([0-9]|[1-9][0-9]+))(\.[0-9]+)?([eE][-+]?[0-9]+)?\b)/,/^(?:"(?:\\[\\"bfnrt/]|\\u[a-fA-F0-9]{4}|[^\\\0-\x09\x0a-\x1f"])*")/,/^(?:\{)/,/^(?:\})/,/^(?:\[)/,/^(?:\])/,/^(?:,)/,/^(?::)/,/^(?:true\b)/,/^(?:false\b)/,/^(?:null\b)/,/^(?:$)/,/^(?:.)/],
@@ -15232,5 +15259,5 @@
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-}));
+})));
 //# sourceMappingURL=index.js.map

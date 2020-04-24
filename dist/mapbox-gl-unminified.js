@@ -1,9 +1,9 @@
-/* Mapbox GL JS is licensed under the 3-Clause BSD License. Full text of license: https://github.com/mapbox/mapbox-gl-js/blob/v1.10.0-dev/LICENSE.txt */
+/* Mapbox GL JS is licensed under the 3-Clause BSD License. Full text of license: https://github.com/mapbox/mapbox-gl-js/blob/v1.9.1/LICENSE.txt */
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 typeof define === 'function' && define.amd ? define(factory) :
 (global = global || self, global.mapboxgl = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
 /* eslint-disable */
 
@@ -32,7 +32,7 @@ function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }
 
-var version = "1.10.0-dev";
+var version = "1.9.1";
 
 var unitbezier = UnitBezier;
 function UnitBezier(p1x, p1y, p2x, p2y) {
@@ -6953,29 +6953,6 @@ MercatorCoordinate.prototype.meterInMercatorCoordinateUnits = function meterInMe
 
 var EXTENT = 8192;
 
-function calcBBox(bbox, geom, type) {
-    if (type === 'Point') {
-        updateBBox(bbox, geom);
-    } else if (type === 'MultiPoint' || type === 'LineString') {
-        for (var i = 0; i < geom.length; ++i) {
-            updateBBox(bbox, geom[i]);
-        }
-    } else if (type === 'Polygon' || type === 'MultiLineString') {
-        for (var i$1 = 0; i$1 < geom.length; i$1++) {
-            for (var j = 0; j < geom[i$1].length; j++) {
-                updateBBox(bbox, geom[i$1][j]);
-            }
-        }
-    } else if (type === 'MultiPolygon') {
-        for (var i$2 = 0; i$2 < geom.length; i$2++) {
-            for (var j$1 = 0; j$1 < geom[i$2].length; j$1++) {
-                for (var k = 0; k < geom[i$2][j$1].length; k++) {
-                    updateBBox(bbox, geom[i$2][j$1][k]);
-                }
-            }
-        }
-    }
-}
 function updateBBox(bbox, coord) {
     bbox[0] = Math.min(bbox[0], coord[0]);
     bbox[1] = Math.min(bbox[1], coord[1]);
@@ -6997,22 +6974,16 @@ function boxWithinBox(bbox1, bbox2) {
     }
     return true;
 }
-function getLngLatPoint(coord, canonical) {
+function getTileCoordinates(p, canonical) {
+    var coord = MercatorCoordinate.fromLngLat({
+        lng: p[0],
+        lat: p[1]
+    }, 0);
     var tilesAtZoom = Math.pow(2, canonical.z);
-    var x = (coord.x / EXTENT + canonical.x) / tilesAtZoom;
-    var y = (coord.y / EXTENT + canonical.y) / tilesAtZoom;
-    var p = new MercatorCoordinate(x, y).toLngLat();
     return [
-        p.lng,
-        p.lat
+        Math.round(coord.x * tilesAtZoom * EXTENT),
+        Math.round(coord.y * tilesAtZoom * EXTENT)
     ];
-}
-function getLngLatPoints(line, canonical) {
-    var coords = [];
-    for (var i = 0; i < line.length; ++i) {
-        coords.push(getLngLatPoint(line[i], canonical));
-    }
-    return coords;
 }
 function onBoundary(p, p1, p2) {
     var x1 = p[0] - p1[0];
@@ -7040,15 +7011,12 @@ function pointWithinPolygon(point, rings) {
     return inside;
 }
 function pointWithinPolygons(point, polygons) {
-    if (polygons.type === 'Polygon') {
-        return pointWithinPolygon(point, polygons.coordinates);
-    }
-    for (var i = 0; i < polygons.coordinates.length; i++) {
-        if (!pointWithinPolygon(point, polygons.coordinates[i])) {
-            return false;
+    for (var i = 0; i < polygons.length; i++) {
+        if (pointWithinPolygon(point, polygons[i])) {
+            return true;
         }
     }
-    return true;
+    return false;
 }
 function perp(v1, v2) {
     return v1[0] * v2[1] - v1[1] * v2[0];
@@ -7107,63 +7075,146 @@ function lineStringWithinPolygon(line, polygon) {
     return true;
 }
 function lineStringWithinPolygons(line, polygons) {
-    if (polygons.type === 'Polygon') {
-        return lineStringWithinPolygon(line, polygons.coordinates);
-    }
-    for (var i = 0; i < polygons.coordinates.length; i++) {
-        if (!lineStringWithinPolygon(line, polygons.coordinates[i])) {
-            return false;
+    for (var i = 0; i < polygons.length; i++) {
+        if (lineStringWithinPolygon(line, polygons[i])) {
+            return true;
         }
     }
-    return true;
+    return false;
 }
-function pointsWithinPolygons(ctx, polygonGeometry, polyBBox) {
+function getTilePolygon(coordinates, bbox, canonical) {
+    var polygon = [];
+    for (var i = 0; i < coordinates.length; i++) {
+        var ring = [];
+        for (var j = 0; j < coordinates[i].length; j++) {
+            var coord = getTileCoordinates(coordinates[i][j], canonical);
+            updateBBox(bbox, coord);
+            ring.push(coord);
+        }
+        polygon.push(ring);
+    }
+    return polygon;
+}
+function getTilePolygons(coordinates, bbox, canonical) {
+    var polygons = [];
+    for (var i = 0; i < coordinates.length; i++) {
+        var polygon = getTilePolygon(coordinates[i], bbox, canonical);
+        polygons.push(polygon);
+    }
+    return polygons;
+}
+function pointsWithinPolygons(ctx, polygonGeometry) {
     var pointBBox = [
         Infinity,
         Infinity,
         -Infinity,
         -Infinity
     ];
-    var lngLatPoints = [];
-    for (var i$2 = 0, list$1 = ctx.geometry(); i$2 < list$1.length; i$2 += 1) {
-        var points = list$1[i$2];
-        for (var i$1 = 0, list = points; i$1 < list.length; i$1 += 1) {
-            var point = list[i$1];
-            var p = getLngLatPoint(point, ctx.canonicalID());
-            lngLatPoints.push(p);
+    var polyBBox = [
+        Infinity,
+        Infinity,
+        -Infinity,
+        -Infinity
+    ];
+    var canonical = ctx.canonicalID();
+    var shifts = [
+        canonical.x * EXTENT,
+        canonical.y * EXTENT
+    ];
+    var tilePoints = [];
+    for (var i$1 = 0, list$1 = ctx.geometry(); i$1 < list$1.length; i$1 += 1) {
+        var points = list$1[i$1];
+        for (var i = 0, list = points; i < list.length; i += 1) {
+            var point = list[i];
+            var p = [
+                point.x + shifts[0],
+                point.y + shifts[1]
+            ];
             updateBBox(pointBBox, p);
+            tilePoints.push(p);
         }
     }
-    if (!boxWithinBox(pointBBox, polyBBox)) {
-        return false;
-    }
-    for (var i = 0; i < lngLatPoints.length; ++i) {
-        if (!pointWithinPolygons(lngLatPoints[i], polygonGeometry)) {
+    if (polygonGeometry.type === 'Polygon') {
+        var tilePolygon = getTilePolygon(polygonGeometry.coordinates, polyBBox, canonical);
+        if (!boxWithinBox(pointBBox, polyBBox)) {
             return false;
+        }
+        for (var i$2 = 0, list$2 = tilePoints; i$2 < list$2.length; i$2 += 1) {
+            var point$1 = list$2[i$2];
+            if (!pointWithinPolygon(point$1, tilePolygon)) {
+                return false;
+            }
+        }
+    }
+    if (polygonGeometry.type === 'MultiPolygon') {
+        var tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
+        if (!boxWithinBox(pointBBox, polyBBox)) {
+            return false;
+        }
+        for (var i$3 = 0, list$3 = tilePoints; i$3 < list$3.length; i$3 += 1) {
+            var point$2 = list$3[i$3];
+            if (!pointWithinPolygons(point$2, tilePolygons)) {
+                return false;
+            }
         }
     }
     return true;
 }
-function linesWithinPolygons(ctx, polygonGeometry, polyBBox) {
+function linesWithinPolygons(ctx, polygonGeometry) {
     var lineBBox = [
         Infinity,
         Infinity,
         -Infinity,
         -Infinity
     ];
-    var lineCoords = [];
-    for (var i$1 = 0, list = ctx.geometry(); i$1 < list.length; i$1 += 1) {
-        var line = list[i$1];
-        var lineCoord = getLngLatPoints(line, ctx.canonicalID());
-        lineCoords.push(lineCoord);
-        calcBBox(lineBBox, lineCoord, 'LineString');
+    var polyBBox = [
+        Infinity,
+        Infinity,
+        -Infinity,
+        -Infinity
+    ];
+    var canonical = ctx.canonicalID();
+    var shifts = [
+        canonical.x * EXTENT,
+        canonical.y * EXTENT
+    ];
+    var tileLines = [];
+    for (var i$1 = 0, list$1 = ctx.geometry(); i$1 < list$1.length; i$1 += 1) {
+        var line = list$1[i$1];
+        var tileLine = [];
+        for (var i = 0, list = line; i < list.length; i += 1) {
+            var point = list[i];
+            var p = [
+                point.x + shifts[0],
+                point.y + shifts[1]
+            ];
+            updateBBox(lineBBox, p);
+            tileLine.push(p);
+        }
+        tileLines.push(tileLine);
     }
-    if (!boxWithinBox(lineBBox, polyBBox)) {
-        return false;
-    }
-    for (var i = 0; i < lineCoords.length; ++i) {
-        if (!lineStringWithinPolygons(lineCoords[i], polygonGeometry)) {
+    if (polygonGeometry.type === 'Polygon') {
+        var tilePolygon = getTilePolygon(polygonGeometry.coordinates, polyBBox, canonical);
+        if (!boxWithinBox(lineBBox, polyBBox)) {
             return false;
+        }
+        for (var i$2 = 0, list$2 = tileLines; i$2 < list$2.length; i$2 += 1) {
+            var line$1 = list$2[i$2];
+            if (!lineStringWithinPolygon(line$1, tilePolygon)) {
+                return false;
+            }
+        }
+    }
+    if (polygonGeometry.type === 'MultiPolygon') {
+        var tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
+        if (!boxWithinBox(lineBBox, polyBBox)) {
+            return false;
+        }
+        for (var i$3 = 0, list$3 = tileLines; i$3 < list$3.length; i$3 += 1) {
+            var line$2 = list$3[i$3];
+            if (!lineStringWithinPolygons(line$2, tilePolygons)) {
+                return false;
+            }
         }
     }
     return true;
@@ -7172,13 +7223,6 @@ var Within = function Within(geojson, geometries) {
     this.type = BooleanType;
     this.geojson = geojson;
     this.geometries = geometries;
-    this.polyBBox = [
-        Infinity,
-        Infinity,
-        -Infinity,
-        -Infinity
-    ];
-    calcBBox(this.polyBBox, this.geometries.coordinates, this.geometries.type);
 };
 Within.parse = function parse(args, context) {
     if (args.length !== 2) {
@@ -7207,9 +7251,9 @@ Within.parse = function parse(args, context) {
 Within.prototype.evaluate = function evaluate(ctx) {
     if (ctx.geometry() != null && ctx.canonicalID() != null) {
         if (ctx.geometryType() === 'Point') {
-            return pointsWithinPolygons(ctx, this.geometries, this.polyBBox);
+            return pointsWithinPolygons(ctx, this.geometries);
         } else if (ctx.geometryType() === 'LineString') {
-            return linesWithinPolygons(ctx, this.geometries, this.polyBBox);
+            return linesWithinPolygons(ctx, this.geometries);
         }
     }
     return false;
@@ -13529,6 +13573,29 @@ function packUint8ToFloat(a, b) {
     return 256 * a + b;
 }
 
+var patternAttributes = createLayout([
+    {
+        name: 'a_pattern_from',
+        components: 4,
+        type: 'Uint16'
+    },
+    {
+        name: 'a_pattern_to',
+        components: 4,
+        type: 'Uint16'
+    },
+    {
+        name: 'a_pixel_ratio_from',
+        components: 1,
+        type: 'Uint8'
+    },
+    {
+        name: 'a_pixel_ratio_to',
+        components: 1,
+        type: 'Uint8'
+    }
+]);
+
 var murmurhash3_gc = createCommonjsModule(function (module) {
 function murmurhash3_32_gc(key, seed) {
     var remainder, bytes, h1, h1b, c1, c2, k1, i;
@@ -14012,20 +14079,12 @@ CompositeExpressionBinder.prototype.setUniform = function setUniform(uniform, gl
 CompositeExpressionBinder.prototype.getBinding = function getBinding(context, location, _) {
     return new Uniform1f(context, location);
 };
-var CrossFadedCompositeBinder = function CrossFadedCompositeBinder(expression, names, type, useIntegerZoom, zoom, PaintVertexArray, layerId) {
+var CrossFadedCompositeBinder = function CrossFadedCompositeBinder(expression, type, useIntegerZoom, zoom, PaintVertexArray, layerId) {
     this.expression = expression;
     this.type = type;
     this.useIntegerZoom = useIntegerZoom;
     this.zoom = zoom;
     this.layerId = layerId;
-    this.paintVertexAttributes = names.map(function (name) {
-        return {
-            name: 'a_' + name,
-            type: 'Uint16',
-            components: 4,
-            offset: 0
-        };
-    });
     this.zoomInPaintVertexArray = new PaintVertexArray();
     this.zoomOutPaintVertexArray = new PaintVertexArray();
 };
@@ -14058,8 +14117,8 @@ CrossFadedCompositeBinder.prototype._setPaintValues = function _setPaintValues(s
 };
 CrossFadedCompositeBinder.prototype.upload = function upload(context) {
     if (this.zoomInPaintVertexArray && this.zoomInPaintVertexArray.arrayBuffer && this.zoomOutPaintVertexArray && this.zoomOutPaintVertexArray.arrayBuffer) {
-        this.zoomInPaintVertexBuffer = context.createVertexBuffer(this.zoomInPaintVertexArray, this.paintVertexAttributes, this.expression.isStateDependent);
-        this.zoomOutPaintVertexBuffer = context.createVertexBuffer(this.zoomOutPaintVertexArray, this.paintVertexAttributes, this.expression.isStateDependent);
+        this.zoomInPaintVertexBuffer = context.createVertexBuffer(this.zoomInPaintVertexArray, patternAttributes.members, this.expression.isStateDependent);
+        this.zoomOutPaintVertexBuffer = context.createVertexBuffer(this.zoomOutPaintVertexArray, patternAttributes.members, this.expression.isStateDependent);
     }
 };
 CrossFadedCompositeBinder.prototype.destroy = function destroy() {
@@ -14094,7 +14153,7 @@ var ProgramConfiguration = function ProgramConfiguration(layer, zoom, filterProp
             keys.push('/u_' + property);
         } else if (expression.kind === 'source' || isCrossFaded) {
             var StructArrayLayout = layoutType(property, type, 'source');
-            this.binders[property] = isCrossFaded ? new CrossFadedCompositeBinder(expression, names, type, useIntegerZoom, zoom, StructArrayLayout, layer.id) : new SourceExpressionBinder(expression, names, type, StructArrayLayout);
+            this.binders[property] = isCrossFaded ? new CrossFadedCompositeBinder(expression, type, useIntegerZoom, zoom, StructArrayLayout, layer.id) : new SourceExpressionBinder(expression, names, type, StructArrayLayout);
             keys.push('/a_' + property);
         } else {
             var StructArrayLayout$1 = layoutType(property, type, 'composite');
@@ -14739,6 +14798,16 @@ var properties = {
 };
 
 var ARRAY_TYPE = typeof Float32Array !== 'undefined' ? Float32Array : Array;
+if (!Math.hypot) {
+    Math.hypot = function () {
+        var arguments$1 = arguments;
+        var y = 0, i = arguments.length;
+        while (i--) {
+            y += arguments$1[i] * arguments$1[i];
+        }
+        return Math.sqrt(y);
+    };
+}
 
 function create() {
     var out = new ARRAY_TYPE(4);
@@ -19877,11 +19946,13 @@ function getAngleWindowSize(shapedText, glyphSize, boxScale) {
 function getShapedLabelLength(shapedText, shapedIcon) {
     return Math.max(shapedText ? shapedText.right - shapedText.left : 0, shapedIcon ? shapedIcon.right - shapedIcon.left : 0);
 }
-function getCenterAnchor(line, maxAngle, shapedText, shapedIcon, glyphSize, boxScale) {
+function getCenterAnchor(line, maxAngle, shapedText, shapedIcon, glyphSize, boxScale, clipStart, clipEnd) {
     var angleWindowSize = getAngleWindowSize(shapedText, glyphSize, boxScale);
     var labelLength = getShapedLabelLength(shapedText, shapedIcon) * boxScale;
-    var prevDistance = 0;
-    var centerDistance = getLineLength(line) / 2;
+    var lengthFraction = clipEnd - clipStart;
+    var totalDistance = getLineLength(line) / lengthFraction;
+    var centerDistance = totalDistance / 2;
+    var prevDistance = clipStart * totalDistance;
     for (var i = 0; i < line.length - 1; i++) {
         var a = line[i], b = line[i + 1];
         var segmentDistance = a.dist(b);
@@ -20382,12 +20453,12 @@ TinyQueue.prototype.pop = function pop() {
         return undefined;
     }
     var top = this.data[0];
+    var bottom = this.data.pop();
     this.length--;
     if (this.length > 0) {
-        this.data[0] = this.data[this.length];
+        this.data[0] = bottom;
         this._down(0);
     }
-    this.data.pop();
     return top;
 };
 TinyQueue.prototype.peek = function peek() {
@@ -20814,7 +20885,7 @@ function addFeature(bucket, feature, shapedTextOrientations, shapedIcon, imageMa
         for (var i$2 = 0, list$2 = feature.geometry; i$2 < list$2.length; i$2 += 1) {
             var line$1 = list$2[i$2];
             if (line$1.length > 1) {
-                var anchor$1 = getCenterAnchor(line$1, textMaxAngle, shapedTextOrientations.vertical || defaultHorizontalShaping, shapedIcon, glyphSize, textMaxBoxScale);
+                var anchor$1 = getCenterAnchor(line$1, textMaxAngle, shapedTextOrientations.vertical || defaultHorizontalShaping, shapedIcon, glyphSize, textMaxBoxScale, feature.properties['mapbox_clip_start'] || 0, feature.properties['mapbox_clip_end'] || 1);
                 if (anchor$1) {
                     addSymbolAtAnchor(line$1, anchor$1);
                 }
@@ -23322,7 +23393,7 @@ exports.wrap = wrap;
 
 });
 
-define(['./shared'], function (performance) { 'use strict';
+define(['./shared'], function (performance$1) { 'use strict';
 
 function stringify(obj) {
     var type = typeof obj;
@@ -23346,7 +23417,7 @@ function stringify(obj) {
 }
 function getKey(layer) {
     var key = '';
-    for (var i = 0, list = performance.refProperties; i < list.length; i += 1) {
+    for (var i = 0, list = performance$1.refProperties; i < list.length; i += 1) {
         var k = list[i];
         key += '/' + stringify(layer[k]);
     }
@@ -23388,8 +23459,8 @@ StyleLayerIndex.prototype.update = function update(layerConfigs, removedIds) {
     for (var i = 0, list = layerConfigs; i < list.length; i += 1) {
         var layerConfig = list[i];
         this._layerConfigs[layerConfig.id] = layerConfig;
-        var layer = this._layers[layerConfig.id] = performance.createStyleLayer(layerConfig);
-        layer._featureFilter = performance.featureFilter(layer.filter);
+        var layer = this._layers[layerConfig.id] = performance$1.createStyleLayer(layerConfig);
+        layer._featureFilter = performance$1.featureFilter(layer.filter);
         if (this.keyCache[layerConfig.id]) {
             delete this.keyCache[layerConfig.id];
         }
@@ -23401,7 +23472,7 @@ StyleLayerIndex.prototype.update = function update(layerConfigs, removedIds) {
         delete this._layers[id];
     }
     this.familiesBySource = {};
-    var groups = groupByLayout(performance.values(this._layerConfigs), this.keyCache);
+    var groups = groupByLayout(performance$1.values(this._layerConfigs), this.keyCache);
     for (var i$2 = 0, list$2 = groups; i$2 < list$2.length; i$2 += 1) {
         var layerConfigs$1 = list$2[i$2];
         var layers = layerConfigs$1.map(function (layerConfig) {
@@ -23450,10 +23521,10 @@ var GlyphAtlas = function GlyphAtlas(stacks) {
             };
         }
     }
-    var ref = performance.potpack(bins);
+    var ref = performance$1.potpack(bins);
     var w = ref.w;
     var h = ref.h;
-    var image = new performance.AlphaImage({
+    var image = new performance$1.AlphaImage({
         width: w || 1,
         height: h || 1
     });
@@ -23465,7 +23536,7 @@ var GlyphAtlas = function GlyphAtlas(stacks) {
                 continue;
             }
             var bin$1 = positions[stack$1][id$1].rect;
-            performance.AlphaImage.copy(src$1.bitmap, image, {
+            performance$1.AlphaImage.copy(src$1.bitmap, image, {
                 x: 0,
                 y: 0
             }, {
@@ -23477,10 +23548,10 @@ var GlyphAtlas = function GlyphAtlas(stacks) {
     this.image = image;
     this.positions = positions;
 };
-performance.register('GlyphAtlas', GlyphAtlas);
+performance$1.register('GlyphAtlas', GlyphAtlas);
 
 var WorkerTile = function WorkerTile(params) {
-    this.tileID = new performance.OverscaledTileID(params.tileID.overscaledZ, params.tileID.wrap, params.tileID.canonical.z, params.tileID.canonical.x, params.tileID.canonical.y);
+    this.tileID = new performance$1.OverscaledTileID(params.tileID.overscaledZ, params.tileID.wrap, params.tileID.canonical.z, params.tileID.canonical.x, params.tileID.canonical.y);
     this.uid = params.uid;
     this.zoom = params.zoom;
     this.pixelRatio = params.pixelRatio;
@@ -23496,9 +23567,9 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
     var this$1 = this;
     this.status = 'parsing';
     this.data = data;
-    this.collisionBoxArray = new performance.CollisionBoxArray();
-    var sourceLayerCoder = new performance.DictionaryCoder(Object.keys(data.layers).sort());
-    var featureIndex = new performance.FeatureIndex(this.tileID, this.promoteId);
+    this.collisionBoxArray = new performance$1.CollisionBoxArray();
+    var sourceLayerCoder = new performance$1.DictionaryCoder(Object.keys(data.layers).sort());
+    var featureIndex = new performance$1.FeatureIndex(this.tileID, this.promoteId);
     featureIndex.bucketLayerIDs = [];
     var buckets = {};
     var options = {
@@ -23515,7 +23586,7 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
             continue;
         }
         if (sourceLayer.version === 1) {
-            performance.warnOnce('Vector tile source "' + this.source + '" layer "' + sourceLayerId + '" ' + 'does not use vector tile spec v2 and therefore may have some rendering errors.');
+            performance$1.warnOnce('Vector tile source "' + this.source + '" layer "' + sourceLayerId + '" ' + 'does not use vector tile spec v2 and therefore may have some rendering errors.');
         }
         var sourceLayerIndex = sourceLayerCoder.encode(sourceLayerId);
         var features = [];
@@ -23562,7 +23633,7 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
     var glyphMap;
     var iconMap;
     var patternMap;
-    var stacks = performance.mapObject(options.glyphDependencies, function (glyphs) {
+    var stacks = performance$1.mapObject(options.glyphDependencies, function (glyphs) {
         return Object.keys(glyphs).map(Number);
     });
     if (Object.keys(stacks).length) {
@@ -23619,20 +23690,20 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
             return callback(error);
         } else if (glyphMap && iconMap && patternMap) {
             var glyphAtlas = new GlyphAtlas(glyphMap);
-            var imageAtlas = new performance.ImageAtlas(iconMap, patternMap);
+            var imageAtlas = new performance$1.ImageAtlas(iconMap, patternMap);
             for (var key in buckets) {
                 var bucket = buckets[key];
-                if (bucket instanceof performance.SymbolBucket) {
+                if (bucket instanceof performance$1.SymbolBucket) {
                     recalculateLayers(bucket.layers, this.zoom, availableImages);
-                    performance.performSymbolLayout(bucket, glyphMap, glyphAtlas.positions, iconMap, imageAtlas.iconPositions, this.showCollisionBoxes, this.tileID.canonical);
-                } else if (bucket.hasPattern && (bucket instanceof performance.LineBucket || bucket instanceof performance.FillBucket || bucket instanceof performance.FillExtrusionBucket)) {
+                    performance$1.performSymbolLayout(bucket, glyphMap, glyphAtlas.positions, iconMap, imageAtlas.iconPositions, this.showCollisionBoxes, this.tileID.canonical);
+                } else if (bucket.hasPattern && (bucket instanceof performance$1.LineBucket || bucket instanceof performance$1.FillBucket || bucket instanceof performance$1.FillExtrusionBucket)) {
                     recalculateLayers(bucket.layers, this.zoom, availableImages);
                     bucket.addFeatures(options, this.tileID.canonical, imageAtlas.patternPositions);
                 }
             }
             this.status = 'done';
             callback(null, {
-                buckets: performance.values(buckets).filter(function (b) {
+                buckets: performance$1.values(buckets).filter(function (b) {
                     return !b.isEmpty();
                 }),
                 featureIndex: featureIndex,
@@ -23647,7 +23718,7 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
     }
 };
 function recalculateLayers(layers, zoom, availableImages) {
-    var parameters = new performance.EvaluationParameters(zoom);
+    var parameters = new performance$1.EvaluationParameters(zoom);
     for (var i = 0, list = layers; i < list.length; i += 1) {
         var layer = list[i];
         layer.recalculate(parameters, availableImages);
@@ -23655,12 +23726,12 @@ function recalculateLayers(layers, zoom, availableImages) {
 }
 
 function loadVectorTile(params, callback) {
-    var request = performance.getArrayBuffer(params.request, function (err, data, cacheControl, expires) {
+    var request = performance$1.getArrayBuffer(params.request, function (err, data, cacheControl, expires) {
         if (err) {
             callback(err);
         } else if (data) {
             callback(null, {
-                vectorTile: new performance.vectorTile.VectorTile(new performance.pbf(data)),
+                vectorTile: new performance$1.vectorTile.VectorTile(new performance$1.pbf(data)),
                 rawData: data,
                 cacheControl: cacheControl,
                 expires: expires
@@ -23686,7 +23757,7 @@ VectorTileWorkerSource.prototype.loadTile = function loadTile(params, callback) 
     if (!this.loading) {
         this.loading = {};
     }
-    var perf = params && params.request && params.request.collectResourceTiming ? new performance.RequestPerformance(params.request) : false;
+    var perf = params && params.request && params.request.collectResourceTiming ? new performance$1.RequestPerformance(params.request) : false;
     var workerTile = this.loading[uid] = new WorkerTile(params);
     workerTile.abort = this.loadVectorData(params, function (err, response) {
         delete this$1.loading[uid];
@@ -23715,7 +23786,7 @@ VectorTileWorkerSource.prototype.loadTile = function loadTile(params, callback) 
             if (err || !result) {
                 return callback(err);
             }
-            callback(null, performance.extend({ rawTileData: rawTileData.slice(0) }, result, cacheControl, resourceTiming));
+            callback(null, performance$1.extend({ rawTileData: rawTileData.slice(0) }, result, cacheControl, resourceTiming));
         });
         this$1.loaded = this$1.loaded || {};
         this$1.loaded[uid] = workerTile;
@@ -23762,7 +23833,7 @@ VectorTileWorkerSource.prototype.removeTile = function removeTile(params, callba
     callback();
 };
 
-var ImageBitmap = performance.window.ImageBitmap;
+var ImageBitmap = performance$1.window.ImageBitmap;
 var RasterDEMTileWorkerSource = function RasterDEMTileWorkerSource() {
     this.loaded = {};
 };
@@ -23771,7 +23842,7 @@ RasterDEMTileWorkerSource.prototype.loadTile = function loadTile(params, callbac
     var encoding = params.encoding;
     var rawImageData = params.rawImageData;
     var imagePixels = ImageBitmap && rawImageData instanceof ImageBitmap ? this.getImageData(rawImageData) : rawImageData;
-    var dem = new performance.DEMData(uid, imagePixels, encoding);
+    var dem = new performance$1.DEMData(uid, imagePixels, encoding);
     this.loaded = this.loaded || {};
     this.loaded[uid] = dem;
     callback(null, dem);
@@ -23786,7 +23857,7 @@ RasterDEMTileWorkerSource.prototype.getImageData = function getImageData(imgBitm
     this.offscreenCanvasContext.drawImage(imgBitmap, 0, 0, imgBitmap.width, imgBitmap.height);
     var imgData = this.offscreenCanvasContext.getImageData(-1, -1, imgBitmap.width + 2, imgBitmap.height + 2);
     this.offscreenCanvasContext.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
-    return new performance.RGBAImage({
+    return new performance$1.RGBAImage({
         width: imgData.width,
         height: imgData.height
     }, imgData.data);
@@ -23798,136 +23869,51 @@ RasterDEMTileWorkerSource.prototype.removeTile = function removeTile(params) {
     }
 };
 
-var RADIUS = 6378137;
-var FLATTENING = 1 / 298.257223563;
-var POLAR_RADIUS = 6356752.3142;
-
-var wgs84 = {
-	RADIUS: RADIUS,
-	FLATTENING: FLATTENING,
-	POLAR_RADIUS: POLAR_RADIUS
-};
-
-var geometry_1 = geometry;
-var ring = ringArea;
-function geometry(_) {
-    var area = 0, i;
-    switch (_.type) {
-    case 'Polygon':
-        return polygonArea(_.coordinates);
-    case 'MultiPolygon':
-        for (i = 0; i < _.coordinates.length; i++) {
-            area += polygonArea(_.coordinates[i]);
-        }
-        return area;
-    case 'Point':
-    case 'MultiPoint':
-    case 'LineString':
-    case 'MultiLineString':
-        return 0;
-    case 'GeometryCollection':
-        for (i = 0; i < _.geometries.length; i++) {
-            area += geometry(_.geometries[i]);
-        }
-        return area;
-    }
-}
-function polygonArea(coords) {
-    var area = 0;
-    if (coords && coords.length > 0) {
-        area += Math.abs(ringArea(coords[0]));
-        for (var i = 1; i < coords.length; i++) {
-            area -= Math.abs(ringArea(coords[i]));
-        }
-    }
-    return area;
-}
-function ringArea(coords) {
-    var p1, p2, p3, lowerIndex, middleIndex, upperIndex, i, area = 0, coordsLength = coords.length;
-    if (coordsLength > 2) {
-        for (i = 0; i < coordsLength; i++) {
-            if (i === coordsLength - 2) {
-                lowerIndex = coordsLength - 2;
-                middleIndex = coordsLength - 1;
-                upperIndex = 0;
-            } else if (i === coordsLength - 1) {
-                lowerIndex = coordsLength - 1;
-                middleIndex = 0;
-                upperIndex = 1;
-            } else {
-                lowerIndex = i;
-                middleIndex = i + 1;
-                upperIndex = i + 2;
-            }
-            p1 = coords[lowerIndex];
-            p2 = coords[middleIndex];
-            p3 = coords[upperIndex];
-            area += (rad(p3[0]) - rad(p1[0])) * Math.sin(rad(p2[1]));
-        }
-        area = area * wgs84.RADIUS * wgs84.RADIUS / 2;
-    }
-    return area;
-}
-function rad(_) {
-    return _ * Math.PI / 180;
-}
-
-var geojsonArea = {
-	geometry: geometry_1,
-	ring: ring
-};
-
 var geojsonRewind = rewind;
 function rewind(gj, outer) {
-    switch (gj && gj.type || null) {
-    case 'FeatureCollection':
-        gj.features = gj.features.map(curryOuter(rewind, outer));
-        return gj;
-    case 'GeometryCollection':
-        gj.geometries = gj.geometries.map(curryOuter(rewind, outer));
-        return gj;
-    case 'Feature':
-        gj.geometry = rewind(gj.geometry, outer);
-        return gj;
-    case 'Polygon':
-    case 'MultiPolygon':
-        return correct(gj, outer);
-    default:
-        return gj;
+    var type = gj && gj.type, i;
+    if (type === 'FeatureCollection') {
+        for (i = 0; i < gj.features.length; i++) {
+            rewind(gj.features[i], outer);
+        }
+    } else if (type === 'GeometryCollection') {
+        for (i = 0; i < gj.geometries.length; i++) {
+            rewind(gj.geometries[i], outer);
+        }
+    } else if (type === 'Feature') {
+        rewind(gj.geometry, outer);
+    } else if (type === 'Polygon') {
+        rewindRings(gj.coordinates, outer);
+    } else if (type === 'MultiPolygon') {
+        for (i = 0; i < gj.coordinates.length; i++) {
+            rewindRings(gj.coordinates[i], outer);
+        }
+    }
+    return gj;
+}
+function rewindRings(rings, outer) {
+    if (rings.length === 0) {
+        return;
+    }
+    rewindRing(rings[0], outer);
+    for (var i = 1; i < rings.length; i++) {
+        rewindRing(rings[i], !outer);
     }
 }
-function curryOuter(a, b) {
-    return function (_) {
-        return a(_, b);
-    };
-}
-function correct(_, outer) {
-    if (_.type === 'Polygon') {
-        _.coordinates = correctRings(_.coordinates, outer);
-    } else if (_.type === 'MultiPolygon') {
-        _.coordinates = _.coordinates.map(curryOuter(correctRings, outer));
+function rewindRing(ring, dir) {
+    var area = 0;
+    for (var i = 0, len = ring.length, j = len - 1; i < len; j = i++) {
+        area += (ring[i][0] - ring[j][0]) * (ring[j][1] + ring[i][1]);
     }
-    return _;
-}
-function correctRings(_, outer) {
-    outer = !!outer;
-    _[0] = wind(_[0], outer);
-    for (var i = 1; i < _.length; i++) {
-        _[i] = wind(_[i], !outer);
+    if (area >= 0 !== !!dir) {
+        ring.reverse();
     }
-    return _;
-}
-function wind(_, dir) {
-    return cw(_) === dir ? _ : _.reverse();
-}
-function cw(_) {
-    return geojsonArea.ring(_) >= 0;
 }
 
-var toGeoJSON = performance.vectorTile.VectorTileFeature.prototype.toGeoJSON;
+var toGeoJSON = performance$1.vectorTile.VectorTileFeature.prototype.toGeoJSON;
 var FeatureWrapper = function FeatureWrapper(feature) {
     this._feature = feature;
-    this.extent = performance.EXTENT;
+    this.extent = performance$1.EXTENT;
     this.type = feature.type;
     this.properties = feature.tags;
     if ('id' in feature && !isNaN(feature.id)) {
@@ -23939,7 +23925,7 @@ FeatureWrapper.prototype.loadGeometry = function loadGeometry() {
         var geometry = [];
         for (var i = 0, list = this._feature.geometry; i < list.length; i += 1) {
             var point = list[i];
-            geometry.push([new performance.Point$1(point[0], point[1])]);
+            geometry.push([new performance$1.Point$1(point[0], point[1])]);
         }
         return geometry;
     } else {
@@ -23949,7 +23935,7 @@ FeatureWrapper.prototype.loadGeometry = function loadGeometry() {
             var newRing = [];
             for (var i$1 = 0, list$1 = ring; i$1 < list$1.length; i$1 += 1) {
                 var point$1 = list$1[i$1];
-                newRing.push(new performance.Point$1(point$1[0], point$1[1]));
+                newRing.push(new performance$1.Point$1(point$1[0], point$1[1]));
             }
             geometry$1.push(newRing);
         }
@@ -23962,7 +23948,7 @@ FeatureWrapper.prototype.toGeoJSON = function toGeoJSON$1(x, y, z) {
 var GeoJSONWrapper = function GeoJSONWrapper(features) {
     this.layers = { '_geojsonTileLayer': this };
     this.name = '_geojsonTileLayer';
-    this.extent = performance.EXTENT;
+    this.extent = performance$1.EXTENT;
     this.length = features.length;
     this._features = features;
 };
@@ -23970,7 +23956,7 @@ GeoJSONWrapper.prototype.feature = function feature(i) {
     return new FeatureWrapper(this._features[i]);
 };
 
-var VectorTileFeature = performance.vectorTile.VectorTileFeature;
+var VectorTileFeature = performance$1.vectorTile.VectorTileFeature;
 var geojson_wrapper = GeoJSONWrapper$1;
 function GeoJSONWrapper$1(features, options) {
     this.options = options || {};
@@ -23994,7 +23980,7 @@ FeatureWrapper$1.prototype.loadGeometry = function () {
         var ring = rings[i];
         var newRing = [];
         for (var j = 0; j < ring.length; j++) {
-            newRing.push(new performance.Point$1(ring[j][0], ring[j][1]));
+            newRing.push(new performance$1.Point$1(ring[j][0], ring[j][1]));
         }
         this.geometry.push(newRing);
     }
@@ -24033,7 +24019,7 @@ var fromVectorTileJs_1 = fromVectorTileJs;
 var fromGeojsonVt_1 = fromGeojsonVt;
 var GeoJSONWrapper_1 = geojson_wrapper;
 function fromVectorTileJs(tile) {
-    var out = new performance.pbf();
+    var out = new performance$1.pbf();
     writeTile(tile, out);
     return out.finish();
 }
@@ -25511,7 +25497,7 @@ var GeoJSONWorkerSource = function (VectorTileWorkerSource) {
         var params = this._pendingLoadDataParams;
         delete this._pendingCallback;
         delete this._pendingLoadDataParams;
-        var perf = params && params.request && params.request.collectResourceTiming ? new performance.RequestPerformance(params.request) : false;
+        var perf = params && params.request && params.request.collectResourceTiming ? new performance$1.RequestPerformance(params.request) : false;
         this.loadGeoJSON(params, function (err, data) {
             if (err || !data) {
                 return callback(err);
@@ -25555,7 +25541,7 @@ var GeoJSONWorkerSource = function (VectorTileWorkerSource) {
     };
     GeoJSONWorkerSource.prototype.loadGeoJSON = function loadGeoJSON(params, callback) {
         if (params.request) {
-            performance.getJSON(params.request, callback);
+            performance$1.getJSON(params.request, callback);
         } else if (typeof params.data === 'string') {
             try {
                 return callback(null, JSON.parse(params.data));
@@ -25614,8 +25600,8 @@ function getSuperclusterOptions(ref) {
         var ref$1 = clusterProperties[key];
         var operator = ref$1[0];
         var mapExpression = ref$1[1];
-        var mapExpressionParsed = performance.createExpression(mapExpression);
-        var reduceExpressionParsed = performance.createExpression(typeof operator === 'string' ? [
+        var mapExpressionParsed = performance$1.createExpression(mapExpression);
+        var reduceExpressionParsed = performance$1.createExpression(typeof operator === 'string' ? [
             operator,
             ['accumulated'],
             [
@@ -25649,7 +25635,7 @@ function getSuperclusterOptions(ref) {
 var Worker = function Worker(self) {
     var this$1 = this;
     this.self = self;
-    this.actor = new performance.Actor(self, this);
+    this.actor = new performance$1.Actor(self, this);
     this.layerIndexes = {};
     this.availableImages = {};
     this.workerSourceTypes = {
@@ -25665,12 +25651,12 @@ var Worker = function Worker(self) {
         this$1.workerSourceTypes[name] = WorkerSource;
     };
     this.self.registerRTLTextPlugin = function (rtlTextPlugin) {
-        if (performance.plugin.isParsed()) {
+        if (performance$1.plugin.isParsed()) {
             throw new Error('RTL text plugin already registered.');
         }
-        performance.plugin['applyArabicShaping'] = rtlTextPlugin.applyArabicShaping;
-        performance.plugin['processBidirectionalText'] = rtlTextPlugin.processBidirectionalText;
-        performance.plugin['processStyledBidirectionalText'] = rtlTextPlugin.processStyledBidirectionalText;
+        performance$1.plugin['applyArabicShaping'] = rtlTextPlugin.applyArabicShaping;
+        performance$1.plugin['processBidirectionalText'] = rtlTextPlugin.processBidirectionalText;
+        performance$1.plugin['processStyledBidirectionalText'] = rtlTextPlugin.processStyledBidirectionalText;
     };
 };
 Worker.prototype.setReferrer = function setReferrer(mapID, referrer) {
@@ -25728,11 +25714,11 @@ Worker.prototype.loadWorkerSource = function loadWorkerSource(map, params, callb
 };
 Worker.prototype.syncRTLPluginState = function syncRTLPluginState(map, state, callback) {
     try {
-        performance.plugin.setState(state);
-        var pluginURL = performance.plugin.getPluginURL();
-        if (performance.plugin.isLoaded() && !performance.plugin.isParsed() && pluginURL != null) {
+        performance$1.plugin.setState(state);
+        var pluginURL = performance$1.plugin.getPluginURL();
+        if (performance$1.plugin.isLoaded() && !performance$1.plugin.isParsed() && pluginURL != null) {
             this.self.importScripts(pluginURL);
-            var complete = performance.plugin.isParsed();
+            var complete = performance$1.plugin.isParsed();
             var error = complete ? undefined : new Error('RTL Text Plugin failed to import scripts from ' + pluginURL);
             callback(error, complete);
         }
@@ -25782,10 +25768,10 @@ Worker.prototype.getDEMWorkerSource = function getDEMWorkerSource(mapId, source)
     return this.demWorkerSources[mapId][source];
 };
 Worker.prototype.enforceCacheSizeLimit = function enforceCacheSizeLimit$1(mapId, limit) {
-    performance.enforceCacheSizeLimit(limit);
+    performance$1.enforceCacheSizeLimit(limit);
 };
-if (typeof WorkerGlobalScope !== 'undefined' && typeof performance.window !== 'undefined' && performance.window instanceof WorkerGlobalScope) {
-    performance.window.worker = new Worker(performance.window);
+if (typeof WorkerGlobalScope !== 'undefined' && typeof performance$1.window !== 'undefined' && performance$1.window instanceof WorkerGlobalScope) {
+    performance$1.window.worker = new Worker(performance$1.window);
 }
 
 return Worker;
@@ -25800,9 +25786,42 @@ if ( module.exports) {
 } else if (window) {
     window.mapboxgl = window.mapboxgl || {};
     window.mapboxgl.supported = isSupported;
+    window.mapboxgl.notSupportedReason = notSupportedReason;
 }
 function isSupported(options) {
-    return !!(isBrowser() && isArraySupported() && isFunctionSupported() && isObjectSupported() && isJSONSupported() && isWorkerSupported() && isUint8ClampedArraySupported() && isArrayBufferSupported() && isWebGLSupportedCached(options && options.failIfMajorPerformanceCaveat));
+    return !notSupportedReason(options);
+}
+function notSupportedReason(options) {
+    if (!isBrowser()) {
+        return 'not a browser';
+    }
+    if (!isArraySupported()) {
+        return 'insufficent Array support';
+    }
+    if (!isFunctionSupported()) {
+        return 'insufficient Function support';
+    }
+    if (!isObjectSupported()) {
+        return 'insufficient Object support';
+    }
+    if (!isJSONSupported()) {
+        return 'insufficient JSON support';
+    }
+    if (!isWorkerSupported()) {
+        return 'insufficient worker support';
+    }
+    if (!isUint8ClampedArraySupported()) {
+        return 'insufficient Uint8ClampedArray support';
+    }
+    if (!isArrayBufferSupported()) {
+        return 'insufficient ArrayBuffer support';
+    }
+    if (!isCanvasGetImageDataSupported()) {
+        return 'insufficient Canvas/getImageData support';
+    }
+    if (!isWebGLSupportedCached(options && options.failIfMajorPerformanceCaveat)) {
+        return 'insufficient WebGL support';
+    }
 }
 function isBrowser() {
     return typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -25845,6 +25864,16 @@ function isUint8ClampedArraySupported() {
 function isArrayBufferSupported() {
     return ArrayBuffer.isView;
 }
+function isCanvasGetImageDataSupported() {
+    var canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    var context = canvas.getContext('2d');
+    if (!context) {
+        return false;
+    }
+    var imageData = context.getImageData(0, 0, 1, 1);
+    return imageData && imageData.width === canvas.width;
+}
 var isWebGLSupportedCache = {};
 function isWebGLSupportedCached(failIfMajorPerformanceCaveat) {
     if (isWebGLSupportedCache[failIfMajorPerformanceCaveat] === undefined) {
@@ -25858,7 +25887,7 @@ isSupported.webGLContextAttributes = {
     stencil: true,
     depth: true
 };
-function isWebGLSupported(failIfMajorPerformanceCaveat) {
+function getWebGLContext(failIfMajorPerformanceCaveat) {
     var canvas = document.createElement('canvas');
     var attributes = Object.create(isSupported.webGLContextAttributes);
     attributes.failIfMajorPerformanceCaveat = failIfMajorPerformanceCaveat;
@@ -25869,6 +25898,19 @@ function isWebGLSupported(failIfMajorPerformanceCaveat) {
     } else {
         return canvas.getContext('webgl', attributes) || canvas.getContext('experimental-webgl', attributes);
     }
+}
+function isWebGLSupported(failIfMajorPerformanceCaveat) {
+    var gl = getWebGLContext(failIfMajorPerformanceCaveat);
+    if (!gl) {
+        return false;
+    }
+    var shader = gl.createShader(gl.VERTEX_SHADER);
+    if (!shader || gl.isContextLost()) {
+        return false;
+    }
+    gl.shaderSource(shader, 'void main() {}');
+    gl.compileShader(shader);
+    return gl.getShaderParameter(shader, gl.COMPILE_STATUS) === true;
 }
 });
 
@@ -26403,6 +26445,7 @@ function loadGlyphRange (fontstack, range, urlTemplate, requestManager, callback
 }
 
 var tinySdf = TinySDF;
+var default_1 = TinySDF;
 var INF = 100000000000000000000;
 function TinySDF(fontSize, buffer, radius, cutoff, fontFamily, fontWeight) {
     this.fontSize = fontSize || 24;
@@ -26486,6 +26529,7 @@ function edt1d(f, d, v, z, n) {
         d[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
     }
 }
+tinySdf.default = default_1;
 
 var GlyphManager = function GlyphManager(requestManager, localIdeographFontFamily) {
     this.requestManager = requestManager;
@@ -34571,8 +34615,6 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
     var rotateInShader = rotateWithMap && !pitchWithMap && !alongLine;
     var sortFeaturesByKey = layer.layout.get('symbol-sort-key').constantOr(1) !== undefined;
     var depthMode = painter.depthModeForSublayer(0, DepthMode.ReadOnly);
-    var program;
-    var size;
     var variablePlacement = layer.layout.get('text-variable-anchor');
     var tileRenderState = [];
     for (var i$1 = 0, list$1 = coords; i$1 < list$1.length; i$1 += 1) {
@@ -34590,10 +34632,8 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
         var isSDF = isText || bucket.sdfIcons;
         var sizeData = isText ? bucket.textSizeData : bucket.iconSizeData;
         var transformed = pitchWithMap || tr.pitch !== 0;
-        if (!program) {
-            program = painter.useProgram(getSymbolProgramName(isSDF, isText, bucket), programConfiguration);
-            size = performance.evaluateSizeForZoom(sizeData, tr.zoom);
-        }
+        var program = painter.useProgram(getSymbolProgramName(isSDF, isText, bucket), programConfiguration);
+        var size = performance.evaluateSizeForZoom(sizeData, tr.zoom);
         var texSize = void 0;
         var texSizeIcon = [
             0,
@@ -37392,8 +37432,6 @@ DragRotateHandler.prototype._onMouseUp = function _onMouseUp(e) {
         this._state = 'enabled';
         this._unbind();
         break;
-    default:
-        break;
     }
 };
 DragRotateHandler.prototype._onBlur = function _onBlur(e) {
@@ -37411,8 +37449,6 @@ DragRotateHandler.prototype._onBlur = function _onBlur(e) {
     case 'pending':
         this._state = 'enabled';
         this._unbind();
-        break;
-    default:
         break;
     }
 };
@@ -37651,8 +37687,6 @@ DragPanHandler.prototype._onMouseUp = function _onMouseUp(e) {
         this._state = 'enabled';
         this._unbind();
         break;
-    default:
-        break;
     }
 };
 DragPanHandler.prototype._onTouchEnd = function _onTouchEnd(e) {
@@ -37671,8 +37705,6 @@ DragPanHandler.prototype._onTouchEnd = function _onTouchEnd(e) {
         case 'enabled':
             this._unbind();
             break;
-        default:
-            break;
         }
     } else {
         switch (this._state) {
@@ -37681,8 +37713,6 @@ DragPanHandler.prototype._onTouchEnd = function _onTouchEnd(e) {
             break;
         case 'enabled':
             this.onTouchStart(e);
-            break;
-        default:
             break;
         }
     }
@@ -37707,8 +37737,6 @@ DragPanHandler.prototype._abort = function _abort(e) {
         break;
     case 'enabled':
         this._unbind();
-        break;
-    default:
         break;
     }
 };
@@ -38444,6 +38472,7 @@ var Camera = function (Evented) {
             return this;
         }
         options = performance.extend(calculatedOptions, options);
+        delete options.padding;
         return options.linear ? this.easeTo(options, eventData) : this.flyTo(options, eventData);
     };
     Camera.prototype.jumpTo = function jumpTo(options, eventData) {
@@ -40723,9 +40752,6 @@ var GeolocateControl = function (Evented) {
             this._geolocateButton.classList.add('mapboxgl-ctrl-geolocate-background-error');
             this._geolocateButton.classList.add('mapboxgl-ctrl-geolocate-waiting');
             break;
-        case 'ACTIVE_ERROR':
-            break;
-        default:
         }
     };
     GeolocateControl.prototype._onSuccess = function _onSuccess(position) {
@@ -40757,7 +40783,6 @@ var GeolocateControl = function (Evented) {
                 this._geolocateButton.classList.remove('mapboxgl-ctrl-geolocate-background-error');
                 this._geolocateButton.classList.add('mapboxgl-ctrl-geolocate-background');
                 break;
-            default:
             }
         }
         if (this.options.showUserLocation && this._watchState !== 'OFF') {
@@ -40933,7 +40958,6 @@ var GeolocateControl = function (Evented) {
                 }
                 this.fire(new performance.Event('trackuserlocationstart'));
                 break;
-            default:
             }
             switch (this._watchState) {
             case 'WAITING_ACTIVE':
@@ -40954,9 +40978,6 @@ var GeolocateControl = function (Evented) {
                 this._geolocateButton.classList.add('mapboxgl-ctrl-geolocate-waiting');
                 this._geolocateButton.classList.add('mapboxgl-ctrl-geolocate-background-error');
                 break;
-            case 'OFF':
-                break;
-            default:
             }
             if (this._watchState === 'OFF' && this._geolocationWatchID !== undefined) {
                 this._clearWatch();
@@ -41298,7 +41319,7 @@ var Popup = function (Evented) {
         return this.setDOMContent(frag);
     };
     Popup.prototype.getMaxWidth = function getMaxWidth() {
-        return this._container.style.maxWidth;
+        return this._container && this._container.style.maxWidth;
     };
     Popup.prototype.setMaxWidth = function setMaxWidth(maxWidth) {
         this.options.maxWidth = maxWidth;
@@ -41312,13 +41333,19 @@ var Popup = function (Evented) {
         return this;
     };
     Popup.prototype.addClassName = function addClassName(className) {
-        this._container.classList.add(className);
+        if (this._container) {
+            this._container.classList.add(className);
+        }
     };
     Popup.prototype.removeClassName = function removeClassName(className) {
-        this._container.classList.remove(className);
+        if (this._container) {
+            this._container.classList.remove(className);
+        }
     };
     Popup.prototype.toggleClassName = function toggleClassName(className) {
-        return this._container.classList.toggle(className);
+        if (this._container) {
+            return this._container.classList.toggle(className);
+        }
     };
     Popup.prototype._createContent = function _createContent() {
         if (this._content) {
@@ -41524,5 +41551,5 @@ return exported;
 
 return mapboxgl;
 
-}));
+})));
 //# sourceMappingURL=mapbox-gl-unminified.js.map
