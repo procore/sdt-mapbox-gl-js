@@ -37,12 +37,17 @@ function getCenterAnchor(line: Array<Point>,
                          shapedText: ?Shaping,
                          shapedIcon: ?PositionedIcon,
                          glyphSize: number,
-                         boxScale: number) {
+                         boxScale: number,
+                         clipStart: number,
+                         clipEnd: number) {
     const angleWindowSize = getAngleWindowSize(shapedText, glyphSize, boxScale);
     const labelLength = getShapedLabelLength(shapedText, shapedIcon) * boxScale;
 
-    let prevDistance = 0;
-    const centerDistance = getLineLength(line) / 2;
+    const lengthFraction = clipEnd - clipStart;
+    const totalDistance = getLineLength(line) / lengthFraction;
+    const centerDistance = totalDistance / 2;
+
+    let prevDistance = clipStart * totalDistance;
 
     for (let i = 0; i < line.length - 1; i++) {
 
