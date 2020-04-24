@@ -443,7 +443,9 @@ function addFeature(bucket: SymbolBucket,
                     shapedTextOrientations.vertical || defaultHorizontalShaping,
                     shapedIcon,
                     glyphSize,
-                    textMaxBoxScale);
+                    textMaxBoxScale,
+                    feature.properties['mapbox_clip_start'] || 0,
+                    feature.properties['mapbox_clip_end'] || 1);
                 if (anchor) {
                     addSymbolAtAnchor(line, anchor);
                 }
