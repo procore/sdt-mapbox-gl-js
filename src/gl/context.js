@@ -27,6 +27,7 @@ class Context {
     gl: WebGLRenderingContext;
     extVertexArrayObject: any;
     currentNumAttributes: ?number;
+    maxTextureSize: number;
 
     clearColor: ClearColor;
     clearDepth: ClearDepth;
@@ -63,6 +64,7 @@ class Context {
     extTextureFilterAnisotropic: any;
     extTextureFilterAnisotropicMax: any;
     extTextureHalfFloat: any;
+    extRenderToTextureHalfFloat: any;
     extTimerQuery: any;
 
     constructor(gl: WebGLRenderingContext) {
@@ -113,9 +115,11 @@ class Context {
         this.extTextureHalfFloat = gl.getExtension('OES_texture_half_float');
         if (this.extTextureHalfFloat) {
             gl.getExtension('OES_texture_half_float_linear');
+            this.extRenderToTextureHalfFloat = gl.getExtension('EXT_color_buffer_half_float');
         }
 
         this.extTimerQuery = gl.getExtension('EXT_disjoint_timer_query');
+        this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     }
 
     setDefault() {
