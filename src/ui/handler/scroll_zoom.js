@@ -70,26 +70,27 @@ class ScrollZoomHandler {
         this._defaultZoomRate = defaultZoomRate;
         this._wheelZoomRate = wheelZoomRate;
 
-        bindAll([
-            '_onWheel',
-            '_onTimeout',
-            '_onScrollFrame',
-            '_onScrollFinished'
-        ], this);
+        bindAll(['_onTimeout'], this);
     }
 
     /**
      * Set the zoom rate of a trackpad
      * @param {number} [zoomRate=1/100] The rate used to scale trackpad movement to a zoom value.
+     * @example
+     * // Speed up trackpad zoom
+     * map.scrollZoom.setZoomRate(1/25);
      */
     setZoomRate(zoomRate: number) {
         this._defaultZoomRate = zoomRate;
     }
 
     /**
-     * Set the zoom rate of a mouse wheel
-     * @param {number} [wheelZoomRate=1/450] The rate used to scale mouse wheel movement to a zoom value.
-     */
+    * Set the zoom rate of a mouse wheel
+    * @param {number} [wheelZoomRate=1/450] The rate used to scale mouse wheel movement to a zoom value.
+    * @example
+    * // Slow down zoom of mouse wheel
+    * map.scrollZoom.setWheelZoomRate(1/600);
+    */
     setWheelZoomRate(wheelZoomRate: number) {
         this._wheelZoomRate = wheelZoomRate;
     }
@@ -235,10 +236,6 @@ class ScrollZoomHandler {
     }
 
     renderFrame() {
-        return this._onScrollFrame();
-    }
-
-    _onScrollFrame() {
         if (!this._frameId) return;
         this._frameId = null;
 

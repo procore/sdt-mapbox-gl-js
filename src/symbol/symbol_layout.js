@@ -443,7 +443,9 @@ function addFeature(bucket: SymbolBucket,
                     shapedTextOrientations.vertical || defaultHorizontalShaping,
                     shapedIcon,
                     glyphSize,
-                    textMaxBoxScale);
+                    textMaxBoxScale,
+                    feature.properties['mapbox_clip_start'] || 0,
+                    feature.properties['mapbox_clip_end'] || 1);
                 if (anchor) {
                     addSymbolAtAnchor(line, anchor);
                 }
@@ -496,19 +498,13 @@ function addTextVertices(bucket: SymbolBucket,
 
     if (sizeData.kind === 'source') {
         textSizeData = [
-            SIZE_PACK_FACTOR * layer.layout.get('text-size').evaluate(feature, {})
+            layer.layout.get('text-size').evaluate(feature, {})
         ];
-        if (textSizeData[0] > MAX_PACKED_SIZE) {
-            warnOnce(`${bucket.layerIds[0]}: Value for "text-size" is >= ${MAX_GLYPH_ICON_SIZE}. Reduce your "text-size".`);
-        }
     } else if (sizeData.kind === 'composite') {
         textSizeData = [
-            SIZE_PACK_FACTOR * sizes.compositeTextSizes[0].evaluate(feature, {}, canonical),
-            SIZE_PACK_FACTOR * sizes.compositeTextSizes[1].evaluate(feature, {}, canonical)
+            sizes.compositeTextSizes[0].evaluate(feature, {}, canonical),
+            sizes.compositeTextSizes[1].evaluate(feature, {}, canonical)
         ];
-        if (textSizeData[0] > MAX_PACKED_SIZE || textSizeData[1] > MAX_PACKED_SIZE) {
-            warnOnce(`${bucket.layerIds[0]}: Value for "text-size" is >= ${MAX_GLYPH_ICON_SIZE}. Reduce your "text-size".`);
-        }
     }
 
     bucket.addSymbols(

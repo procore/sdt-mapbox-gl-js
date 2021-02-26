@@ -273,9 +273,11 @@ test('DragRotateHandler ensures that map.isMoving() returns true during drag', (
 
     simulate.mousedown(map.getCanvas(), {buttons: 2, button: 2});
     simulate.mousemove(map.getCanvas(), {buttons: 2, clientX: 10, clientY: 10});
+    map._renderTaskQueue.run();
     t.ok(map.isMoving());
 
     simulate.mouseup(map.getCanvas(),   {buttons: 0, button: 2});
+    map._renderTaskQueue.run();
     t.ok(!map.isMoving());
 
     map.remove();
@@ -497,7 +499,7 @@ test('DragRotateHandler ends rotation if the window blurs (#3389)', (t) => {
 
 test('DragRotateHandler requests a new render frame after each mousemove event', (t) => {
     const map = createMap(t);
-    const requestRenderFrame = t.spy(map, '_requestRenderFrame');
+    const requestRenderFrame = t.spy(map.handlers, '_requestFrame');
 
     // Prevent inertial rotation.
     t.stub(browser, 'now').returns(0);

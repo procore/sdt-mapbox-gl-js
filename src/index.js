@@ -163,6 +163,8 @@ const exported = {
      *
      * @function clearStorage
      * @param {Function} callback Called with an error argument if there is an error.
+     * @example
+     * mapboxgl.clearStorage();
      */
     clearStorage(callback?: (err: ?Error) => void) {
         clearTileCache(callback);
@@ -191,7 +193,10 @@ Debug.extend(exported, {isSafari, getPerformanceMetrics: PerformanceUtils.getPer
  *   be dramatically worse than expected (e.g. a software WebGL renderer would be used).
  * @return {boolean}
  * @example
- * mapboxgl.supported() // = true
+ * // Show an alert if the browser does not support Mapbox GL
+ * if (!mapboxgl.supported()) {
+ *   alert('Your browser does not support Mapbox GL');
+ * }
  * @see [Check for browser support](https://www.mapbox.com/mapbox-gl-js/example/check-for-support/)
  */
 
