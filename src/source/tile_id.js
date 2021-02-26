@@ -39,7 +39,8 @@ export class CanonicalTileID {
             .replace('{x}', String(this.x))
             .replace('{y}', String(scheme === 'tms' ? (Math.pow(2, this.z) - this.y - 1) : this.y))
             .replace('{quadkey}', quadkey)
-            .replace('{bbox-epsg-3857}', bbox);
+            .replace('{bbox-epsg-3857}', bbox)
+            .replace('{time}', new Date().getTime());
     }
 
     getTilePoint(coord: MercatorCoordinate) {
