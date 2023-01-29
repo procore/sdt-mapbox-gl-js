@@ -534,9 +534,41 @@ test('Map', (t) => {
             t.end();
         });
 
+        t.test('does nothing if container size is the same', (t) => {
+            const map = createMap(t);
+
+            t.spy(map.transform, 'resize');
+            t.spy(map.painter, 'resize');
+
+            map.resize();
+
+            t.notOk(map.transform.resize.called);
+            t.notOk(map.painter.resize.called);
+
+            t.end();
+        });
+
+        t.test('does not call stop on resize', (t) => {
+            const map = createMap(t);
+
+            Object.defineProperty(map.getContainer(), 'clientWidth', {value: 250});
+            Object.defineProperty(map.getContainer(), 'clientHeight', {value: 250});
+
+            t.spy(map, 'stop');
+
+            map.resize();
+
+            t.notOk(map.stop.called);
+
+            t.end();
+        });
+
         t.test('fires movestart, move, resize, and moveend events', (t) => {
             const map = createMap(t),
                 events = [];
+
+            Object.defineProperty(map.getContainer(), 'clientWidth', {value: 250});
+            Object.defineProperty(map.getContainer(), 'clientHeight', {value: 250});
 
             ['movestart', 'move', 'resize', 'moveend'].forEach((event) => {
                 map.on(event, (e) => {
@@ -1017,6 +1049,22 @@ test('Map', (t) => {
         t.equal(map._controls.length, 1, "removes removed controls from map's control array");
         t.end();
 
+    });
+
+    t.test('#hasControl', (t) => {
+        const map = createMap(t);
+        function Ctrl() {}
+        Ctrl.prototype = {
+            onAdd(_) {
+                return window.document.createElement('div');
+            }
+        };
+
+        const control = new Ctrl();
+        t.equal(map.hasControl(control), false, 'Reference to control is not found');
+        map.addControl(control);
+        t.equal(map.hasControl(control), true, 'Reference to control is found');
+        t.end();
     });
 
     t.test('#project', (t) => {
@@ -1999,7 +2047,7 @@ test('Map', (t) => {
         const map = createMap(t, {interactive: true});
         map.flyTo({center: [200, 0], duration: 100});
 
-        simulate.touchstart(map.getCanvasContainer(), {targetTouches: [{clientX: 0, clientY: 0}]});
+        simulate.touchstart(map.getCanvasContainer(), {touches: [{target: map.getCanvas(), clientX: 0, clientY: 0}]});
         t.equal(map.isEasing(), false);
 
         map.remove();

@@ -151,6 +151,15 @@ test("mapbox", (t) => {
                 t.end();
             });
 
+            t.test('removes secure params if custom API_URL is http', (t) => {
+                config.API_URL = 'http://test.example.com/api.mapbox.com';
+                t.equal(
+                    manager.normalizeSourceURL('mapbox://one.a'),
+                    'http://test.example.com/api.mapbox.com/v4/one.a.json?access_token=key'
+                );
+                t.end();
+            });
+
             t.end();
         });
 
@@ -741,6 +750,7 @@ test("mapbox", (t) => {
 
         t.end();
     });
+
     t.test('MapLoadEvent', (t) => {
         let event;
         let turnstileEvent;
@@ -783,8 +793,11 @@ test("mapbox", (t) => {
 
         t.test('does not POST when url does not point to mapbox.com', (t) => {
             event.postMapLoadEvent(nonMapboxTileURLs, 1, skuToken);
-
             t.equal(window.server.requests.length, 0);
+
+            event.postMapLoadEvent(nonMapboxTileURLs, 1, skuToken, 'customAccessToken');
+            t.equal(window.server.requests.length, 0);
+
             t.end();
         });
 
