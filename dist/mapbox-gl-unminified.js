@@ -1,4 +1,4 @@
-/* Mapbox GL JS is licensed under the 3-Clause BSD License. Full text of license: https://github.com/mapbox/mapbox-gl-js/blob/v1.9.1/LICENSE.txt */
+/* Mapbox GL JS is licensed under the 3-Clause BSD License. Full text of license: https://github.com/mapbox/mapbox-gl-js/blob/v1.13.3/LICENSE.txt */
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 typeof define === 'function' && define.amd ? define(factory) :
@@ -21,7 +21,9 @@ if (!shared) {
     var sharedChunk = {};
     shared(sharedChunk);
     mapboxgl = chunk(sharedChunk);
-    mapboxgl.workerUrl = window.URL.createObjectURL(new Blob([workerBundleString], { type: 'text/javascript' }));
+    if (typeof window !== 'undefined') {
+        mapboxgl.workerUrl = window.URL.createObjectURL(new Blob([workerBundleString], { type: 'text/javascript' }));
+    }
 }
 }
 
@@ -32,7 +34,7 @@ function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
 }
 
-var version = "1.9.1";
+var version = "1.13.3";
 
 var unitbezier = UnitBezier;
 function UnitBezier(p1x, p1y, p2x, p2y) {
@@ -243,6 +245,8 @@ Point.convert = function (a) {
     return a;
 };
 
+var window$1 = typeof self !== 'undefined' ? self : {};
+
 function deepEqual(a, b) {
     if (Array.isArray(a)) {
         if (!Array.isArray(b) || a.length !== b.length) {
@@ -273,6 +277,7 @@ function deepEqual(a, b) {
     return a === b;
 }
 
+var MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
 function easeCubicInOut(t) {
     if (t <= 0) {
         return 0;
@@ -364,6 +369,12 @@ function uuid() {
         return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : ([10000000] + -[1000] + -4000 + -8000 + -100000000000).replace(/[018]/g, b);
     }
     return b();
+}
+function nextPowerOfTwo(value) {
+    if (value <= 1) {
+        return 1;
+    }
+    return Math.pow(2, Math.ceil(Math.log(value) / Math.LN2));
 }
 function validateUuid(str) {
     return str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str) : false;
@@ -477,7 +488,7 @@ function isSafari(scope) {
 }
 function storageAvailable(type) {
     try {
-        var storage = self[type];
+        var storage = window$1[type];
         storage.setItem('_mapbox_test_', 1);
         storage.removeItem('_mapbox_test_');
         return true;
@@ -486,19 +497,19 @@ function storageAvailable(type) {
     }
 }
 function b64EncodeUnicode(str) {
-    return self.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
+    return window$1.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
         return String.fromCharCode(Number('0x' + p1));
     }));
 }
 function b64DecodeUnicode(str) {
-    return decodeURIComponent(self.atob(str).split('').map(function (c) {
+    return decodeURIComponent(window$1.atob(str).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
 }
 
-var now = self.performance && self.performance.now ? self.performance.now.bind(self.performance) : Date.now.bind(Date);
-var raf = self.requestAnimationFrame || self.mozRequestAnimationFrame || self.webkitRequestAnimationFrame || self.msRequestAnimationFrame;
-var cancel = self.cancelAnimationFrame || self.mozCancelAnimationFrame || self.webkitCancelAnimationFrame || self.msCancelAnimationFrame;
+var now = window$1.performance && window$1.performance.now ? window$1.performance.now.bind(window$1.performance) : Date.now.bind(Date);
+var raf = window$1.requestAnimationFrame || window$1.mozRequestAnimationFrame || window$1.webkitRequestAnimationFrame || window$1.msRequestAnimationFrame;
+var cancel = window$1.cancelAnimationFrame || window$1.mozCancelAnimationFrame || window$1.webkitCancelAnimationFrame || window$1.msCancelAnimationFrame;
 var linkEl;
 var reducedMotionQuery;
 var exported = {
@@ -514,7 +525,7 @@ var exported = {
     getImageData: function getImageData(img, padding) {
         if (padding === void 0)
             padding = 0;
-        var canvas = self.document.createElement('canvas');
+        var canvas = window$1.document.createElement('canvas');
         var context = canvas.getContext('2d');
         if (!context) {
             throw new Error('failed to create canvas 2d context');
@@ -526,21 +537,21 @@ var exported = {
     },
     resolveURL: function resolveURL(path) {
         if (!linkEl) {
-            linkEl = self.document.createElement('a');
+            linkEl = window$1.document.createElement('a');
         }
         linkEl.href = path;
         return linkEl.href;
     },
-    hardwareConcurrency: self.navigator.hardwareConcurrency || 4,
+    hardwareConcurrency: window$1.navigator && window$1.navigator.hardwareConcurrency || 4,
     get devicePixelRatio() {
-        return self.devicePixelRatio;
+        return window$1.devicePixelRatio;
     },
     get prefersReducedMotion() {
-        if (!self.matchMedia) {
+        if (!window$1.matchMedia) {
             return false;
         }
         if (reducedMotionQuery == null) {
-            reducedMotionQuery = self.matchMedia('(prefers-reduced-motion: reduce)');
+            reducedMotionQuery = window$1.matchMedia('(prefers-reduced-motion: reduce)');
         }
         return reducedMotionQuery.matches;
     }
@@ -574,8 +585,8 @@ var glForTesting;
 var webpCheckComplete = false;
 var webpImgTest;
 var webpImgTestOnloadComplete = false;
-if (self.document) {
-    webpImgTest = self.document.createElement('img');
+if (window$1.document) {
+    webpImgTest = window$1.document.createElement('img');
     webpImgTest.onload = function () {
         if (glForTesting) {
             testWebpTextureUpload(glForTesting);
@@ -747,6 +758,12 @@ RequestManager.prototype._makeAPIURL = function _makeAPIURL(urlObject, accessTok
     var apiUrlObject = parseUrl(config.API_URL);
     urlObject.protocol = apiUrlObject.protocol;
     urlObject.authority = apiUrlObject.authority;
+    if (urlObject.protocol === 'http') {
+        var i = urlObject.params.indexOf('secure');
+        if (i >= 0) {
+            urlObject.params.splice(i, 1);
+        }
+    }
     if (apiUrlObject.path !== '/') {
         urlObject.path = '' + apiUrlObject.path + urlObject.path;
     }
@@ -842,11 +859,11 @@ TelemetryEvent.prototype.fetchEventData = function fetchEventData() {
     var uuidKey = this.getStorageKey('uuid');
     if (isLocalStorageAvailable) {
         try {
-            var data = self.localStorage.getItem(storageKey);
+            var data = window$1.localStorage.getItem(storageKey);
             if (data) {
                 this.eventData = JSON.parse(data);
             }
-            var uuid = self.localStorage.getItem(uuidKey);
+            var uuid = window$1.localStorage.getItem(uuidKey);
             if (uuid) {
                 this.anonId = uuid;
             }
@@ -861,9 +878,9 @@ TelemetryEvent.prototype.saveEventData = function saveEventData() {
     var uuidKey = this.getStorageKey('uuid');
     if (isLocalStorageAvailable) {
         try {
-            self.localStorage.setItem(uuidKey, this.anonId);
+            window$1.localStorage.setItem(uuidKey, this.anonId);
             if (Object.keys(this.eventData).length >= 1) {
-                self.localStorage.setItem(storageKey, JSON.stringify(this.eventData));
+                window$1.localStorage.setItem(storageKey, JSON.stringify(this.eventData));
             }
         } catch (e) {
             warnOnce('Unable to write to LocalStorage');
@@ -916,9 +933,11 @@ var MapLoadEvent = function (TelemetryEvent) {
     MapLoadEvent.prototype.constructor = MapLoadEvent;
     MapLoadEvent.prototype.postMapLoadEvent = function postMapLoadEvent(tileUrls, mapId, skuToken, customAccessToken) {
         this.skuToken = skuToken;
-        if (config.EVENTS_URL && customAccessToken || config.ACCESS_TOKEN && Array.isArray(tileUrls) && tileUrls.some(function (url) {
-                return isMapboxURL(url) || isMapboxHTTPURL(url);
-            })) {
+        var accessTokenIsSet = !!(customAccessToken || config.ACCESS_TOKEN);
+        var usesMapboxTiles = Array.isArray(tileUrls) && tileUrls.some(function (url) {
+            return isMapboxURL(url) || isMapboxHTTPURL(url);
+        });
+        if (config.EVENTS_URL && accessTokenIsSet && usesMapboxTiles) {
             this.queueRequest({
                 id: mapId,
                 timestamp: Date.now()
@@ -1015,8 +1034,8 @@ var cacheCheckThreshold = 50;
 var MIN_TIME_UNTIL_EXPIRY = 1000 * 60 * 7;
 var sharedCache;
 function cacheOpen() {
-    if (self.caches && !sharedCache) {
-        sharedCache = self.caches.open(CACHE_NAME);
+    if (window$1.caches && !sharedCache) {
+        sharedCache = window$1.caches.open(CACHE_NAME);
     }
 }
 var responseConstructorSupportsReadableStream;
@@ -1043,7 +1062,7 @@ function cachePut(request, response, requestTime) {
     var options = {
         status: response.status,
         statusText: response.statusText,
-        headers: new self.Headers()
+        headers: new window$1.Headers()
     };
     response.headers.forEach(function (v, k) {
         return options.headers.set(k, v);
@@ -1060,7 +1079,7 @@ function cachePut(request, response, requestTime) {
         return;
     }
     prepareBody(response, function (body) {
-        var clonedResponse = new self.Response(body, options);
+        var clonedResponse = new window$1.Response(body, options);
         cacheOpen();
         if (!sharedCache) {
             return;
@@ -1123,7 +1142,7 @@ function enforceCacheSizeLimit(limit) {
     });
 }
 function clearTileCache(callback) {
-    var promise = self.caches.delete(CACHE_NAME);
+    var promise = window$1.caches.delete(CACHE_NAME);
     if (callback) {
         promise.catch(callback).then(function () {
             return callback();
@@ -1138,7 +1157,7 @@ function setCacheLimits(limit, checkThreshold) {
 var supportsOffscreenCanvas;
 function offscreenCanvasSupported() {
     if (supportsOffscreenCanvas == null) {
-        supportsOffscreenCanvas = self.OffscreenCanvas && new self.OffscreenCanvas(1, 1).getContext('2d') && typeof self.createImageBitmap === 'function';
+        supportsOffscreenCanvas = window$1.OffscreenCanvas && new window$1.OffscreenCanvas(1, 1).getContext('2d') && typeof window$1.createImageBitmap === 'function';
     }
     return supportsOffscreenCanvas;
 }
@@ -1179,14 +1198,14 @@ var AJAXError = function (Error) {
 var getReferrer = isWorker() ? function () {
     return self.worker && self.worker.referrer;
 } : function () {
-    return (self.location.protocol === 'blob:' ? self.parent : self).location.href;
+    return (window$1.location.protocol === 'blob:' ? window$1.parent : window$1).location.href;
 };
 var isFileURL = function (url) {
     return /^file:/.test(url) || /^file:/.test(getReferrer()) && !/^\w+:/.test(url);
 };
 function makeFetchRequest(requestParameters, callback) {
-    var controller = new self.AbortController();
-    var request = new self.Request(requestParameters.url, {
+    var controller = new window$1.AbortController();
+    var request = new window$1.Request(requestParameters.url, {
         method: requestParameters.method || 'GET',
         body: requestParameters.body,
         credentials: requestParameters.credentials,
@@ -1213,7 +1232,7 @@ function makeFetchRequest(requestParameters, callback) {
             return finishRequest(cachedResponse);
         }
         var requestTime = Date.now();
-        self.fetch(request).then(function (response) {
+        window$1.fetch(request).then(function (response) {
             if (response.ok) {
                 var cacheableResponse = cacheIgnoringSearch ? response.clone() : null;
                 return finishRequest(response, cacheableResponse, requestTime);
@@ -1258,7 +1277,7 @@ function makeFetchRequest(requestParameters, callback) {
     };
 }
 function makeXMLHttpRequest(requestParameters, callback) {
-    var xhr = new self.XMLHttpRequest();
+    var xhr = new window$1.XMLHttpRequest();
     xhr.open(requestParameters.method || 'GET', requestParameters.url, true);
     if (requestParameters.type === 'arrayBuffer') {
         xhr.responseType = 'arraybuffer';
@@ -1298,7 +1317,7 @@ function makeXMLHttpRequest(requestParameters, callback) {
 }
 var makeRequest = function (requestParameters, callback) {
     if (!isFileURL(requestParameters.url)) {
-        if (self.fetch && self.Request && self.AbortController && self.Request.prototype.hasOwnProperty('signal')) {
+        if (window$1.fetch && window$1.Request && window$1.AbortController && window$1.Request.prototype.hasOwnProperty('signal')) {
             return makeFetchRequest(requestParameters, callback);
         }
         if (isWorker() && self.worker && self.worker.actor) {
@@ -1318,29 +1337,33 @@ var postData = function (requestParameters, callback) {
     return makeRequest(extend(requestParameters, { method: 'POST' }), callback);
 };
 function sameOrigin(url) {
-    var a = self.document.createElement('a');
+    var a = window$1.document.createElement('a');
     a.href = url;
-    return a.protocol === self.document.location.protocol && a.host === self.document.location.host;
+    return a.protocol === window$1.document.location.protocol && a.host === window$1.document.location.host;
 }
 var transparentPngUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQYV2NgAAIAAAUAAarVyFEAAAAASUVORK5CYII=';
 function arrayBufferToImage(data, callback, cacheControl, expires) {
-    var img = new self.Image();
-    var URL = self.URL;
+    var img = new window$1.Image();
+    var URL = window$1.URL;
     img.onload = function () {
         callback(null, img);
         URL.revokeObjectURL(img.src);
+        img.onload = null;
+        window$1.requestAnimationFrame(function () {
+            img.src = transparentPngUrl;
+        });
     };
     img.onerror = function () {
         return callback(new Error('Could not load image. Please make sure to use a supported image type such as PNG or JPEG. Note that SVGs are not supported.'));
     };
-    var blob = new self.Blob([new Uint8Array(data)], { type: 'image/png' });
+    var blob = new window$1.Blob([new Uint8Array(data)], { type: 'image/png' });
     img.cacheControl = cacheControl;
     img.expires = expires;
     img.src = data.byteLength ? URL.createObjectURL(blob) : transparentPngUrl;
 }
 function arrayBufferToImageBitmap(data, callback) {
-    var blob = new self.Blob([new Uint8Array(data)], { type: 'image/png' });
-    self.createImageBitmap(blob).then(function (imgBitmap) {
+    var blob = new window$1.Blob([new Uint8Array(data)], { type: 'image/png' });
+    window$1.createImageBitmap(blob).then(function (imgBitmap) {
         callback(null, imgBitmap);
     }).catch(function (e) {
         callback(new Error('Could not load image because of ' + e.message + '. Please make sure to use a supported image type such as PNG or JPEG. Note that SVGs are not supported.'));
@@ -1409,13 +1432,13 @@ var getImage = function (requestParameters, callback) {
     };
 };
 var getVideo = function (urls, callback) {
-    var video = self.document.createElement('video');
+    var video = window$1.document.createElement('video');
     video.muted = true;
     video.onloadstart = function () {
         callback(null, video);
     };
     for (var i = 0; i < urls.length; i++) {
-        var s = self.document.createElement('source');
+        var s = window$1.document.createElement('source');
         if (!sameOrigin(urls[i])) {
             video.crossOrigin = 'Anonymous';
         }
@@ -1634,6 +1657,10 @@ var source_vector = {
 	promoteId: {
 		type: "promoteId"
 	},
+	volatile: {
+		type: "boolean",
+		"default": false
+	},
 	"*": {
 		type: "*"
 	}
@@ -1690,6 +1717,10 @@ var source_raster = {
 	},
 	attribution: {
 		type: "string"
+	},
+	volatile: {
+		type: "boolean",
+		"default": false
 	},
 	"*": {
 		type: "*"
@@ -1748,6 +1779,10 @@ var source_raster_dem = {
 		},
 		"default": "mapbox"
 	},
+	volatile: {
+		type: "boolean",
+		"default": false
+	},
 	"*": {
 		type: "*"
 	}
@@ -1777,6 +1812,9 @@ var source_geojson = {
 		maximum: 512,
 		minimum: 0
 	},
+	filter: {
+		type: "*"
+	},
 	tolerance: {
 		type: "number",
 		"default": 0.375
@@ -1791,6 +1829,9 @@ var source_geojson = {
 		minimum: 0
 	},
 	clusterMaxZoom: {
+		type: "number"
+	},
+	clusterMinPoints: {
 		type: "number"
 	},
 	clusterProperties: {
@@ -2977,6 +3018,8 @@ var filter_operator = {
 		has: {
 		},
 		"!has": {
+		},
+		within: {
 		}
 	}
 };
@@ -3005,251 +3048,6 @@ var expression = {
 	type: "array",
 	value: "*",
 	minimum: 1
-};
-var expression_name = {
-	type: "enum",
-	values: {
-		"let": {
-			group: "Variable binding"
-		},
-		"var": {
-			group: "Variable binding"
-		},
-		literal: {
-			group: "Types"
-		},
-		array: {
-			group: "Types"
-		},
-		at: {
-			group: "Lookup"
-		},
-		"in": {
-			group: "Lookup"
-		},
-		"case": {
-			group: "Decision"
-		},
-		match: {
-			group: "Decision"
-		},
-		coalesce: {
-			group: "Decision"
-		},
-		step: {
-			group: "Ramps, scales, curves"
-		},
-		interpolate: {
-			group: "Ramps, scales, curves"
-		},
-		"interpolate-hcl": {
-			group: "Ramps, scales, curves"
-		},
-		"interpolate-lab": {
-			group: "Ramps, scales, curves"
-		},
-		ln2: {
-			group: "Math"
-		},
-		pi: {
-			group: "Math"
-		},
-		e: {
-			group: "Math"
-		},
-		"typeof": {
-			group: "Types"
-		},
-		string: {
-			group: "Types"
-		},
-		number: {
-			group: "Types"
-		},
-		boolean: {
-			group: "Types"
-		},
-		object: {
-			group: "Types"
-		},
-		collator: {
-			group: "Types"
-		},
-		format: {
-			group: "Types"
-		},
-		image: {
-			group: "Types"
-		},
-		"number-format": {
-			group: "Types"
-		},
-		"to-string": {
-			group: "Types"
-		},
-		"to-number": {
-			group: "Types"
-		},
-		"to-boolean": {
-			group: "Types"
-		},
-		"to-rgba": {
-			group: "Color"
-		},
-		"to-color": {
-			group: "Types"
-		},
-		rgb: {
-			group: "Color"
-		},
-		rgba: {
-			group: "Color"
-		},
-		get: {
-			group: "Lookup"
-		},
-		has: {
-			group: "Lookup"
-		},
-		length: {
-			group: "Lookup"
-		},
-		properties: {
-			group: "Feature data"
-		},
-		"feature-state": {
-			group: "Feature data"
-		},
-		"geometry-type": {
-			group: "Feature data"
-		},
-		id: {
-			group: "Feature data"
-		},
-		zoom: {
-			group: "Zoom"
-		},
-		"heatmap-density": {
-			group: "Heatmap"
-		},
-		"line-progress": {
-			group: "Feature data"
-		},
-		accumulated: {
-			group: "Feature data"
-		},
-		"+": {
-			group: "Math"
-		},
-		"*": {
-			group: "Math"
-		},
-		"-": {
-			group: "Math"
-		},
-		"/": {
-			group: "Math"
-		},
-		"%": {
-			group: "Math"
-		},
-		"^": {
-			group: "Math"
-		},
-		sqrt: {
-			group: "Math"
-		},
-		log10: {
-			group: "Math"
-		},
-		ln: {
-			group: "Math"
-		},
-		log2: {
-			group: "Math"
-		},
-		sin: {
-			group: "Math"
-		},
-		cos: {
-			group: "Math"
-		},
-		tan: {
-			group: "Math"
-		},
-		asin: {
-			group: "Math"
-		},
-		acos: {
-			group: "Math"
-		},
-		atan: {
-			group: "Math"
-		},
-		min: {
-			group: "Math"
-		},
-		max: {
-			group: "Math"
-		},
-		round: {
-			group: "Math"
-		},
-		abs: {
-			group: "Math"
-		},
-		ceil: {
-			group: "Math"
-		},
-		floor: {
-			group: "Math"
-		},
-		"==": {
-			group: "Decision"
-		},
-		"!=": {
-			group: "Decision"
-		},
-		">": {
-			group: "Decision"
-		},
-		"<": {
-			group: "Decision"
-		},
-		">=": {
-			group: "Decision"
-		},
-		"<=": {
-			group: "Decision"
-		},
-		all: {
-			group: "Decision"
-		},
-		any: {
-			group: "Decision"
-		},
-		"!": {
-			group: "Decision"
-		},
-		within: {
-			group: "Decision"
-		},
-		"is-supported-script": {
-			group: "String"
-		},
-		upcase: {
-			group: "String"
-		},
-		downcase: {
-			group: "String"
-		},
-		concat: {
-			group: "String"
-		},
-		"resolved-locale": {
-			group: "String"
-		}
-	}
 };
 var light = {
 	anchor: {
@@ -4530,7 +4328,6 @@ var spec = {
 },
 	function_stop: function_stop,
 	expression: expression,
-	expression_name: expression_name,
 	light: light,
 	paint: paint,
 	paint_fill: paint_fill,
@@ -4849,6 +4646,24 @@ function checkSubtype(expected, t) {
         }
     }
     return 'Expected ' + toString(expected) + ' but found ' + toString(t) + ' instead.';
+}
+function isValidType(provided, allowedTypes) {
+    return allowedTypes.some(function (t) {
+        return t.kind === provided.kind;
+    });
+}
+function isValidNativeType(provided, allowedTypes) {
+    return allowedTypes.some(function (t) {
+        if (t === 'null') {
+            return provided === null;
+        } else if (t === 'array') {
+            return Array.isArray(provided);
+        } else if (t === 'object') {
+            return provided && !Array.isArray(provided) && typeof provided === 'object';
+        } else {
+            return t === typeof provided;
+        }
+    });
 }
 
 var csscolorparser = createCommonjsModule(function (module, exports) {
@@ -6736,228 +6551,18 @@ CollatorExpression.prototype.serialize = function serialize() {
     ];
 };
 
-var LngLatBounds = function LngLatBounds(sw, ne) {
-    if (!sw) ; else if (ne) {
-        this.setSouthWest(sw).setNorthEast(ne);
-    } else if (sw.length === 4) {
-        this.setSouthWest([
-            sw[0],
-            sw[1]
-        ]).setNorthEast([
-            sw[2],
-            sw[3]
-        ]);
-    } else {
-        this.setSouthWest(sw[0]).setNorthEast(sw[1]);
-    }
-};
-LngLatBounds.prototype.setNorthEast = function setNorthEast(ne) {
-    this._ne = ne instanceof LngLat ? new LngLat(ne.lng, ne.lat) : LngLat.convert(ne);
-    return this;
-};
-LngLatBounds.prototype.setSouthWest = function setSouthWest(sw) {
-    this._sw = sw instanceof LngLat ? new LngLat(sw.lng, sw.lat) : LngLat.convert(sw);
-    return this;
-};
-LngLatBounds.prototype.extend = function extend(obj) {
-    var sw = this._sw, ne = this._ne;
-    var sw2, ne2;
-    if (obj instanceof LngLat) {
-        sw2 = obj;
-        ne2 = obj;
-    } else if (obj instanceof LngLatBounds) {
-        sw2 = obj._sw;
-        ne2 = obj._ne;
-        if (!sw2 || !ne2) {
-            return this;
-        }
-    } else {
-        if (Array.isArray(obj)) {
-            if (obj.length === 4 || obj.every(Array.isArray)) {
-                var lngLatBoundsObj = obj;
-                return this.extend(LngLatBounds.convert(lngLatBoundsObj));
-            } else {
-                var lngLatObj = obj;
-                return this.extend(LngLat.convert(lngLatObj));
-            }
-        }
-        return this;
-    }
-    if (!sw && !ne) {
-        this._sw = new LngLat(sw2.lng, sw2.lat);
-        this._ne = new LngLat(ne2.lng, ne2.lat);
-    } else {
-        sw.lng = Math.min(sw2.lng, sw.lng);
-        sw.lat = Math.min(sw2.lat, sw.lat);
-        ne.lng = Math.max(ne2.lng, ne.lng);
-        ne.lat = Math.max(ne2.lat, ne.lat);
-    }
-    return this;
-};
-LngLatBounds.prototype.getCenter = function getCenter() {
-    return new LngLat((this._sw.lng + this._ne.lng) / 2, (this._sw.lat + this._ne.lat) / 2);
-};
-LngLatBounds.prototype.getSouthWest = function getSouthWest() {
-    return this._sw;
-};
-LngLatBounds.prototype.getNorthEast = function getNorthEast() {
-    return this._ne;
-};
-LngLatBounds.prototype.getNorthWest = function getNorthWest() {
-    return new LngLat(this.getWest(), this.getNorth());
-};
-LngLatBounds.prototype.getSouthEast = function getSouthEast() {
-    return new LngLat(this.getEast(), this.getSouth());
-};
-LngLatBounds.prototype.getWest = function getWest() {
-    return this._sw.lng;
-};
-LngLatBounds.prototype.getSouth = function getSouth() {
-    return this._sw.lat;
-};
-LngLatBounds.prototype.getEast = function getEast() {
-    return this._ne.lng;
-};
-LngLatBounds.prototype.getNorth = function getNorth() {
-    return this._ne.lat;
-};
-LngLatBounds.prototype.toArray = function toArray() {
-    return [
-        this._sw.toArray(),
-        this._ne.toArray()
-    ];
-};
-LngLatBounds.prototype.toString = function toString() {
-    return 'LngLatBounds(' + this._sw.toString() + ', ' + this._ne.toString() + ')';
-};
-LngLatBounds.prototype.isEmpty = function isEmpty() {
-    return !(this._sw && this._ne);
-};
-LngLatBounds.prototype.contains = function contains(lnglat) {
-    var ref = LngLat.convert(lnglat);
-    var lng = ref.lng;
-    var lat = ref.lat;
-    var containsLatitude = this._sw.lat <= lat && lat <= this._ne.lat;
-    var containsLongitude = this._sw.lng <= lng && lng <= this._ne.lng;
-    if (this._sw.lng > this._ne.lng) {
-        containsLongitude = this._sw.lng >= lng && lng >= this._ne.lng;
-    }
-    return containsLatitude && containsLongitude;
-};
-LngLatBounds.convert = function convert(input) {
-    if (!input || input instanceof LngLatBounds) {
-        return input;
-    }
-    return new LngLatBounds(input);
-};
-
-var earthRadius = 6371008.8;
-var LngLat = function LngLat(lng, lat) {
-    if (isNaN(lng) || isNaN(lat)) {
-        throw new Error('Invalid LngLat object: (' + lng + ', ' + lat + ')');
-    }
-    this.lng = +lng;
-    this.lat = +lat;
-    if (this.lat > 90 || this.lat < -90) {
-        throw new Error('Invalid LngLat latitude value: must be between -90 and 90');
-    }
-};
-LngLat.prototype.wrap = function wrap$1() {
-    return new LngLat(wrap(this.lng, -180, 180), this.lat);
-};
-LngLat.prototype.toArray = function toArray() {
-    return [
-        this.lng,
-        this.lat
-    ];
-};
-LngLat.prototype.toString = function toString() {
-    return 'LngLat(' + this.lng + ', ' + this.lat + ')';
-};
-LngLat.prototype.distanceTo = function distanceTo(lngLat) {
-    var rad = Math.PI / 180;
-    var lat1 = this.lat * rad;
-    var lat2 = lngLat.lat * rad;
-    var a = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos((lngLat.lng - this.lng) * rad);
-    var maxMeters = earthRadius * Math.acos(Math.min(a, 1));
-    return maxMeters;
-};
-LngLat.prototype.toBounds = function toBounds(radius) {
-    if (radius === void 0)
-        radius = 0;
-    var earthCircumferenceInMetersAtEquator = 40075017;
-    var latAccuracy = 360 * radius / earthCircumferenceInMetersAtEquator, lngAccuracy = latAccuracy / Math.cos(Math.PI / 180 * this.lat);
-    return new LngLatBounds(new LngLat(this.lng - lngAccuracy, this.lat - latAccuracy), new LngLat(this.lng + lngAccuracy, this.lat + latAccuracy));
-};
-LngLat.convert = function convert(input) {
-    if (input instanceof LngLat) {
-        return input;
-    }
-    if (Array.isArray(input) && (input.length === 2 || input.length === 3)) {
-        return new LngLat(Number(input[0]), Number(input[1]));
-    }
-    if (!Array.isArray(input) && typeof input === 'object' && input !== null) {
-        return new LngLat(Number('lng' in input ? input.lng : input.lon), Number(input.lat));
-    }
-    throw new Error('`LngLatLike` argument must be specified as a LngLat instance, an object {lng: <lng>, lat: <lat>}, an object {lon: <lng>, lat: <lat>}, or an array of [<lng>, <lat>]');
-};
-
-var earthCircumfrence = 2 * Math.PI * earthRadius;
-function circumferenceAtLatitude(latitude) {
-    return earthCircumfrence * Math.cos(latitude * Math.PI / 180);
+var EXTENT = 8192;
+function updateBBox(bbox, coord) {
+    bbox[0] = Math.min(bbox[0], coord[0]);
+    bbox[1] = Math.min(bbox[1], coord[1]);
+    bbox[2] = Math.max(bbox[2], coord[0]);
+    bbox[3] = Math.max(bbox[3], coord[1]);
 }
 function mercatorXfromLng(lng) {
     return (180 + lng) / 360;
 }
 function mercatorYfromLat(lat) {
     return (180 - 180 / Math.PI * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))) / 360;
-}
-function mercatorZfromAltitude(altitude, lat) {
-    return altitude / circumferenceAtLatitude(lat);
-}
-function lngFromMercatorX(x) {
-    return x * 360 - 180;
-}
-function latFromMercatorY(y) {
-    var y2 = 180 - y * 360;
-    return 360 / Math.PI * Math.atan(Math.exp(y2 * Math.PI / 180)) - 90;
-}
-function altitudeFromMercatorZ(z, y) {
-    return z * circumferenceAtLatitude(latFromMercatorY(y));
-}
-function mercatorScale(lat) {
-    return 1 / Math.cos(lat * Math.PI / 180);
-}
-var MercatorCoordinate = function MercatorCoordinate(x, y, z) {
-    if (z === void 0)
-        z = 0;
-    this.x = +x;
-    this.y = +y;
-    this.z = +z;
-};
-MercatorCoordinate.fromLngLat = function fromLngLat(lngLatLike, altitude) {
-    if (altitude === void 0)
-        altitude = 0;
-    var lngLat = LngLat.convert(lngLatLike);
-    return new MercatorCoordinate(mercatorXfromLng(lngLat.lng), mercatorYfromLat(lngLat.lat), mercatorZfromAltitude(altitude, lngLat.lat));
-};
-MercatorCoordinate.prototype.toLngLat = function toLngLat() {
-    return new LngLat(lngFromMercatorX(this.x), latFromMercatorY(this.y));
-};
-MercatorCoordinate.prototype.toAltitude = function toAltitude() {
-    return altitudeFromMercatorZ(this.z, this.y);
-};
-MercatorCoordinate.prototype.meterInMercatorCoordinateUnits = function meterInMercatorCoordinateUnits() {
-    return 1 / earthCircumfrence * mercatorScale(latFromMercatorY(this.y));
-};
-
-var EXTENT = 8192;
-
-function updateBBox(bbox, coord) {
-    bbox[0] = Math.min(bbox[0], coord[0]);
-    bbox[1] = Math.min(bbox[1], coord[1]);
-    bbox[2] = Math.max(bbox[2], coord[0]);
-    bbox[3] = Math.max(bbox[3], coord[1]);
 }
 function boxWithinBox(bbox1, bbox2) {
     if (bbox1[0] <= bbox2[0]) {
@@ -6975,14 +6580,12 @@ function boxWithinBox(bbox1, bbox2) {
     return true;
 }
 function getTileCoordinates(p, canonical) {
-    var coord = MercatorCoordinate.fromLngLat({
-        lng: p[0],
-        lat: p[1]
-    }, 0);
+    var x = mercatorXfromLng(p[0]);
+    var y = mercatorYfromLat(p[1]);
     var tilesAtZoom = Math.pow(2, canonical.z);
     return [
-        Math.round(coord.x * tilesAtZoom * EXTENT),
-        Math.round(coord.y * tilesAtZoom * EXTENT)
+        Math.round(x * tilesAtZoom * EXTENT),
+        Math.round(y * tilesAtZoom * EXTENT)
     ];
 }
 function onBoundary(p, p1, p2) {
@@ -7028,7 +6631,9 @@ function twoSided(p1, p2, q1, q2) {
     var y2 = p2[1] - q1[1];
     var x3 = q2[0] - q1[0];
     var y3 = q2[1] - q1[1];
-    if ((x1 * y3 - x3 * y1) * (x2 * y3 - x3 * y2) < 0) {
+    var det1 = x1 * y3 - x3 * y1;
+    var det2 = x2 * y3 - x3 * y2;
+    if (det1 > 0 && det2 < 0 || det1 < 0 && det2 > 0) {
         return true;
     }
     return false;
@@ -7103,6 +6708,75 @@ function getTilePolygons(coordinates, bbox, canonical) {
     }
     return polygons;
 }
+function updatePoint(p, bbox, polyBBox, worldSize) {
+    if (p[0] < polyBBox[0] || p[0] > polyBBox[2]) {
+        var halfWorldSize = worldSize * 0.5;
+        var shift = p[0] - polyBBox[0] > halfWorldSize ? -worldSize : polyBBox[0] - p[0] > halfWorldSize ? worldSize : 0;
+        if (shift === 0) {
+            shift = p[0] - polyBBox[2] > halfWorldSize ? -worldSize : polyBBox[2] - p[0] > halfWorldSize ? worldSize : 0;
+        }
+        p[0] += shift;
+    }
+    updateBBox(bbox, p);
+}
+function resetBBox(bbox) {
+    bbox[0] = bbox[1] = Infinity;
+    bbox[2] = bbox[3] = -Infinity;
+}
+function getTilePoints(geometry, pointBBox, polyBBox, canonical) {
+    var worldSize = Math.pow(2, canonical.z) * EXTENT;
+    var shifts = [
+        canonical.x * EXTENT,
+        canonical.y * EXTENT
+    ];
+    var tilePoints = [];
+    for (var i$1 = 0, list$1 = geometry; i$1 < list$1.length; i$1 += 1) {
+        var points = list$1[i$1];
+        for (var i = 0, list = points; i < list.length; i += 1) {
+            var point = list[i];
+            var p = [
+                point.x + shifts[0],
+                point.y + shifts[1]
+            ];
+            updatePoint(p, pointBBox, polyBBox, worldSize);
+            tilePoints.push(p);
+        }
+    }
+    return tilePoints;
+}
+function getTileLines(geometry, lineBBox, polyBBox, canonical) {
+    var worldSize = Math.pow(2, canonical.z) * EXTENT;
+    var shifts = [
+        canonical.x * EXTENT,
+        canonical.y * EXTENT
+    ];
+    var tileLines = [];
+    for (var i$1 = 0, list$1 = geometry; i$1 < list$1.length; i$1 += 1) {
+        var line = list$1[i$1];
+        var tileLine = [];
+        for (var i = 0, list = line; i < list.length; i += 1) {
+            var point = list[i];
+            var p = [
+                point.x + shifts[0],
+                point.y + shifts[1]
+            ];
+            updateBBox(lineBBox, p);
+            tileLine.push(p);
+        }
+        tileLines.push(tileLine);
+    }
+    if (lineBBox[2] - lineBBox[0] <= worldSize / 2) {
+        resetBBox(lineBBox);
+        for (var i$3 = 0, list$3 = tileLines; i$3 < list$3.length; i$3 += 1) {
+            var line$1 = list$3[i$3];
+            for (var i$2 = 0, list$2 = line$1; i$2 < list$2.length; i$2 += 1) {
+                var p$1 = list$2[i$2];
+                updatePoint(p$1, lineBBox, polyBBox, worldSize);
+            }
+        }
+    }
+    return tileLines;
+}
 function pointsWithinPolygons(ctx, polygonGeometry) {
     var pointBBox = [
         Infinity,
@@ -7117,43 +6791,28 @@ function pointsWithinPolygons(ctx, polygonGeometry) {
         -Infinity
     ];
     var canonical = ctx.canonicalID();
-    var shifts = [
-        canonical.x * EXTENT,
-        canonical.y * EXTENT
-    ];
-    var tilePoints = [];
-    for (var i$1 = 0, list$1 = ctx.geometry(); i$1 < list$1.length; i$1 += 1) {
-        var points = list$1[i$1];
-        for (var i = 0, list = points; i < list.length; i += 1) {
-            var point = list[i];
-            var p = [
-                point.x + shifts[0],
-                point.y + shifts[1]
-            ];
-            updateBBox(pointBBox, p);
-            tilePoints.push(p);
-        }
-    }
     if (polygonGeometry.type === 'Polygon') {
         var tilePolygon = getTilePolygon(polygonGeometry.coordinates, polyBBox, canonical);
+        var tilePoints = getTilePoints(ctx.geometry(), pointBBox, polyBBox, canonical);
         if (!boxWithinBox(pointBBox, polyBBox)) {
             return false;
         }
-        for (var i$2 = 0, list$2 = tilePoints; i$2 < list$2.length; i$2 += 1) {
-            var point$1 = list$2[i$2];
-            if (!pointWithinPolygon(point$1, tilePolygon)) {
+        for (var i = 0, list = tilePoints; i < list.length; i += 1) {
+            var point = list[i];
+            if (!pointWithinPolygon(point, tilePolygon)) {
                 return false;
             }
         }
     }
     if (polygonGeometry.type === 'MultiPolygon') {
         var tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
+        var tilePoints$1 = getTilePoints(ctx.geometry(), pointBBox, polyBBox, canonical);
         if (!boxWithinBox(pointBBox, polyBBox)) {
             return false;
         }
-        for (var i$3 = 0, list$3 = tilePoints; i$3 < list$3.length; i$3 += 1) {
-            var point$2 = list$3[i$3];
-            if (!pointWithinPolygons(point$2, tilePolygons)) {
+        for (var i$1 = 0, list$1 = tilePoints$1; i$1 < list$1.length; i$1 += 1) {
+            var point$1 = list$1[i$1];
+            if (!pointWithinPolygons(point$1, tilePolygons)) {
                 return false;
             }
         }
@@ -7174,45 +6833,28 @@ function linesWithinPolygons(ctx, polygonGeometry) {
         -Infinity
     ];
     var canonical = ctx.canonicalID();
-    var shifts = [
-        canonical.x * EXTENT,
-        canonical.y * EXTENT
-    ];
-    var tileLines = [];
-    for (var i$1 = 0, list$1 = ctx.geometry(); i$1 < list$1.length; i$1 += 1) {
-        var line = list$1[i$1];
-        var tileLine = [];
-        for (var i = 0, list = line; i < list.length; i += 1) {
-            var point = list[i];
-            var p = [
-                point.x + shifts[0],
-                point.y + shifts[1]
-            ];
-            updateBBox(lineBBox, p);
-            tileLine.push(p);
-        }
-        tileLines.push(tileLine);
-    }
     if (polygonGeometry.type === 'Polygon') {
         var tilePolygon = getTilePolygon(polygonGeometry.coordinates, polyBBox, canonical);
+        var tileLines = getTileLines(ctx.geometry(), lineBBox, polyBBox, canonical);
         if (!boxWithinBox(lineBBox, polyBBox)) {
             return false;
         }
-        for (var i$2 = 0, list$2 = tileLines; i$2 < list$2.length; i$2 += 1) {
-            var line$1 = list$2[i$2];
-            if (!lineStringWithinPolygon(line$1, tilePolygon)) {
+        for (var i = 0, list = tileLines; i < list.length; i += 1) {
+            var line = list[i];
+            if (!lineStringWithinPolygon(line, tilePolygon)) {
                 return false;
             }
         }
     }
     if (polygonGeometry.type === 'MultiPolygon') {
         var tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
+        var tileLines$1 = getTileLines(ctx.geometry(), lineBBox, polyBBox, canonical);
         if (!boxWithinBox(lineBBox, polyBBox)) {
             return false;
         }
-        for (var i$3 = 0, list$3 = tileLines; i$3 < list$3.length; i$3 += 1) {
-            var line$2 = list$3[i$3];
-            if (!lineStringWithinPolygons(line$2, tilePolygons)) {
+        for (var i$1 = 0, list$1 = tileLines$1; i$1 < list$1.length; i$1 += 1) {
+            var line$1 = list$1[i$1];
+            if (!lineStringWithinPolygons(line$1, tilePolygons)) {
                 return false;
             }
         }
@@ -8070,15 +7712,6 @@ At.prototype.serialize = function serialize() {
     ];
 };
 
-function isComparableType(type) {
-    return type.kind === 'boolean' || type.kind === 'string' || type.kind === 'number' || type.kind === 'null' || type.kind === 'value';
-}
-function isComparableRuntimeValue(needle) {
-    return typeof needle === 'boolean' || typeof needle === 'string' || typeof needle === 'number';
-}
-function isSearchableRuntimeValue(haystack) {
-    return Array.isArray(haystack) || typeof haystack === 'string';
-}
 var In = function In(needle, haystack) {
     this.type = BooleanType;
     this.needle = needle;
@@ -8093,7 +7726,13 @@ In.parse = function parse(args, context) {
     if (!needle || !haystack) {
         return null;
     }
-    if (!isComparableType(needle.type)) {
+    if (!isValidType(needle.type, [
+            BooleanType,
+            StringType,
+            NumberType,
+            NullType,
+            ValueType
+        ])) {
         return context.error('Expected first argument to be of type boolean, string, number or null, but found ' + toString(needle.type) + ' instead');
     }
     return new In(needle, haystack);
@@ -8101,13 +7740,21 @@ In.parse = function parse(args, context) {
 In.prototype.evaluate = function evaluate(ctx) {
     var needle = this.needle.evaluate(ctx);
     var haystack = this.haystack.evaluate(ctx);
-    if (needle == null || !haystack) {
+    if (!haystack) {
         return false;
     }
-    if (!isComparableRuntimeValue(needle)) {
-        throw new RuntimeError('Expected first argument to be of type boolean, string or number, but found ' + toString(typeOf(needle)) + ' instead.');
+    if (!isValidNativeType(needle, [
+            'boolean',
+            'string',
+            'number',
+            'null'
+        ])) {
+        throw new RuntimeError('Expected first argument to be of type boolean, string, number or null, but found ' + toString(typeOf(needle)) + ' instead.');
     }
-    if (!isSearchableRuntimeValue(haystack)) {
+    if (!isValidNativeType(haystack, [
+            'string',
+            'array'
+        ])) {
         throw new RuntimeError('Expected second argument to be of type array or string, but found ' + toString(typeOf(haystack)) + ' instead.');
     }
     return haystack.indexOf(needle) >= 0;
@@ -8122,6 +7769,90 @@ In.prototype.outputDefined = function outputDefined() {
 In.prototype.serialize = function serialize() {
     return [
         'in',
+        this.needle.serialize(),
+        this.haystack.serialize()
+    ];
+};
+
+var IndexOf = function IndexOf(needle, haystack, fromIndex) {
+    this.type = NumberType;
+    this.needle = needle;
+    this.haystack = haystack;
+    this.fromIndex = fromIndex;
+};
+IndexOf.parse = function parse(args, context) {
+    if (args.length <= 2 || args.length >= 5) {
+        return context.error('Expected 3 or 4 arguments, but found ' + (args.length - 1) + ' instead.');
+    }
+    var needle = context.parse(args[1], 1, ValueType);
+    var haystack = context.parse(args[2], 2, ValueType);
+    if (!needle || !haystack) {
+        return null;
+    }
+    if (!isValidType(needle.type, [
+            BooleanType,
+            StringType,
+            NumberType,
+            NullType,
+            ValueType
+        ])) {
+        return context.error('Expected first argument to be of type boolean, string, number or null, but found ' + toString(needle.type) + ' instead');
+    }
+    if (args.length === 4) {
+        var fromIndex = context.parse(args[3], 3, NumberType);
+        if (!fromIndex) {
+            return null;
+        }
+        return new IndexOf(needle, haystack, fromIndex);
+    } else {
+        return new IndexOf(needle, haystack);
+    }
+};
+IndexOf.prototype.evaluate = function evaluate(ctx) {
+    var needle = this.needle.evaluate(ctx);
+    var haystack = this.haystack.evaluate(ctx);
+    if (!isValidNativeType(needle, [
+            'boolean',
+            'string',
+            'number',
+            'null'
+        ])) {
+        throw new RuntimeError('Expected first argument to be of type boolean, string, number or null, but found ' + toString(typeOf(needle)) + ' instead.');
+    }
+    if (!isValidNativeType(haystack, [
+            'string',
+            'array'
+        ])) {
+        throw new RuntimeError('Expected second argument to be of type array or string, but found ' + toString(typeOf(haystack)) + ' instead.');
+    }
+    if (this.fromIndex) {
+        var fromIndex = this.fromIndex.evaluate(ctx);
+        return haystack.indexOf(needle, fromIndex);
+    }
+    return haystack.indexOf(needle);
+};
+IndexOf.prototype.eachChild = function eachChild(fn) {
+    fn(this.needle);
+    fn(this.haystack);
+    if (this.fromIndex) {
+        fn(this.fromIndex);
+    }
+};
+IndexOf.prototype.outputDefined = function outputDefined() {
+    return false;
+};
+IndexOf.prototype.serialize = function serialize() {
+    if (this.fromIndex != null && this.fromIndex !== undefined) {
+        var fromIndex = this.fromIndex.serialize();
+        return [
+            'index-of',
+            this.needle.serialize(),
+            this.haystack.serialize(),
+            fromIndex
+        ];
+    }
+    return [
+        'index-of',
         this.needle.serialize(),
         this.haystack.serialize()
     ];
@@ -8326,7 +8057,81 @@ Case.prototype.serialize = function serialize() {
     return serialized;
 };
 
-function isComparableType$1(op, type) {
+var Slice = function Slice(type, input, beginIndex, endIndex) {
+    this.type = type;
+    this.input = input;
+    this.beginIndex = beginIndex;
+    this.endIndex = endIndex;
+};
+Slice.parse = function parse(args, context) {
+    if (args.length <= 2 || args.length >= 5) {
+        return context.error('Expected 3 or 4 arguments, but found ' + (args.length - 1) + ' instead.');
+    }
+    var input = context.parse(args[1], 1, ValueType);
+    var beginIndex = context.parse(args[2], 2, NumberType);
+    if (!input || !beginIndex) {
+        return null;
+    }
+    if (!isValidType(input.type, [
+            array(ValueType),
+            StringType,
+            ValueType
+        ])) {
+        return context.error('Expected first argument to be of type array or string, but found ' + toString(input.type) + ' instead');
+    }
+    if (args.length === 4) {
+        var endIndex = context.parse(args[3], 3, NumberType);
+        if (!endIndex) {
+            return null;
+        }
+        return new Slice(input.type, input, beginIndex, endIndex);
+    } else {
+        return new Slice(input.type, input, beginIndex);
+    }
+};
+Slice.prototype.evaluate = function evaluate(ctx) {
+    var input = this.input.evaluate(ctx);
+    var beginIndex = this.beginIndex.evaluate(ctx);
+    if (!isValidNativeType(input, [
+            'string',
+            'array'
+        ])) {
+        throw new RuntimeError('Expected first argument to be of type array or string, but found ' + toString(typeOf(input)) + ' instead.');
+    }
+    if (this.endIndex) {
+        var endIndex = this.endIndex.evaluate(ctx);
+        return input.slice(beginIndex, endIndex);
+    }
+    return input.slice(beginIndex);
+};
+Slice.prototype.eachChild = function eachChild(fn) {
+    fn(this.input);
+    fn(this.beginIndex);
+    if (this.endIndex) {
+        fn(this.endIndex);
+    }
+};
+Slice.prototype.outputDefined = function outputDefined() {
+    return false;
+};
+Slice.prototype.serialize = function serialize() {
+    if (this.endIndex != null && this.endIndex !== undefined) {
+        var endIndex = this.endIndex.serialize();
+        return [
+            'slice',
+            this.input.serialize(),
+            this.beginIndex.serialize(),
+            endIndex
+        ];
+    }
+    return [
+        'slice',
+        this.input.serialize(),
+        this.beginIndex.serialize()
+    ];
+};
+
+function isComparableType(op, type) {
     if (op === '==' || op === '!=') {
         return type.kind === 'boolean' || type.kind === 'string' || type.kind === 'number' || type.kind === 'null' || type.kind === 'value';
     } else {
@@ -8388,14 +8193,14 @@ function makeComparison(op, compareBasic, compareWithCollator) {
             if (!lhs) {
                 return null;
             }
-            if (!isComparableType$1(op, lhs.type)) {
+            if (!isComparableType(op, lhs.type)) {
                 return context.concat(1).error('"' + op + '" comparisons are not supported for type \'' + toString(lhs.type) + '\'.');
             }
             var rhs = context.parse(args[2], 2, ValueType);
             if (!rhs) {
                 return null;
             }
-            if (!isComparableType$1(op, rhs.type)) {
+            if (!isComparableType(op, rhs.type)) {
                 return context.concat(2).error('"' + op + '" comparisons are not supported for type \'' + toString(rhs.type) + '\'.');
             }
             if (lhs.type.kind !== rhs.type.kind && lhs.type.kind !== 'value' && rhs.type.kind !== 'value') {
@@ -8620,6 +8425,7 @@ var expressions = {
     'format': FormatExpression,
     'image': ImageExpression,
     'in': In,
+    'index-of': IndexOf,
     'interpolate': Interpolate,
     'interpolate-hcl': Interpolate,
     'interpolate-lab': Interpolate,
@@ -8630,6 +8436,7 @@ var expressions = {
     'number': Assertion,
     'number-format': NumberFormat,
     'object': Assertion,
+    'slice': Slice,
     'step': Step,
     'string': Assertion,
     'to-boolean': Coercion,
@@ -10239,7 +10046,7 @@ function createFilter(filter) {
             return err.key + ': ' + err.message;
         }).join(', '));
     } else {
-        var needGeometry = Array.isArray(filter) && filter.length !== 0 && filter[0] === 'within';
+        var needGeometry = geometryNeeded(filter);
         return {
             filter: function (globalProperties, feature, canonical) {
                 return compiled.value.evaluate(globalProperties, feature, {}, canonical);
@@ -10251,6 +10058,20 @@ function createFilter(filter) {
 function compare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
+function geometryNeeded(filter) {
+    if (!Array.isArray(filter)) {
+        return false;
+    }
+    if (filter[0] === 'within') {
+        return true;
+    }
+    for (var index = 1; index < filter.length; index++) {
+        if (geometryNeeded(filter[index])) {
+            return true;
+        }
+    }
+    return false;
+}
 function convertFilter(filter) {
     if (!filter) {
         return true;
@@ -10259,7 +10080,7 @@ function convertFilter(filter) {
     if (filter.length <= 1) {
         return op !== 'any';
     }
-    var converted = op === '==' ? convertComparisonOp(filter[1], filter[2], '==') : op === '!=' ? convertNegation(convertComparisonOp(filter[1], filter[2], '==')) : op === '<' || op === '>' || op === '<=' || op === '>=' ? convertComparisonOp(filter[1], filter[2], op) : op === 'any' ? convertDisjunctionOp(filter.slice(1)) : op === 'all' ? ['all'].concat(filter.slice(1).map(convertFilter)) : op === 'none' ? ['all'].concat(filter.slice(1).map(convertFilter).map(convertNegation)) : op === 'in' ? convertInOp(filter[1], filter.slice(2)) : op === '!in' ? convertNegation(convertInOp(filter[1], filter.slice(2))) : op === 'has' ? convertHasOp(filter[1]) : op === '!has' ? convertNegation(convertHasOp(filter[1])) : true;
+    var converted = op === '==' ? convertComparisonOp(filter[1], filter[2], '==') : op === '!=' ? convertNegation(convertComparisonOp(filter[1], filter[2], '==')) : op === '<' || op === '>' || op === '<=' || op === '>=' ? convertComparisonOp(filter[1], filter[2], op) : op === 'any' ? convertDisjunctionOp(filter.slice(1)) : op === 'all' ? ['all'].concat(filter.slice(1).map(convertFilter)) : op === 'none' ? ['all'].concat(filter.slice(1).map(convertFilter).map(convertNegation)) : op === 'in' ? convertInOp(filter[1], filter.slice(2)) : op === '!in' ? convertNegation(convertInOp(filter[1], filter.slice(2))) : op === 'has' ? convertHasOp(filter[1]) : op === '!has' ? convertNegation(convertHasOp(filter[1])) : op === 'within' ? filter : true;
     return converted;
 }
 function convertComparisonOp(property, value, op) {
@@ -10434,6 +10255,14 @@ function validateNonExpressionFilter(options) {
             errors.push(new ValidationError(key, value, 'filter array for "' + value[0] + '" operator must have 2 elements'));
         } else if (type !== 'string') {
             errors.push(new ValidationError(key + '[1]', value[1], 'string expected, ' + type + ' found'));
+        }
+        break;
+    case 'within':
+        type = getType(value[1]);
+        if (value.length !== 2) {
+            errors.push(new ValidationError(key, value, 'filter array for "' + value[0] + '" operator must have 2 elements'));
+        } else if (type !== 'object') {
+            errors.push(new ValidationError(key + '[1]', value[1], 'object expected, ' + type + ' found'));
         }
         break;
     }
@@ -11047,8 +10876,8 @@ GridIndex.prototype.toArrayBuffer = function () {
     return array.buffer;
 };
 
-var ImageData = self.ImageData;
-var ImageBitmap = self.ImageBitmap;
+var ImageData = window$1.ImageData;
+var ImageBitmap = window$1.ImageBitmap;
 var registry = {};
 function register(name, klass, options) {
     if (options === void 0)
@@ -11690,6 +11519,9 @@ var _completionCallback = null;
 var pluginStatus = status.unavailable;
 var pluginURL = null;
 var triggerPluginCompletionEvent = function (error) {
+    if (error && typeof error === 'string' && error.indexOf('NetworkError') > -1) {
+        pluginStatus = status.error;
+    }
     if (_completionCallback) {
         _completionCallback(error);
     }
@@ -11915,11 +11747,11 @@ var Transitioning = function Transitioning(properties) {
     this._properties = properties;
     this._values = Object.create(properties.defaultTransitioningPropertyValues);
 };
-Transitioning.prototype.possiblyEvaluate = function possiblyEvaluate(parameters, availableImages) {
+Transitioning.prototype.possiblyEvaluate = function possiblyEvaluate(parameters, canonical, availableImages) {
     var result = new PossiblyEvaluated(this._properties);
     for (var i = 0, list = Object.keys(this._values); i < list.length; i += 1) {
         var property = list[i];
-        result._values[property] = this._values[property].possiblyEvaluate(parameters, availableImages);
+        result._values[property] = this._values[property].possiblyEvaluate(parameters, canonical, availableImages);
     }
     return result;
 };
@@ -11953,11 +11785,11 @@ Layout.prototype.serialize = function serialize() {
     }
     return result;
 };
-Layout.prototype.possiblyEvaluate = function possiblyEvaluate(parameters, availableImages) {
+Layout.prototype.possiblyEvaluate = function possiblyEvaluate(parameters, canonical, availableImages) {
     var result = new PossiblyEvaluated(this._properties);
     for (var i = 0, list = Object.keys(this._values); i < list.length; i += 1) {
         var property = list[i];
-        result._values[property] = this._values[property].possiblyEvaluate(parameters, availableImages);
+        result._values[property] = this._values[property].possiblyEvaluate(parameters, canonical, availableImages);
     }
     return result;
 };
@@ -12194,6 +12026,7 @@ var StyleLayer = function (Evented) {
                 this.setLayoutProperty(property$1, layer.layout[property$1], { validate: false });
             }
             this._transitioningPaint = this._transitionablePaint.untransitioned();
+            this.paint = new PossiblyEvaluated(properties.paint);
         }
     }
     if (Evented)
@@ -12280,9 +12113,9 @@ var StyleLayer = function (Evented) {
             this._crossfadeParameters = parameters.getCrossfadeParameters();
         }
         if (this._unevaluatedLayout) {
-            this.layout = this._unevaluatedLayout.possiblyEvaluate(parameters, availableImages);
+            this.layout = this._unevaluatedLayout.possiblyEvaluate(parameters, undefined, availableImages);
         }
-        this.paint = this._transitioningPaint.possiblyEvaluate(parameters, availableImages);
+        this.paint = this._transitioningPaint.possiblyEvaluate(parameters, undefined, availableImages);
     };
     StyleLayer.prototype.serialize = function serialize() {
         var output = {
@@ -12570,26 +12403,52 @@ var StructArrayLayout2i4ub8 = function (StructArray) {
 }(StructArray);
 StructArrayLayout2i4ub8.prototype.bytesPerElement = 8;
 register('StructArrayLayout2i4ub8', StructArrayLayout2i4ub8);
-var StructArrayLayout8ui2ub18 = function (StructArray) {
-    function StructArrayLayout8ui2ub18() {
+var StructArrayLayout2f8 = function (StructArray) {
+    function StructArrayLayout2f8() {
         StructArray.apply(this, arguments);
     }
     if (StructArray)
-        StructArrayLayout8ui2ub18.__proto__ = StructArray;
-    StructArrayLayout8ui2ub18.prototype = Object.create(StructArray && StructArray.prototype);
-    StructArrayLayout8ui2ub18.prototype.constructor = StructArrayLayout8ui2ub18;
-    StructArrayLayout8ui2ub18.prototype._refreshViews = function _refreshViews() {
+        StructArrayLayout2f8.__proto__ = StructArray;
+    StructArrayLayout2f8.prototype = Object.create(StructArray && StructArray.prototype);
+    StructArrayLayout2f8.prototype.constructor = StructArrayLayout2f8;
+    StructArrayLayout2f8.prototype._refreshViews = function _refreshViews() {
+        this.uint8 = new Uint8Array(this.arrayBuffer);
+        this.float32 = new Float32Array(this.arrayBuffer);
+    };
+    StructArrayLayout2f8.prototype.emplaceBack = function emplaceBack(v0, v1) {
+        var i = this.length;
+        this.resize(i + 1);
+        return this.emplace(i, v0, v1);
+    };
+    StructArrayLayout2f8.prototype.emplace = function emplace(i, v0, v1) {
+        var o4 = i * 2;
+        this.float32[o4 + 0] = v0;
+        this.float32[o4 + 1] = v1;
+        return i;
+    };
+    return StructArrayLayout2f8;
+}(StructArray);
+StructArrayLayout2f8.prototype.bytesPerElement = 8;
+register('StructArrayLayout2f8', StructArrayLayout2f8);
+var StructArrayLayout10ui20 = function (StructArray) {
+    function StructArrayLayout10ui20() {
+        StructArray.apply(this, arguments);
+    }
+    if (StructArray)
+        StructArrayLayout10ui20.__proto__ = StructArray;
+    StructArrayLayout10ui20.prototype = Object.create(StructArray && StructArray.prototype);
+    StructArrayLayout10ui20.prototype.constructor = StructArrayLayout10ui20;
+    StructArrayLayout10ui20.prototype._refreshViews = function _refreshViews() {
         this.uint8 = new Uint8Array(this.arrayBuffer);
         this.uint16 = new Uint16Array(this.arrayBuffer);
     };
-    StructArrayLayout8ui2ub18.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9) {
+    StructArrayLayout10ui20.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9) {
         var i = this.length;
         this.resize(i + 1);
         return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     };
-    StructArrayLayout8ui2ub18.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9) {
-        var o2 = i * 9;
-        var o1 = i * 18;
+    StructArrayLayout10ui20.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9) {
+        var o2 = i * 10;
         this.uint16[o2 + 0] = v0;
         this.uint16[o2 + 1] = v1;
         this.uint16[o2 + 2] = v2;
@@ -12598,14 +12457,14 @@ var StructArrayLayout8ui2ub18 = function (StructArray) {
         this.uint16[o2 + 5] = v5;
         this.uint16[o2 + 6] = v6;
         this.uint16[o2 + 7] = v7;
-        this.uint8[o1 + 16] = v8;
-        this.uint8[o1 + 17] = v9;
+        this.uint16[o2 + 8] = v8;
+        this.uint16[o2 + 9] = v9;
         return i;
     };
-    return StructArrayLayout8ui2ub18;
+    return StructArrayLayout10ui20;
 }(StructArray);
-StructArrayLayout8ui2ub18.prototype.bytesPerElement = 18;
-register('StructArrayLayout8ui2ub18', StructArrayLayout8ui2ub18);
+StructArrayLayout10ui20.prototype.bytesPerElement = 20;
+register('StructArrayLayout10ui20', StructArrayLayout10ui20);
 var StructArrayLayout4i4ui4i24 = function (StructArray) {
     function StructArrayLayout4i4ui4i24() {
         StructArray.apply(this, arguments);
@@ -12698,28 +12557,28 @@ var StructArrayLayout1ul4 = function (StructArray) {
 }(StructArray);
 StructArrayLayout1ul4.prototype.bytesPerElement = 4;
 register('StructArrayLayout1ul4', StructArrayLayout1ul4);
-var StructArrayLayout6i1ul2ui2i24 = function (StructArray) {
-    function StructArrayLayout6i1ul2ui2i24() {
+var StructArrayLayout6i1ul2ui20 = function (StructArray) {
+    function StructArrayLayout6i1ul2ui20() {
         StructArray.apply(this, arguments);
     }
     if (StructArray)
-        StructArrayLayout6i1ul2ui2i24.__proto__ = StructArray;
-    StructArrayLayout6i1ul2ui2i24.prototype = Object.create(StructArray && StructArray.prototype);
-    StructArrayLayout6i1ul2ui2i24.prototype.constructor = StructArrayLayout6i1ul2ui2i24;
-    StructArrayLayout6i1ul2ui2i24.prototype._refreshViews = function _refreshViews() {
+        StructArrayLayout6i1ul2ui20.__proto__ = StructArray;
+    StructArrayLayout6i1ul2ui20.prototype = Object.create(StructArray && StructArray.prototype);
+    StructArrayLayout6i1ul2ui20.prototype.constructor = StructArrayLayout6i1ul2ui20;
+    StructArrayLayout6i1ul2ui20.prototype._refreshViews = function _refreshViews() {
         this.uint8 = new Uint8Array(this.arrayBuffer);
         this.int16 = new Int16Array(this.arrayBuffer);
         this.uint32 = new Uint32Array(this.arrayBuffer);
         this.uint16 = new Uint16Array(this.arrayBuffer);
     };
-    StructArrayLayout6i1ul2ui2i24.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) {
+    StructArrayLayout6i1ul2ui20.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4, v5, v6, v7, v8) {
         var i = this.length;
         this.resize(i + 1);
-        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
+        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8);
     };
-    StructArrayLayout6i1ul2ui2i24.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) {
-        var o2 = i * 12;
-        var o4 = i * 6;
+    StructArrayLayout6i1ul2ui20.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8) {
+        var o2 = i * 10;
+        var o4 = i * 5;
         this.int16[o2 + 0] = v0;
         this.int16[o2 + 1] = v1;
         this.int16[o2 + 2] = v2;
@@ -12729,14 +12588,12 @@ var StructArrayLayout6i1ul2ui2i24 = function (StructArray) {
         this.uint32[o4 + 3] = v6;
         this.uint16[o2 + 8] = v7;
         this.uint16[o2 + 9] = v8;
-        this.int16[o2 + 10] = v9;
-        this.int16[o2 + 11] = v10;
         return i;
     };
-    return StructArrayLayout6i1ul2ui2i24;
+    return StructArrayLayout6i1ul2ui20;
 }(StructArray);
-StructArrayLayout6i1ul2ui2i24.prototype.bytesPerElement = 24;
-register('StructArrayLayout6i1ul2ui2i24', StructArrayLayout6i1ul2ui2i24);
+StructArrayLayout6i1ul2ui20.prototype.bytesPerElement = 20;
+register('StructArrayLayout6i1ul2ui20', StructArrayLayout6i1ul2ui20);
 var StructArrayLayout2i2i2i12 = function (StructArray) {
     function StructArrayLayout2i2i2i12() {
         StructArray.apply(this, arguments);
@@ -12768,6 +12625,38 @@ var StructArrayLayout2i2i2i12 = function (StructArray) {
 }(StructArray);
 StructArrayLayout2i2i2i12.prototype.bytesPerElement = 12;
 register('StructArrayLayout2i2i2i12', StructArrayLayout2i2i2i12);
+var StructArrayLayout2f1f2i16 = function (StructArray) {
+    function StructArrayLayout2f1f2i16() {
+        StructArray.apply(this, arguments);
+    }
+    if (StructArray)
+        StructArrayLayout2f1f2i16.__proto__ = StructArray;
+    StructArrayLayout2f1f2i16.prototype = Object.create(StructArray && StructArray.prototype);
+    StructArrayLayout2f1f2i16.prototype.constructor = StructArrayLayout2f1f2i16;
+    StructArrayLayout2f1f2i16.prototype._refreshViews = function _refreshViews() {
+        this.uint8 = new Uint8Array(this.arrayBuffer);
+        this.float32 = new Float32Array(this.arrayBuffer);
+        this.int16 = new Int16Array(this.arrayBuffer);
+    };
+    StructArrayLayout2f1f2i16.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4) {
+        var i = this.length;
+        this.resize(i + 1);
+        return this.emplace(i, v0, v1, v2, v3, v4);
+    };
+    StructArrayLayout2f1f2i16.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4) {
+        var o4 = i * 4;
+        var o2 = i * 8;
+        this.float32[o4 + 0] = v0;
+        this.float32[o4 + 1] = v1;
+        this.float32[o4 + 2] = v2;
+        this.int16[o2 + 6] = v3;
+        this.int16[o2 + 7] = v4;
+        return i;
+    };
+    return StructArrayLayout2f1f2i16;
+}(StructArray);
+StructArrayLayout2f1f2i16.prototype.bytesPerElement = 16;
+register('StructArrayLayout2f1f2i16', StructArrayLayout2f1f2i16);
 var StructArrayLayout2ub2f12 = function (StructArray) {
     function StructArrayLayout2ub2f12() {
         StructArray.apply(this, arguments);
@@ -12798,6 +12687,34 @@ var StructArrayLayout2ub2f12 = function (StructArray) {
 }(StructArray);
 StructArrayLayout2ub2f12.prototype.bytesPerElement = 12;
 register('StructArrayLayout2ub2f12', StructArrayLayout2ub2f12);
+var StructArrayLayout3ui6 = function (StructArray) {
+    function StructArrayLayout3ui6() {
+        StructArray.apply(this, arguments);
+    }
+    if (StructArray)
+        StructArrayLayout3ui6.__proto__ = StructArray;
+    StructArrayLayout3ui6.prototype = Object.create(StructArray && StructArray.prototype);
+    StructArrayLayout3ui6.prototype.constructor = StructArrayLayout3ui6;
+    StructArrayLayout3ui6.prototype._refreshViews = function _refreshViews() {
+        this.uint8 = new Uint8Array(this.arrayBuffer);
+        this.uint16 = new Uint16Array(this.arrayBuffer);
+    };
+    StructArrayLayout3ui6.prototype.emplaceBack = function emplaceBack(v0, v1, v2) {
+        var i = this.length;
+        this.resize(i + 1);
+        return this.emplace(i, v0, v1, v2);
+    };
+    StructArrayLayout3ui6.prototype.emplace = function emplace(i, v0, v1, v2) {
+        var o2 = i * 3;
+        this.uint16[o2 + 0] = v0;
+        this.uint16[o2 + 1] = v1;
+        this.uint16[o2 + 2] = v2;
+        return i;
+    };
+    return StructArrayLayout3ui6;
+}(StructArray);
+StructArrayLayout3ui6.prototype.bytesPerElement = 6;
+register('StructArrayLayout3ui6', StructArrayLayout3ui6);
 var StructArrayLayout2i2ui3ul3ui2f3ub1ul1i48 = function (StructArray) {
     function StructArrayLayout2i2ui3ul3ui2f3ub1ul1i48() {
         StructArray.apply(this, arguments);
@@ -12845,29 +12762,29 @@ var StructArrayLayout2i2ui3ul3ui2f3ub1ul1i48 = function (StructArray) {
 }(StructArray);
 StructArrayLayout2i2ui3ul3ui2f3ub1ul1i48.prototype.bytesPerElement = 48;
 register('StructArrayLayout2i2ui3ul3ui2f3ub1ul1i48', StructArrayLayout2i2ui3ul3ui2f3ub1ul1i48);
-var StructArrayLayout8i14ui1ul3f60 = function (StructArray) {
-    function StructArrayLayout8i14ui1ul3f60() {
+var StructArrayLayout8i15ui1ul4f68 = function (StructArray) {
+    function StructArrayLayout8i15ui1ul4f68() {
         StructArray.apply(this, arguments);
     }
     if (StructArray)
-        StructArrayLayout8i14ui1ul3f60.__proto__ = StructArray;
-    StructArrayLayout8i14ui1ul3f60.prototype = Object.create(StructArray && StructArray.prototype);
-    StructArrayLayout8i14ui1ul3f60.prototype.constructor = StructArrayLayout8i14ui1ul3f60;
-    StructArrayLayout8i14ui1ul3f60.prototype._refreshViews = function _refreshViews() {
+        StructArrayLayout8i15ui1ul4f68.__proto__ = StructArray;
+    StructArrayLayout8i15ui1ul4f68.prototype = Object.create(StructArray && StructArray.prototype);
+    StructArrayLayout8i15ui1ul4f68.prototype.constructor = StructArrayLayout8i15ui1ul4f68;
+    StructArrayLayout8i15ui1ul4f68.prototype._refreshViews = function _refreshViews() {
         this.uint8 = new Uint8Array(this.arrayBuffer);
         this.int16 = new Int16Array(this.arrayBuffer);
         this.uint16 = new Uint16Array(this.arrayBuffer);
         this.uint32 = new Uint32Array(this.arrayBuffer);
         this.float32 = new Float32Array(this.arrayBuffer);
     };
-    StructArrayLayout8i14ui1ul3f60.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25) {
+    StructArrayLayout8i15ui1ul4f68.prototype.emplaceBack = function emplaceBack(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27) {
         var i = this.length;
         this.resize(i + 1);
-        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25);
+        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27);
     };
-    StructArrayLayout8i14ui1ul3f60.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25) {
-        var o2 = i * 30;
-        var o4 = i * 15;
+    StructArrayLayout8i15ui1ul4f68.prototype.emplace = function emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27) {
+        var o2 = i * 34;
+        var o4 = i * 17;
         this.int16[o2 + 0] = v0;
         this.int16[o2 + 1] = v1;
         this.int16[o2 + 2] = v2;
@@ -12890,16 +12807,18 @@ var StructArrayLayout8i14ui1ul3f60 = function (StructArray) {
         this.uint16[o2 + 19] = v19;
         this.uint16[o2 + 20] = v20;
         this.uint16[o2 + 21] = v21;
-        this.uint32[o4 + 11] = v22;
-        this.float32[o4 + 12] = v23;
+        this.uint16[o2 + 22] = v22;
+        this.uint32[o4 + 12] = v23;
         this.float32[o4 + 13] = v24;
         this.float32[o4 + 14] = v25;
+        this.float32[o4 + 15] = v26;
+        this.float32[o4 + 16] = v27;
         return i;
     };
-    return StructArrayLayout8i14ui1ul3f60;
+    return StructArrayLayout8i15ui1ul4f68;
 }(StructArray);
-StructArrayLayout8i14ui1ul3f60.prototype.bytesPerElement = 60;
-register('StructArrayLayout8i14ui1ul3f60', StructArrayLayout8i14ui1ul3f60);
+StructArrayLayout8i15ui1ul4f68.prototype.bytesPerElement = 68;
+register('StructArrayLayout8i15ui1ul4f68', StructArrayLayout8i15ui1ul4f68);
 var StructArrayLayout1f4 = function (StructArray) {
     function StructArrayLayout1f4() {
         StructArray.apply(this, arguments);
@@ -12984,34 +12903,6 @@ var StructArrayLayout1ul2ui8 = function (StructArray) {
 }(StructArray);
 StructArrayLayout1ul2ui8.prototype.bytesPerElement = 8;
 register('StructArrayLayout1ul2ui8', StructArrayLayout1ul2ui8);
-var StructArrayLayout3ui6 = function (StructArray) {
-    function StructArrayLayout3ui6() {
-        StructArray.apply(this, arguments);
-    }
-    if (StructArray)
-        StructArrayLayout3ui6.__proto__ = StructArray;
-    StructArrayLayout3ui6.prototype = Object.create(StructArray && StructArray.prototype);
-    StructArrayLayout3ui6.prototype.constructor = StructArrayLayout3ui6;
-    StructArrayLayout3ui6.prototype._refreshViews = function _refreshViews() {
-        this.uint8 = new Uint8Array(this.arrayBuffer);
-        this.uint16 = new Uint16Array(this.arrayBuffer);
-    };
-    StructArrayLayout3ui6.prototype.emplaceBack = function emplaceBack(v0, v1, v2) {
-        var i = this.length;
-        this.resize(i + 1);
-        return this.emplace(i, v0, v1, v2);
-    };
-    StructArrayLayout3ui6.prototype.emplace = function emplace(i, v0, v1, v2) {
-        var o2 = i * 3;
-        this.uint16[o2 + 0] = v0;
-        this.uint16[o2 + 1] = v1;
-        this.uint16[o2 + 2] = v2;
-        return i;
-    };
-    return StructArrayLayout3ui6;
-}(StructArray);
-StructArrayLayout3ui6.prototype.bytesPerElement = 6;
-register('StructArrayLayout3ui6', StructArrayLayout3ui6);
 var StructArrayLayout2ui4 = function (StructArray) {
     function StructArrayLayout2ui4() {
         StructArray.apply(this, arguments);
@@ -13065,33 +12956,6 @@ var StructArrayLayout1ui2 = function (StructArray) {
 }(StructArray);
 StructArrayLayout1ui2.prototype.bytesPerElement = 2;
 register('StructArrayLayout1ui2', StructArrayLayout1ui2);
-var StructArrayLayout2f8 = function (StructArray) {
-    function StructArrayLayout2f8() {
-        StructArray.apply(this, arguments);
-    }
-    if (StructArray)
-        StructArrayLayout2f8.__proto__ = StructArray;
-    StructArrayLayout2f8.prototype = Object.create(StructArray && StructArray.prototype);
-    StructArrayLayout2f8.prototype.constructor = StructArrayLayout2f8;
-    StructArrayLayout2f8.prototype._refreshViews = function _refreshViews() {
-        this.uint8 = new Uint8Array(this.arrayBuffer);
-        this.float32 = new Float32Array(this.arrayBuffer);
-    };
-    StructArrayLayout2f8.prototype.emplaceBack = function emplaceBack(v0, v1) {
-        var i = this.length;
-        this.resize(i + 1);
-        return this.emplace(i, v0, v1);
-    };
-    StructArrayLayout2f8.prototype.emplace = function emplace(i, v0, v1) {
-        var o4 = i * 2;
-        this.float32[o4 + 0] = v0;
-        this.float32[o4 + 1] = v1;
-        return i;
-    };
-    return StructArrayLayout2f8;
-}(StructArray);
-StructArrayLayout2f8.prototype.bytesPerElement = 8;
-register('StructArrayLayout2f8', StructArrayLayout2f8);
 var StructArrayLayout4f16 = function (StructArray) {
     function StructArrayLayout4f16() {
         StructArray.apply(this, arguments);
@@ -13139,8 +13003,6 @@ var CollisionBoxStruct = function (Struct) {
         featureIndex: { configurable: true },
         sourceLayerIndex: { configurable: true },
         bucketIndex: { configurable: true },
-        radius: { configurable: true },
-        signedDistanceFromAnchor: { configurable: true },
         anchorPoint: { configurable: true }
     };
     prototypeAccessors.anchorPointX.get = function () {
@@ -13170,32 +13032,26 @@ var CollisionBoxStruct = function (Struct) {
     prototypeAccessors.bucketIndex.get = function () {
         return this._structArray.uint16[this._pos2 + 9];
     };
-    prototypeAccessors.radius.get = function () {
-        return this._structArray.int16[this._pos2 + 10];
-    };
-    prototypeAccessors.signedDistanceFromAnchor.get = function () {
-        return this._structArray.int16[this._pos2 + 11];
-    };
     prototypeAccessors.anchorPoint.get = function () {
         return new pointGeometry(this.anchorPointX, this.anchorPointY);
     };
     Object.defineProperties(CollisionBoxStruct.prototype, prototypeAccessors);
     return CollisionBoxStruct;
 }(Struct);
-CollisionBoxStruct.prototype.size = 24;
-var CollisionBoxArray = function (StructArrayLayout6i1ul2ui2i24) {
+CollisionBoxStruct.prototype.size = 20;
+var CollisionBoxArray = function (StructArrayLayout6i1ul2ui20) {
     function CollisionBoxArray() {
-        StructArrayLayout6i1ul2ui2i24.apply(this, arguments);
+        StructArrayLayout6i1ul2ui20.apply(this, arguments);
     }
-    if (StructArrayLayout6i1ul2ui2i24)
-        CollisionBoxArray.__proto__ = StructArrayLayout6i1ul2ui2i24;
-    CollisionBoxArray.prototype = Object.create(StructArrayLayout6i1ul2ui2i24 && StructArrayLayout6i1ul2ui2i24.prototype);
+    if (StructArrayLayout6i1ul2ui20)
+        CollisionBoxArray.__proto__ = StructArrayLayout6i1ul2ui20;
+    CollisionBoxArray.prototype = Object.create(StructArrayLayout6i1ul2ui20 && StructArrayLayout6i1ul2ui20.prototype);
     CollisionBoxArray.prototype.constructor = CollisionBoxArray;
     CollisionBoxArray.prototype.get = function get(index) {
         return new CollisionBoxStruct(this, index);
     };
     return CollisionBoxArray;
-}(StructArrayLayout6i1ul2ui2i24);
+}(StructArrayLayout6i1ul2ui20);
 register('CollisionBoxArray', CollisionBoxArray);
 var PlacedSymbolStruct = function (Struct) {
     function PlacedSymbolStruct() {
@@ -13333,10 +13189,12 @@ var SymbolInstanceStruct = function (Struct) {
         numVerticalGlyphVertices: { configurable: true },
         numIconVertices: { configurable: true },
         numVerticalIconVertices: { configurable: true },
+        useRuntimeCollisionCircles: { configurable: true },
         crossTileID: { configurable: true },
         textBoxScale: { configurable: true },
         textOffset0: { configurable: true },
-        textOffset1: { configurable: true }
+        textOffset1: { configurable: true },
+        collisionCircleDiameter: { configurable: true }
     };
     prototypeAccessors$2.anchorX.get = function () {
         return this._structArray.int16[this._pos2 + 0];
@@ -13404,38 +13262,44 @@ var SymbolInstanceStruct = function (Struct) {
     prototypeAccessors$2.numVerticalIconVertices.get = function () {
         return this._structArray.uint16[this._pos2 + 21];
     };
+    prototypeAccessors$2.useRuntimeCollisionCircles.get = function () {
+        return this._structArray.uint16[this._pos2 + 22];
+    };
     prototypeAccessors$2.crossTileID.get = function () {
-        return this._structArray.uint32[this._pos4 + 11];
+        return this._structArray.uint32[this._pos4 + 12];
     };
     prototypeAccessors$2.crossTileID.set = function (x) {
-        this._structArray.uint32[this._pos4 + 11] = x;
+        this._structArray.uint32[this._pos4 + 12] = x;
     };
     prototypeAccessors$2.textBoxScale.get = function () {
-        return this._structArray.float32[this._pos4 + 12];
-    };
-    prototypeAccessors$2.textOffset0.get = function () {
         return this._structArray.float32[this._pos4 + 13];
     };
-    prototypeAccessors$2.textOffset1.get = function () {
+    prototypeAccessors$2.textOffset0.get = function () {
         return this._structArray.float32[this._pos4 + 14];
+    };
+    prototypeAccessors$2.textOffset1.get = function () {
+        return this._structArray.float32[this._pos4 + 15];
+    };
+    prototypeAccessors$2.collisionCircleDiameter.get = function () {
+        return this._structArray.float32[this._pos4 + 16];
     };
     Object.defineProperties(SymbolInstanceStruct.prototype, prototypeAccessors$2);
     return SymbolInstanceStruct;
 }(Struct);
-SymbolInstanceStruct.prototype.size = 60;
-var SymbolInstanceArray = function (StructArrayLayout8i14ui1ul3f60) {
+SymbolInstanceStruct.prototype.size = 68;
+var SymbolInstanceArray = function (StructArrayLayout8i15ui1ul4f68) {
     function SymbolInstanceArray() {
-        StructArrayLayout8i14ui1ul3f60.apply(this, arguments);
+        StructArrayLayout8i15ui1ul4f68.apply(this, arguments);
     }
-    if (StructArrayLayout8i14ui1ul3f60)
-        SymbolInstanceArray.__proto__ = StructArrayLayout8i14ui1ul3f60;
-    SymbolInstanceArray.prototype = Object.create(StructArrayLayout8i14ui1ul3f60 && StructArrayLayout8i14ui1ul3f60.prototype);
+    if (StructArrayLayout8i15ui1ul4f68)
+        SymbolInstanceArray.__proto__ = StructArrayLayout8i15ui1ul4f68;
+    SymbolInstanceArray.prototype = Object.create(StructArrayLayout8i15ui1ul4f68 && StructArrayLayout8i15ui1ul4f68.prototype);
     SymbolInstanceArray.prototype.constructor = SymbolInstanceArray;
     SymbolInstanceArray.prototype.get = function get(index) {
         return new SymbolInstanceStruct(this, index);
     };
     return SymbolInstanceArray;
-}(StructArrayLayout8i14ui1ul3f60);
+}(StructArrayLayout8i15ui1ul4f68);
 register('SymbolInstanceArray', SymbolInstanceArray);
 var GlyphOffsetArray = function (StructArrayLayout1f4) {
     function GlyphOffsetArray() {
@@ -13587,12 +13451,12 @@ var patternAttributes = createLayout([
     {
         name: 'a_pixel_ratio_from',
         components: 1,
-        type: 'Uint8'
+        type: 'Uint16'
     },
     {
         name: 'a_pixel_ratio_to',
         components: 1,
-        type: 'Uint8'
+        type: 'Uint16'
     }
 ]);
 
@@ -13733,38 +13597,42 @@ FeaturePositionMap.deserialize = function deserialize(obj) {
     map.indexed = true;
     return map;
 };
-var MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
+var MAX_SAFE_INTEGER$1 = Math.pow(2, 53) - 1;
 function getNumericId(value) {
     var numValue = +value;
-    if (!isNaN(numValue) && numValue <= MAX_SAFE_INTEGER) {
+    if (!isNaN(numValue) && numValue <= MAX_SAFE_INTEGER$1) {
         return numValue;
     }
     return murmurhashJs(String(value));
 }
 function sort(ids, positions, left, right) {
-    if (left >= right) {
-        return;
-    }
-    var pivot = ids[left + right >> 1];
-    var i = left - 1;
-    var j = right + 1;
-    while (true) {
-        do {
-            i++;
-        } while (ids[i] < pivot);
-        do {
-            j--;
-        } while (ids[j] > pivot);
-        if (i >= j) {
-            break;
+    while (left < right) {
+        var pivot = ids[left + right >> 1];
+        var i = left - 1;
+        var j = right + 1;
+        while (true) {
+            do {
+                i++;
+            } while (ids[i] < pivot);
+            do {
+                j--;
+            } while (ids[j] > pivot);
+            if (i >= j) {
+                break;
+            }
+            swap(ids, i, j);
+            swap(positions, 3 * i, 3 * j);
+            swap(positions, 3 * i + 1, 3 * j + 1);
+            swap(positions, 3 * i + 2, 3 * j + 2);
         }
-        swap(ids, i, j);
-        swap(positions, 3 * i, 3 * j);
-        swap(positions, 3 * i + 1, 3 * j + 1);
-        swap(positions, 3 * i + 2, 3 * j + 2);
+        if (j - left < right - j) {
+            sort(ids, positions, left, j);
+            left = j + 1;
+        } else {
+            sort(ids, positions, j + 1, right);
+            right = j;
+        }
     }
-    sort(ids, positions, left, j);
-    sort(ids, positions, j + 1, right);
 }
 function swap(arr, i, j) {
     var tmp = arr[i];
@@ -14129,9 +13997,8 @@ CrossFadedCompositeBinder.prototype.destroy = function destroy() {
         this.zoomInPaintVertexBuffer.destroy();
     }
 };
-var ProgramConfiguration = function ProgramConfiguration(layer, zoom, filterProperties, layoutAttributes) {
+var ProgramConfiguration = function ProgramConfiguration(layer, zoom, filterProperties) {
     this.binders = {};
-    this.layoutAttributes = layoutAttributes;
     this._buffers = [];
     var keys = [];
     for (var property in layer.paint._values) {
@@ -14215,6 +14082,35 @@ ProgramConfiguration.prototype.defines = function defines() {
     }
     return result;
 };
+ProgramConfiguration.prototype.getBinderAttributes = function getBinderAttributes() {
+    var result = [];
+    for (var property in this.binders) {
+        var binder = this.binders[property];
+        if (binder instanceof SourceExpressionBinder || binder instanceof CompositeExpressionBinder) {
+            for (var i = 0; i < binder.paintVertexAttributes.length; i++) {
+                result.push(binder.paintVertexAttributes[i].name);
+            }
+        } else if (binder instanceof CrossFadedCompositeBinder) {
+            for (var i$1 = 0; i$1 < patternAttributes.members.length; i$1++) {
+                result.push(patternAttributes.members[i$1].name);
+            }
+        }
+    }
+    return result;
+};
+ProgramConfiguration.prototype.getBinderUniforms = function getBinderUniforms() {
+    var uniforms = [];
+    for (var property in this.binders) {
+        var binder = this.binders[property];
+        if (binder instanceof ConstantBinder || binder instanceof CrossFadedConstantBinder || binder instanceof CompositeExpressionBinder) {
+            for (var i = 0, list = binder.uniformNames; i < list.length; i += 1) {
+                var uniformName = list[i];
+                uniforms.push(uniformName);
+            }
+        }
+    }
+    return uniforms;
+};
 ProgramConfiguration.prototype.getPaintVertexBuffers = function getPaintVertexBuffers() {
     return this._buffers;
 };
@@ -14278,7 +14174,7 @@ ProgramConfiguration.prototype.destroy = function destroy() {
         }
     }
 };
-var ProgramConfigurationSet = function ProgramConfigurationSet(layoutAttributes, layers, zoom, filterProperties) {
+var ProgramConfigurationSet = function ProgramConfigurationSet(layers, zoom, filterProperties) {
     if (filterProperties === void 0)
         filterProperties = function () {
             return true;
@@ -14286,7 +14182,7 @@ var ProgramConfigurationSet = function ProgramConfigurationSet(layoutAttributes,
     this.programConfigurations = {};
     for (var i = 0, list = layers; i < list.length; i += 1) {
         var layer = list[i];
-        this.programConfigurations[layer.id] = new ProgramConfiguration(layer, zoom, filterProperties, layoutAttributes);
+        this.programConfigurations[layer.id] = new ProgramConfiguration(layer, zoom, filterProperties);
     }
     this.needsUpload = false;
     this._featureMap = new FeaturePositionMap();
@@ -14362,16 +14258,16 @@ function paintAttributeNames(property, type) {
 function getLayoutException(property) {
     var propertyExceptions = {
         'line-pattern': {
-            'source': StructArrayLayout8ui2ub18,
-            'composite': StructArrayLayout8ui2ub18
+            'source': StructArrayLayout10ui20,
+            'composite': StructArrayLayout10ui20
         },
         'fill-pattern': {
-            'source': StructArrayLayout8ui2ub18,
-            'composite': StructArrayLayout8ui2ub18
+            'source': StructArrayLayout10ui20,
+            'composite': StructArrayLayout10ui20
         },
         'fill-extrusion-pattern': {
-            'source': StructArrayLayout8ui2ub18,
-            'composite': StructArrayLayout8ui2ub18
+            'source': StructArrayLayout10ui20,
+            'composite': StructArrayLayout10ui20
         }
     };
     return propertyExceptions[property];
@@ -14398,30 +14294,37 @@ register('CompositeExpressionBinder', CompositeExpressionBinder);
 register('ProgramConfiguration', ProgramConfiguration, { omit: ['_buffers'] });
 register('ProgramConfigurationSet', ProgramConfigurationSet);
 
-function createBounds(bits) {
-    return {
-        min: -1 * Math.pow(2, bits - 1),
-        max: Math.pow(2, bits - 1) - 1
-    };
-}
-var bounds = createBounds(15);
+var EXTENT$1 = 8192;
+
+var BITS = 15;
+var MAX = Math.pow(2, BITS - 1) - 1;
+var MIN = -MAX - 1;
 function loadGeometry(feature) {
-    var scale = EXTENT / feature.extent;
+    var scale = EXTENT$1 / feature.extent;
     var geometry = feature.loadGeometry();
     for (var r = 0; r < geometry.length; r++) {
         var ring = geometry[r];
         for (var p = 0; p < ring.length; p++) {
             var point = ring[p];
-            point.x = Math.round(point.x * scale);
-            point.y = Math.round(point.y * scale);
-            if (point.x < bounds.min || point.x > bounds.max || point.y < bounds.min || point.y > bounds.max) {
+            var x = Math.round(point.x * scale);
+            var y = Math.round(point.y * scale);
+            point.x = clamp(x, MIN, MAX);
+            point.y = clamp(y, MIN, MAX);
+            if (x < point.x || x > point.x + 1 || y < point.y || y > point.y + 1) {
                 warnOnce('Geometry exceeds allowed extent, reduce your vector tile buffer size');
-                point.x = clamp(point.x, bounds.min, bounds.max);
-                point.y = clamp(point.y, bounds.min, bounds.max);
             }
         }
     }
     return geometry;
+}
+
+function toEvaluationFeature(feature, needGeometry) {
+    return {
+        type: feature.type,
+        id: feature.id,
+        properties: feature.properties,
+        geometry: needGeometry ? loadGeometry(feature) : []
+    };
 }
 
 function addCircleVertex(layoutVertexArray, x, y, extrudeX, extrudeY) {
@@ -14439,7 +14342,7 @@ var CircleBucket = function CircleBucket(options) {
     this.layoutVertexArray = new StructArrayLayout2i4();
     this.indexArray = new StructArrayLayout3ui6();
     this.segments = new SegmentVector();
-    this.programConfigurations = new ProgramConfigurationSet(members, options.layers, options.zoom);
+    this.programConfigurations = new ProgramConfigurationSet(options.layers, options.zoom);
     this.stateDependentLayerIds = this.layers.filter(function (l) {
         return l.isStateDependent();
     }).map(function (l) {
@@ -14460,17 +14363,9 @@ CircleBucket.prototype.populate = function populate(features, options, canonical
         var index = ref.index;
         var sourceLayerIndex = ref.sourceLayerIndex;
         var needGeometry = this.layers[0]._featureFilter.needGeometry;
-        var evaluationFeature = {
-            type: feature.type,
-            id: id,
-            properties: feature.properties,
-            geometry: needGeometry ? loadGeometry(feature) : []
-        };
+        var evaluationFeature = toEvaluationFeature(feature, needGeometry);
         if (!this.layers[0]._featureFilter.filter(new EvaluationParameters(this.zoom), evaluationFeature, canonical)) {
             continue;
-        }
-        if (!needGeometry) {
-            evaluationFeature.geometry = loadGeometry(feature);
         }
         var sortKey = circleSortKey ? circleSortKey.evaluate(evaluationFeature, {}, canonical) : undefined;
         var bucketFeature = {
@@ -14479,7 +14374,7 @@ CircleBucket.prototype.populate = function populate(features, options, canonical
             type: feature.type,
             sourceLayerIndex: sourceLayerIndex,
             index: index,
-            geometry: evaluationFeature.geometry,
+            geometry: needGeometry ? evaluationFeature.geometry : loadGeometry(feature),
             patterns: {},
             sortKey: sortKey
         };
@@ -14537,7 +14432,7 @@ CircleBucket.prototype.addFeature = function addFeature(feature, geometry, index
             var point = list[i];
             var x = point.x;
             var y = point.y;
-            if (x < 0 || x >= EXTENT || y < 0 || y >= EXTENT) {
+            if (x < 0 || x >= EXTENT$1 || y < 0 || y >= EXTENT$1) {
                 continue;
             }
             var segment = this.segments.prepareSegment(4, this.layoutVertexArray, this.indexArray, feature.sortKey);
@@ -15168,6 +15063,7 @@ function ortho(out, left, right, bottom, top, near, far) {
     out[15] = 1;
     return out;
 }
+var mul = multiply;
 
 function create$3() {
     var out = new ARRAY_TYPE(3);
@@ -15547,21 +15443,40 @@ var paint$2 = new Properties({
 });
 var properties$1 = { paint: paint$2 };
 
-function renderColorRamp(expression, colorRampEvaluationParameter) {
-    var colorRampData = new Uint8Array(256 * 4);
+function renderColorRamp(params) {
     var evaluationGlobals = {};
-    for (var i = 0, j = 0; i < 256; i++, j += 4) {
-        evaluationGlobals[colorRampEvaluationParameter] = i / 255;
-        var pxColor = expression.evaluate(evaluationGlobals);
-        colorRampData[j + 0] = Math.floor(pxColor.r * 255 / pxColor.a);
-        colorRampData[j + 1] = Math.floor(pxColor.g * 255 / pxColor.a);
-        colorRampData[j + 2] = Math.floor(pxColor.b * 255 / pxColor.a);
-        colorRampData[j + 3] = Math.floor(pxColor.a * 255);
+    var width = params.resolution || 256;
+    var height = params.clips ? params.clips.length : 1;
+    var image = params.image || new RGBAImage({
+        width: width,
+        height: height
+    });
+    var renderPixel = function (stride, index, progress) {
+        evaluationGlobals[params.evaluationKey] = progress;
+        var pxColor = params.expression.evaluate(evaluationGlobals);
+        image.data[stride + index + 0] = Math.floor(pxColor.r * 255 / pxColor.a);
+        image.data[stride + index + 1] = Math.floor(pxColor.g * 255 / pxColor.a);
+        image.data[stride + index + 2] = Math.floor(pxColor.b * 255 / pxColor.a);
+        image.data[stride + index + 3] = Math.floor(pxColor.a * 255);
+    };
+    if (!params.clips) {
+        for (var i = 0, j = 0; i < width; i++, j += 4) {
+            var progress = i / (width - 1);
+            renderPixel(0, j, progress);
+        }
+    } else {
+        for (var clip = 0, stride = 0; clip < height; ++clip, stride += width * 4) {
+            for (var i$1 = 0, j$1 = 0; i$1 < width; i$1++, j$1 += 4) {
+                var progress$1 = i$1 / (width - 1);
+                var ref = params.clips[clip];
+                var start = ref.start;
+                var end = ref.end;
+                var evaluationProgress = start * (1 - progress$1) + end * progress$1;
+                renderPixel(stride, j$1, evaluationProgress);
+            }
+        }
     }
-    return new RGBAImage({
-        width: 256,
-        height: 1
-    }, colorRampData);
+    return image;
 }
 
 var HeatmapStyleLayer = function (StyleLayer) {
@@ -15583,7 +15498,11 @@ var HeatmapStyleLayer = function (StyleLayer) {
     };
     HeatmapStyleLayer.prototype._updateColorRamp = function _updateColorRamp() {
         var expression = this._transitionablePaint._values['heatmap-color'].value.expression;
-        this.colorRamp = renderColorRamp(expression, 'heatmapDensity');
+        this.colorRamp = renderColorRamp({
+            expression: expression,
+            evaluationKey: 'heatmapDensity',
+            image: this.colorRamp
+        });
         this.colorRampTexture = null;
     };
     HeatmapStyleLayer.prototype.resize = function resize() {
@@ -16294,7 +16213,7 @@ var FillBucket = function FillBucket(options) {
     this.layoutVertexArray = new StructArrayLayout2i4();
     this.indexArray = new StructArrayLayout3ui6();
     this.indexArray2 = new StructArrayLayout2ui4();
-    this.programConfigurations = new ProgramConfigurationSet(members$1, options.layers, options.zoom);
+    this.programConfigurations = new ProgramConfigurationSet(options.layers, options.zoom);
     this.segments = new SegmentVector();
     this.segments2 = new SegmentVector();
     this.stateDependentLayerIds = this.layers.filter(function (l) {
@@ -16314,17 +16233,9 @@ FillBucket.prototype.populate = function populate(features, options, canonical) 
         var index = ref.index;
         var sourceLayerIndex = ref.sourceLayerIndex;
         var needGeometry = this.layers[0]._featureFilter.needGeometry;
-        var evaluationFeature = {
-            type: feature.type,
-            id: id,
-            properties: feature.properties,
-            geometry: needGeometry ? loadGeometry(feature) : []
-        };
+        var evaluationFeature = toEvaluationFeature(feature, needGeometry);
         if (!this.layers[0]._featureFilter.filter(new EvaluationParameters(this.zoom), evaluationFeature, canonical)) {
             continue;
-        }
-        if (!needGeometry) {
-            evaluationFeature.geometry = loadGeometry(feature);
         }
         var sortKey = fillSortKey ? fillSortKey.evaluate(evaluationFeature, {}, canonical, options.availableImages) : undefined;
         var bucketFeature = {
@@ -16333,7 +16244,7 @@ FillBucket.prototype.populate = function populate(features, options, canonical) 
             type: feature.type,
             sourceLayerIndex: sourceLayerIndex,
             index: index,
-            geometry: evaluationFeature.geometry,
+            geometry: needGeometry ? evaluationFeature.geometry : loadGeometry(feature),
             patterns: {},
             sortKey: sortKey
         };
@@ -16790,7 +16701,7 @@ var FillExtrusionBucket = function FillExtrusionBucket(options) {
     this.hasPattern = false;
     this.layoutVertexArray = new StructArrayLayout2i4i12();
     this.indexArray = new StructArrayLayout3ui6();
-    this.programConfigurations = new ProgramConfigurationSet(members$2, options.layers, options.zoom);
+    this.programConfigurations = new ProgramConfigurationSet(options.layers, options.zoom);
     this.segments = new SegmentVector();
     this.stateDependentLayerIds = this.layers.filter(function (l) {
         return l.isStateDependent();
@@ -16808,16 +16719,11 @@ FillExtrusionBucket.prototype.populate = function populate(features, options, ca
         var index = ref.index;
         var sourceLayerIndex = ref.sourceLayerIndex;
         var needGeometry = this.layers[0]._featureFilter.needGeometry;
-        var evaluationFeature = {
-            type: feature.type,
-            id: id,
-            properties: feature.properties,
-            geometry: needGeometry ? loadGeometry(feature) : []
-        };
+        var evaluationFeature = toEvaluationFeature(feature, needGeometry);
         if (!this.layers[0]._featureFilter.filter(new EvaluationParameters(this.zoom), evaluationFeature, canonical)) {
             continue;
         }
-        var patternFeature = {
+        var bucketFeature = {
             id: id,
             sourceLayerIndex: sourceLayerIndex,
             index: index,
@@ -16826,15 +16732,12 @@ FillExtrusionBucket.prototype.populate = function populate(features, options, ca
             type: feature.type,
             patterns: {}
         };
-        if (typeof feature.id !== 'undefined') {
-            patternFeature.id = feature.id;
-        }
         if (this.hasPattern) {
-            this.features.push(addPatternDependencies('fill-extrusion', this.layers, patternFeature, this.zoom, options));
+            this.features.push(addPatternDependencies('fill-extrusion', this.layers, bucketFeature, this.zoom, options));
         } else {
-            this.addFeature(patternFeature, patternFeature.geometry, index, canonical, {});
+            this.addFeature(bucketFeature, bucketFeature.geometry, index, canonical, {});
         }
-        options.featureIndex.insert(feature, patternFeature.geometry, index, sourceLayerIndex, this.index, true);
+        options.featureIndex.insert(feature, bucketFeature.geometry, index, sourceLayerIndex, this.index, true);
     }
 };
 FillExtrusionBucket.prototype.addFeatures = function addFeatures(options, canonical, imagePositions) {
@@ -16958,17 +16861,17 @@ register('FillExtrusionBucket', FillExtrusionBucket, {
     ]
 });
 function isBoundaryEdge(p1, p2) {
-    return p1.x === p2.x && (p1.x < 0 || p1.x > EXTENT) || p1.y === p2.y && (p1.y < 0 || p1.y > EXTENT);
+    return p1.x === p2.x && (p1.x < 0 || p1.x > EXTENT$1) || p1.y === p2.y && (p1.y < 0 || p1.y > EXTENT$1);
 }
 function isEntirelyOutside(ring) {
     return ring.every(function (p) {
         return p.x < 0;
     }) || ring.every(function (p) {
-        return p.x > EXTENT;
+        return p.x > EXTENT$1;
     }) || ring.every(function (p) {
         return p.y < 0;
     }) || ring.every(function (p) {
-        return p.y > EXTENT;
+        return p.y > EXTENT$1;
     });
 }
 
@@ -17020,33 +16923,34 @@ function getIntersectionDistance(projectedQueryGeometry, projectedFace) {
     if (projectedQueryGeometry.length === 1) {
         var i = 0;
         var a = projectedFace[i++];
-        var b, c;
+        var b;
         while (!b || a.equals(b)) {
             b = projectedFace[i++];
             if (!b) {
                 return Infinity;
             }
         }
-        while (!c || a.equals(c) || b.equals(c)) {
-            c = projectedFace[i++];
-            if (!c) {
-                return Infinity;
+        for (; i < projectedFace.length; i++) {
+            var c = projectedFace[i];
+            var p = projectedQueryGeometry[0];
+            var ab = b.sub(a);
+            var ac = c.sub(a);
+            var ap = p.sub(a);
+            var dotABAB = dot$2(ab, ab);
+            var dotABAC = dot$2(ab, ac);
+            var dotACAC = dot$2(ac, ac);
+            var dotAPAB = dot$2(ap, ab);
+            var dotAPAC = dot$2(ap, ac);
+            var denom = dotABAB * dotACAC - dotABAC * dotABAC;
+            var v = (dotACAC * dotAPAB - dotABAC * dotAPAC) / denom;
+            var w = (dotABAB * dotAPAC - dotABAC * dotAPAB) / denom;
+            var u = 1 - v - w;
+            var distance = a.z * u + b.z * v + c.z * w;
+            if (isFinite(distance)) {
+                return distance;
             }
         }
-        var p = projectedQueryGeometry[0];
-        var ab = b.sub(a);
-        var ac = c.sub(a);
-        var ap = p.sub(a);
-        var dotABAB = dot$2(ab, ab);
-        var dotABAC = dot$2(ab, ac);
-        var dotACAC = dot$2(ac, ac);
-        var dotAPAB = dot$2(ap, ab);
-        var dotAPAC = dot$2(ap, ac);
-        var denom = dotABAB * dotACAC - dotABAC * dotABAC;
-        var v = (dotACAC * dotAPAB - dotABAC * dotAPAC) / denom;
-        var w = (dotABAB * dotAPAC - dotABAC * dotAPAB) / denom;
-        var u = 1 - v - w;
-        return a.z * u + b.z * v + c.z * w;
+        return Infinity;
     } else {
         var closestDistance = Infinity;
         for (var i$1 = 0, list = projectedFace; i$1 < list.length; i$1 += 1) {
@@ -17159,6 +17063,20 @@ var lineLayoutAttributes = createLayout([
 ], 4);
 var members$3 = lineLayoutAttributes.members;
 
+var lineLayoutAttributesExt = createLayout([
+    {
+        name: 'a_uv_x',
+        components: 1,
+        type: 'Float32'
+    },
+    {
+        name: 'a_split_index',
+        components: 1,
+        type: 'Float32'
+    }
+]);
+var members$4 = lineLayoutAttributesExt.members;
+
 var vectorTileFeatureTypes$1 = vectorTile.VectorTileFeature.types;
 var EXTRUDE_SCALE = 63;
 var COS_HALF_SHARP_CORNER = Math.cos(75 / 2 * (Math.PI / 180));
@@ -17168,6 +17086,7 @@ var LINE_DISTANCE_BUFFER_BITS = 15;
 var LINE_DISTANCE_SCALE = 1 / 2;
 var MAX_LINE_DISTANCE = Math.pow(2, LINE_DISTANCE_BUFFER_BITS - 1) / LINE_DISTANCE_SCALE;
 var LineBucket = function LineBucket(options) {
+    var this$1 = this;
     this.zoom = options.zoom;
     this.overscaling = options.overscaling;
     this.layers = options.layers;
@@ -17177,10 +17096,17 @@ var LineBucket = function LineBucket(options) {
     this.index = options.index;
     this.hasPattern = false;
     this.patternFeatures = [];
+    this.lineClipsArray = [];
+    this.gradients = {};
+    this.layers.forEach(function (layer) {
+        this$1.gradients[layer.id] = {};
+    });
     this.layoutVertexArray = new StructArrayLayout2i4ub8();
+    this.layoutVertexArray2 = new StructArrayLayout2f8();
     this.indexArray = new StructArrayLayout3ui6();
-    this.programConfigurations = new ProgramConfigurationSet(members$3, options.layers, options.zoom);
+    this.programConfigurations = new ProgramConfigurationSet(options.layers, options.zoom);
     this.segments = new SegmentVector();
+    this.maxLineLength = 0;
     this.stateDependentLayerIds = this.layers.filter(function (l) {
         return l.isStateDependent();
     }).map(function (l) {
@@ -17198,17 +17124,9 @@ LineBucket.prototype.populate = function populate(features, options, canonical) 
         var index = ref.index;
         var sourceLayerIndex = ref.sourceLayerIndex;
         var needGeometry = this.layers[0]._featureFilter.needGeometry;
-        var evaluationFeature = {
-            type: feature.type,
-            id: id,
-            properties: feature.properties,
-            geometry: needGeometry ? loadGeometry(feature) : []
-        };
+        var evaluationFeature = toEvaluationFeature(feature, needGeometry);
         if (!this.layers[0]._featureFilter.filter(new EvaluationParameters(this.zoom), evaluationFeature, canonical)) {
             continue;
-        }
-        if (!needGeometry) {
-            evaluationFeature.geometry = loadGeometry(feature);
         }
         var sortKey = lineSortKey ? lineSortKey.evaluate(evaluationFeature, {}, canonical) : undefined;
         var bucketFeature = {
@@ -17217,7 +17135,7 @@ LineBucket.prototype.populate = function populate(features, options, canonical) 
             type: feature.type,
             sourceLayerIndex: sourceLayerIndex,
             index: index,
-            geometry: evaluationFeature.geometry,
+            geometry: needGeometry ? evaluationFeature.geometry : loadGeometry(feature),
             patterns: {},
             sortKey: sortKey
         };
@@ -17264,6 +17182,9 @@ LineBucket.prototype.uploadPending = function uploadPending() {
 };
 LineBucket.prototype.upload = function upload(context) {
     if (!this.uploaded) {
+        if (this.layoutVertexArray2.length !== 0) {
+            this.layoutVertexBuffer2 = context.createVertexBuffer(this.layoutVertexArray2, members$4);
+        }
         this.layoutVertexBuffer = context.createVertexBuffer(this.layoutVertexArray, members$3);
         this.indexBuffer = context.createIndexBuffer(this.indexArray);
     }
@@ -17279,28 +17200,40 @@ LineBucket.prototype.destroy = function destroy() {
     this.programConfigurations.destroy();
     this.segments.destroy();
 };
+LineBucket.prototype.lineFeatureClips = function lineFeatureClips(feature) {
+    if (!!feature.properties && feature.properties.hasOwnProperty('mapbox_clip_start') && feature.properties.hasOwnProperty('mapbox_clip_end')) {
+        var start = +feature.properties['mapbox_clip_start'];
+        var end = +feature.properties['mapbox_clip_end'];
+        return {
+            start: start,
+            end: end
+        };
+    }
+};
 LineBucket.prototype.addFeature = function addFeature(feature, geometry, index, canonical, imagePositions) {
     var layout = this.layers[0].layout;
     var join = layout.get('line-join').evaluate(feature, {});
     var cap = layout.get('line-cap');
     var miterLimit = layout.get('line-miter-limit');
     var roundLimit = layout.get('line-round-limit');
+    this.lineClips = this.lineFeatureClips(feature);
     for (var i = 0, list = geometry; i < list.length; i += 1) {
         var line = list[i];
-        this.addLine(line, feature, join, cap, miterLimit, roundLimit, index, canonical, imagePositions);
+        this.addLine(line, feature, join, cap, miterLimit, roundLimit);
     }
+    this.programConfigurations.populatePaintArrays(this.layoutVertexArray.length, feature, index, imagePositions, canonical);
 };
-LineBucket.prototype.addLine = function addLine(vertices, feature, join, cap, miterLimit, roundLimit, index, canonical, imagePositions) {
+LineBucket.prototype.addLine = function addLine(vertices, feature, join, cap, miterLimit, roundLimit) {
     this.distance = 0;
     this.scaledDistance = 0;
     this.totalDistance = 0;
-    if (!!feature.properties && feature.properties.hasOwnProperty('mapbox_clip_start') && feature.properties.hasOwnProperty('mapbox_clip_end')) {
-        this.clipStart = +feature.properties['mapbox_clip_start'];
-        this.clipEnd = +feature.properties['mapbox_clip_end'];
+    if (this.lineClips) {
+        this.lineClipsArray.push(this.lineClips);
         for (var i = 0; i < vertices.length - 1; i++) {
             this.totalDistance += vertices[i].dist(vertices[i + 1]);
         }
         this.updateScaledDistance();
+        this.maxLineLength = Math.max(this.maxLineLength, this.totalDistance);
     }
     var isPolygon = vectorTileFeatureTypes$1[feature.type] === 'Polygon';
     var len = vertices.length;
@@ -17317,7 +17250,7 @@ LineBucket.prototype.addLine = function addLine(vertices, feature, join, cap, mi
     if (join === 'bevel') {
         miterLimit = 1.05;
     }
-    var sharpCornerOffset = this.overscaling <= 16 ? SHARP_CORNER_OFFSET * EXTENT / (512 * this.overscaling) : 0;
+    var sharpCornerOffset = this.overscaling <= 16 ? SHARP_CORNER_OFFSET * EXTENT$1 / (512 * this.overscaling) : 0;
     var segment = this.segments.prepareSegment(len * 10, this.layoutVertexArray, this.indexArray);
     var currentVertex;
     var prevVertex = undefined;
@@ -17446,7 +17379,6 @@ LineBucket.prototype.addLine = function addLine(vertices, feature, join, cap, mi
             }
         }
     }
-    this.programConfigurations.populatePaintArrays(this.layoutVertexArray.length, feature, index, imagePositions, canonical);
 };
 LineBucket.prototype.addCurrentVertex = function addCurrentVertex(p, normal, endLeft, endRight, segment, round) {
     if (round === void 0)
@@ -17465,8 +17397,15 @@ LineBucket.prototype.addCurrentVertex = function addCurrentVertex(p, normal, end
 LineBucket.prototype.addHalfVertex = function addHalfVertex(ref, extrudeX, extrudeY, round, up, dir, segment) {
     var x = ref.x;
     var y = ref.y;
-    var linesofar = this.scaledDistance * LINE_DISTANCE_SCALE;
-    this.layoutVertexArray.emplaceBack((x << 1) + (round ? 1 : 0), (y << 1) + (up ? 1 : 0), Math.round(EXTRUDE_SCALE * extrudeX) + 128, Math.round(EXTRUDE_SCALE * extrudeY) + 128, (dir === 0 ? 0 : dir < 0 ? -1 : 1) + 1 | (linesofar & 63) << 2, linesofar >> 6);
+    var totalDistance = this.lineClips ? this.scaledDistance * (MAX_LINE_DISTANCE - 1) : this.scaledDistance;
+    var linesofarScaled = totalDistance * LINE_DISTANCE_SCALE;
+    this.layoutVertexArray.emplaceBack((x << 1) + (round ? 1 : 0), (y << 1) + (up ? 1 : 0), Math.round(EXTRUDE_SCALE * extrudeX) + 128, Math.round(EXTRUDE_SCALE * extrudeY) + 128, (dir === 0 ? 0 : dir < 0 ? -1 : 1) + 1 | (linesofarScaled & 63) << 2, linesofarScaled >> 6);
+    if (this.lineClips) {
+        var progressRealigned = this.scaledDistance - this.lineClips.start;
+        var endClipRealigned = this.lineClips.end - this.lineClips.start;
+        var uvX = progressRealigned / endClipRealigned;
+        this.layoutVertexArray2.emplaceBack(uvX, this.lineClipsArray.length);
+    }
     var e = segment.vertexLength++;
     if (this.e1 >= 0 && this.e2 >= 0) {
         this.indexArray.emplaceBack(this.e1, this.e2, e);
@@ -17479,7 +17418,7 @@ LineBucket.prototype.addHalfVertex = function addHalfVertex(ref, extrudeX, extru
     }
 };
 LineBucket.prototype.updateScaledDistance = function updateScaledDistance() {
-    this.scaledDistance = this.totalDistance > 0 ? (this.clipStart + (this.clipEnd - this.clipStart) * this.distance / this.totalDistance) * (MAX_LINE_DISTANCE - 1) : this.distance;
+    this.scaledDistance = this.lineClips ? this.lineClips.start + (this.lineClips.end - this.lineClips.start) * this.distance / this.totalDistance : this.distance;
 };
 LineBucket.prototype.updateDistance = function updateDistance(prev, next) {
     this.distance += prev.dist(next);
@@ -17545,6 +17484,7 @@ lineFloorwidthProperty.useIntegerZoom = true;
 var LineStyleLayer = function (StyleLayer) {
     function LineStyleLayer(layer) {
         StyleLayer.call(this, layer, properties$5);
+        this.gradientVersion = 0;
     }
     if (StyleLayer)
         LineStyleLayer.__proto__ = StyleLayer;
@@ -17552,13 +17492,13 @@ var LineStyleLayer = function (StyleLayer) {
     LineStyleLayer.prototype.constructor = LineStyleLayer;
     LineStyleLayer.prototype._handleSpecialPaintPropertyUpdate = function _handleSpecialPaintPropertyUpdate(name) {
         if (name === 'line-gradient') {
-            this._updateGradient();
+            var expression = this._transitionablePaint._values['line-gradient'].value.expression;
+            this.stepInterpolant = expression._styleExpression.expression instanceof Step;
+            this.gradientVersion = (this.gradientVersion + 1) % MAX_SAFE_INTEGER;
         }
     };
-    LineStyleLayer.prototype._updateGradient = function _updateGradient() {
-        var expression = this._transitionablePaint._values['line-gradient'].value.expression;
-        this.gradient = renderColorRamp(expression, 'lineProgress');
-        this.gradientTexture = null;
+    LineStyleLayer.prototype.gradientExpression = function gradientExpression() {
+        return this._transitionablePaint._values['line-gradient'].value.expression;
     };
     LineStyleLayer.prototype.recalculate = function recalculate(parameters, availableImages) {
         StyleLayer.prototype.recalculate.call(this, parameters, availableImages);
@@ -17691,14 +17631,6 @@ var collisionBox = createLayout([
     {
         type: 'Uint16',
         name: 'bucketIndex'
-    },
-    {
-        type: 'Int16',
-        name: 'radius'
-    },
-    {
-        type: 'Int16',
-        name: 'signedDistanceFromAnchor'
     }
 ]);
 var collisionBoxLayout = createLayout([
@@ -17722,19 +17654,24 @@ var collisionCircleLayout = createLayout([
     {
         name: 'a_pos',
         components: 2,
-        type: 'Int16'
+        type: 'Float32'
     },
     {
-        name: 'a_anchor_pos',
-        components: 2,
-        type: 'Int16'
+        name: 'a_radius',
+        components: 1,
+        type: 'Float32'
     },
     {
-        name: 'a_extrude',
+        name: 'a_flags',
         components: 2,
         type: 'Int16'
     }
 ], 4);
+var quadTriangle = createLayout([{
+        name: 'triangle',
+        components: 3,
+        type: 'Uint16'
+    }]);
 var placement = createLayout([
     {
         type: 'Int16',
@@ -17895,6 +17832,10 @@ var symbolInstance = createLayout([
         name: 'numVerticalIconVertices'
     },
     {
+        type: 'Uint16',
+        name: 'useRuntimeCollisionCircles'
+    },
+    {
         type: 'Uint32',
         name: 'crossTileID'
     },
@@ -17906,6 +17847,10 @@ var symbolInstance = createLayout([
         type: 'Float32',
         components: 2,
         name: 'textOffset'
+    },
+    {
+        type: 'Float32',
+        name: 'collisionCircleDiameter'
     }
 ]);
 var glyphOffset = createLayout([{
@@ -20334,27 +20279,33 @@ function getGlyphQuads(anchor, shaping, textOffset, layer, alongLine, feature, i
     return quads;
 }
 
-var CollisionFeature = function CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, shaped, boxScale, padding, alignLine, overscaling, rotate) {
-    var y1 = shaped.top * boxScale - padding;
-    var y2 = shaped.bottom * boxScale + padding;
-    var x1 = shaped.left * boxScale - padding;
-    var x2 = shaped.right * boxScale + padding;
-    var collisionPadding = shaped.collisionPadding;
-    if (collisionPadding) {
-        x1 -= collisionPadding[0] * boxScale;
-        y1 -= collisionPadding[1] * boxScale;
-        x2 += collisionPadding[2] * boxScale;
-        y2 += collisionPadding[3] * boxScale;
-    }
+var CollisionFeature = function CollisionFeature(collisionBoxArray, anchor, featureIndex, sourceLayerIndex, bucketIndex, shaped, boxScale, padding, alignLine, rotate) {
     this.boxStartIndex = collisionBoxArray.length;
     if (alignLine) {
-        var height = y2 - y1;
-        var length = x2 - x1;
+        var top = shaped.top;
+        var bottom = shaped.bottom;
+        var collisionPadding = shaped.collisionPadding;
+        if (collisionPadding) {
+            top -= collisionPadding[1];
+            bottom += collisionPadding[3];
+        }
+        var height = bottom - top;
         if (height > 0) {
-            height = Math.max(10 * boxScale, height);
-            this._addLineCollisionCircles(collisionBoxArray, line, anchor, anchor.segment, length, height, featureIndex, sourceLayerIndex, bucketIndex, overscaling);
+            height = Math.max(10, height);
+            this.circleDiameter = height;
         }
     } else {
+        var y1 = shaped.top * boxScale - padding;
+        var y2 = shaped.bottom * boxScale + padding;
+        var x1 = shaped.left * boxScale - padding;
+        var x2 = shaped.right * boxScale + padding;
+        var collisionPadding$1 = shaped.collisionPadding;
+        if (collisionPadding$1) {
+            x1 -= collisionPadding$1[0] * boxScale;
+            y1 -= collisionPadding$1[1] * boxScale;
+            x2 += collisionPadding$1[2] * boxScale;
+            y2 += collisionPadding$1[3] * boxScale;
+        }
         if (rotate) {
             var tl = new pointGeometry(x1, y1);
             var tr = new pointGeometry(x2, y1);
@@ -20370,63 +20321,9 @@ var CollisionFeature = function CollisionFeature(collisionBoxArray, line, anchor
             y1 = Math.min(tl.y, tr.y, bl.y, br.y);
             y2 = Math.max(tl.y, tr.y, bl.y, br.y);
         }
-        collisionBoxArray.emplaceBack(anchor.x, anchor.y, x1, y1, x2, y2, featureIndex, sourceLayerIndex, bucketIndex, 0, 0);
+        collisionBoxArray.emplaceBack(anchor.x, anchor.y, x1, y1, x2, y2, featureIndex, sourceLayerIndex, bucketIndex);
     }
     this.boxEndIndex = collisionBoxArray.length;
-};
-CollisionFeature.prototype._addLineCollisionCircles = function _addLineCollisionCircles(collisionBoxArray, line, anchor, segment, labelLength, boxSize, featureIndex, sourceLayerIndex, bucketIndex, overscaling) {
-    var step = boxSize / 2;
-    var nBoxes = Math.floor(labelLength / step) || 1;
-    var overscalingPaddingFactor = 1 + 0.4 * Math.log(overscaling) / Math.LN2;
-    var nPitchPaddingBoxes = Math.floor(nBoxes * overscalingPaddingFactor / 2);
-    var firstBoxOffset = -boxSize / 2;
-    var p = anchor;
-    var index = segment + 1;
-    var anchorDistance = firstBoxOffset;
-    var labelStartDistance = -labelLength / 2;
-    var paddingStartDistance = labelStartDistance - labelLength / 4;
-    do {
-        index--;
-        if (index < 0) {
-            if (anchorDistance > labelStartDistance) {
-                return;
-            } else {
-                index = 0;
-                break;
-            }
-        } else {
-            anchorDistance -= line[index].dist(p);
-            p = line[index];
-        }
-    } while (anchorDistance > paddingStartDistance);
-    var segmentLength = line[index].dist(line[index + 1]);
-    for (var i = -nPitchPaddingBoxes; i < nBoxes + nPitchPaddingBoxes; i++) {
-        var boxOffset = i * step;
-        var boxDistanceToAnchor = labelStartDistance + boxOffset;
-        if (boxOffset < 0) {
-            boxDistanceToAnchor += boxOffset;
-        }
-        if (boxOffset > labelLength) {
-            boxDistanceToAnchor += boxOffset - labelLength;
-        }
-        if (boxDistanceToAnchor < anchorDistance) {
-            continue;
-        }
-        while (anchorDistance + segmentLength < boxDistanceToAnchor) {
-            anchorDistance += segmentLength;
-            index++;
-            if (index + 1 >= line.length) {
-                return;
-            }
-            segmentLength = line[index].dist(line[index + 1]);
-        }
-        var segmentBoxDistance = boxDistanceToAnchor - anchorDistance;
-        var p0 = line[index];
-        var p1 = line[index + 1];
-        var boxAnchorPoint = p1.sub(p0)._unit()._mult(segmentBoxDistance)._add(p0)._round();
-        var paddedAnchorDistance = Math.abs(boxDistanceToAnchor - firstBoxOffset) < step ? 0 : (boxDistanceToAnchor - firstBoxOffset) * 0.8;
-        collisionBoxArray.emplaceBack(boxAnchorPoint.x, boxAnchorPoint.y, -boxSize / 2, -boxSize / 2, boxSize / 2, boxSize / 2, featureIndex, sourceLayerIndex, bucketIndex, boxSize / 2, paddedAnchorDistance);
-    }
 };
 
 var TinyQueue = function TinyQueue(data, compare) {
@@ -20692,7 +20589,7 @@ function evaluateVariableOffset(anchor, offset) {
 function performSymbolLayout(bucket, glyphMap, glyphPositions, imageMap, imagePositions, showCollisionBoxes, canonical) {
     bucket.createArrays();
     var tileSize = 512 * bucket.overscaling;
-    bucket.tilePixelRatio = EXTENT / tileSize;
+    bucket.tilePixelRatio = EXTENT$1 / tileSize;
     bucket.compareText = {};
     bucket.iconsNeedLinear = false;
     var layout = bucket.layers[0].layout;
@@ -20864,15 +20761,15 @@ function addFeature(bucket, feature, shapedTextOrientations, shapedIcon, imageMa
         }
     }
     var addSymbolAtAnchor = function (line, anchor) {
-        if (anchor.x < 0 || anchor.x >= EXTENT || anchor.y < 0 || anchor.y >= EXTENT) {
+        if (anchor.x < 0 || anchor.x >= EXTENT$1 || anchor.y < 0 || anchor.y >= EXTENT$1) {
             return;
         }
-        addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, imageMap, verticallyShapedIcon, bucket.layers[0], bucket.collisionBoxArray, feature.index, feature.sourceLayerIndex, bucket.index, textBoxScale, textPadding, textAlongLine, textOffset, iconBoxScale, iconPadding, iconAlongLine, iconOffset, feature, sizes, isSDFIcon, canonical);
+        addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, imageMap, verticallyShapedIcon, bucket.layers[0], bucket.collisionBoxArray, feature.index, feature.sourceLayerIndex, bucket.index, textBoxScale, textPadding, textAlongLine, textOffset, iconBoxScale, iconPadding, iconAlongLine, iconOffset, feature, sizes, isSDFIcon, canonical, layoutTextSize);
     };
     if (symbolPlacement === 'line') {
-        for (var i$1 = 0, list$1 = clipLine(feature.geometry, 0, 0, EXTENT, EXTENT); i$1 < list$1.length; i$1 += 1) {
+        for (var i$1 = 0, list$1 = clipLine(feature.geometry, 0, 0, EXTENT$1, EXTENT$1); i$1 < list$1.length; i$1 += 1) {
             var line = list$1[i$1];
-            var anchors = getAnchors(line, symbolMinDistance, textMaxAngle, shapedTextOrientations.vertical || defaultHorizontalShaping, shapedIcon, glyphSize, textMaxBoxScale, bucket.overscaling, EXTENT);
+            var anchors = getAnchors(line, symbolMinDistance, textMaxAngle, shapedTextOrientations.vertical || defaultHorizontalShaping, shapedIcon, glyphSize, textMaxBoxScale, bucket.overscaling, EXTENT$1);
             for (var i = 0, list = anchors; i < list.length; i += 1) {
                 var anchor = list[i];
                 var shapedText = defaultHorizontalShaping;
@@ -20939,7 +20836,7 @@ function getDefaultHorizontalShaping(horizontalShaping) {
     }
     return null;
 }
-function addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, imageMap, verticallyShapedIcon, layer, collisionBoxArray, featureIndex, sourceLayerIndex, bucketIndex, textBoxScale, textPadding, textAlongLine, textOffset, iconBoxScale, iconPadding, iconAlongLine, iconOffset, feature, sizes, isSDFIcon, canonical) {
+function addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, imageMap, verticallyShapedIcon, layer, collisionBoxArray, featureIndex, sourceLayerIndex, bucketIndex, textBoxScale, textPadding, textAlongLine, textOffset, iconBoxScale, iconPadding, iconAlongLine, iconOffset, feature, sizes, isSDFIcon, canonical, layoutTextSize) {
     var assign;
     var lineArray = bucket.addToLineVertexArray(anchor, line);
     var textCollisionFeature, iconCollisionFeature, verticalTextCollisionFeature, verticalIconCollisionFeature;
@@ -20965,9 +20862,9 @@ function addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, ima
         var textRotation = layer.layout.get('text-rotate').evaluate(feature, {}, canonical);
         var verticalTextRotation = textRotation + 90;
         var verticalShaping = shapedTextOrientations.vertical;
-        verticalTextCollisionFeature = new CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, verticalShaping, textBoxScale, textPadding, textAlongLine, bucket.overscaling, verticalTextRotation);
+        verticalTextCollisionFeature = new CollisionFeature(collisionBoxArray, anchor, featureIndex, sourceLayerIndex, bucketIndex, verticalShaping, textBoxScale, textPadding, textAlongLine, verticalTextRotation);
         if (verticallyShapedIcon) {
-            verticalIconCollisionFeature = new CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, verticallyShapedIcon, iconBoxScale, iconPadding, textAlongLine, bucket.overscaling, verticalTextRotation);
+            verticalIconCollisionFeature = new CollisionFeature(collisionBoxArray, anchor, featureIndex, sourceLayerIndex, bucketIndex, verticallyShapedIcon, iconBoxScale, iconPadding, textAlongLine, verticalTextRotation);
         }
     }
     if (shapedIcon) {
@@ -20975,7 +20872,7 @@ function addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, ima
         var hasIconTextFit = layer.layout.get('icon-text-fit') !== 'none';
         var iconQuads = getIconQuads(shapedIcon, iconRotate, isSDFIcon, hasIconTextFit);
         var verticalIconQuads = verticallyShapedIcon ? getIconQuads(verticallyShapedIcon, iconRotate, isSDFIcon, hasIconTextFit) : undefined;
-        iconCollisionFeature = new CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, shapedIcon, iconBoxScale, iconPadding, false, bucket.overscaling, iconRotate);
+        iconCollisionFeature = new CollisionFeature(collisionBoxArray, anchor, featureIndex, sourceLayerIndex, bucketIndex, shapedIcon, iconBoxScale, iconPadding, false, iconRotate);
         numIconVertices = iconQuads.length * 4;
         var sizeData = bucket.iconSizeData;
         var iconSizeData = null;
@@ -21006,7 +20903,7 @@ function addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, ima
         if (!textCollisionFeature) {
             key = murmurhashJs(shaping.text);
             var textRotate = layer.layout.get('text-rotate').evaluate(feature, {}, canonical);
-            textCollisionFeature = new CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, shaping, textBoxScale, textPadding, textAlongLine, bucket.overscaling, textRotate);
+            textCollisionFeature = new CollisionFeature(collisionBoxArray, anchor, featureIndex, sourceLayerIndex, bucketIndex, shaping, textBoxScale, textPadding, textAlongLine, textRotate);
         }
         var singleLine = shaping.positionedLines.length === 1;
         numHorizontalGlyphVertices += addTextVertices(bucket, anchor, shaping, imageMap, layer, textAlongLine, feature, textOffset, lineArray, shapedTextOrientations.vertical ? WritingMode.horizontal : WritingMode.horizontalOnly, singleLine ? Object.keys(shapedTextOrientations.horizontal) : [justification], placedTextSymbolIndices, placedIconSymbolIndex, sizes, canonical);
@@ -21025,13 +20922,28 @@ function addSymbol(bucket, anchor, line, shapedTextOrientations, shapedIcon, ima
     var iconBoxEndIndex = iconCollisionFeature ? iconCollisionFeature.boxEndIndex : bucket.collisionBoxArray.length;
     var verticalIconBoxStartIndex = verticalIconCollisionFeature ? verticalIconCollisionFeature.boxStartIndex : bucket.collisionBoxArray.length;
     var verticalIconBoxEndIndex = verticalIconCollisionFeature ? verticalIconCollisionFeature.boxEndIndex : bucket.collisionBoxArray.length;
+    var collisionCircleDiameter = -1;
+    var getCollisionCircleHeight = function (feature, prevHeight) {
+        if (feature && feature.circleDiameter) {
+            return Math.max(feature.circleDiameter, prevHeight);
+        }
+        return prevHeight;
+    };
+    collisionCircleDiameter = getCollisionCircleHeight(textCollisionFeature, collisionCircleDiameter);
+    collisionCircleDiameter = getCollisionCircleHeight(verticalTextCollisionFeature, collisionCircleDiameter);
+    collisionCircleDiameter = getCollisionCircleHeight(iconCollisionFeature, collisionCircleDiameter);
+    collisionCircleDiameter = getCollisionCircleHeight(verticalIconCollisionFeature, collisionCircleDiameter);
+    var useRuntimeCollisionCircles = collisionCircleDiameter > -1 ? 1 : 0;
+    if (useRuntimeCollisionCircles) {
+        collisionCircleDiameter *= layoutTextSize / ONE_EM;
+    }
     if (bucket.glyphOffsetArray.length >= SymbolBucket.MAX_GLYPHS) {
         warnOnce('Too many glyphs being rendered in a tile. See https://github.com/mapbox/mapbox-gl-js/issues/2907');
     }
     if (feature.sortKey !== undefined) {
         bucket.addToSortKeyRanges(bucket.symbolInstances.length, feature.sortKey);
     }
-    bucket.symbolInstances.emplaceBack(anchor.x, anchor.y, placedTextSymbolIndices.right >= 0 ? placedTextSymbolIndices.right : -1, placedTextSymbolIndices.center >= 0 ? placedTextSymbolIndices.center : -1, placedTextSymbolIndices.left >= 0 ? placedTextSymbolIndices.left : -1, placedTextSymbolIndices.vertical || -1, placedIconSymbolIndex, verticalPlacedIconSymbolIndex, key, textBoxStartIndex, textBoxEndIndex, verticalTextBoxStartIndex, verticalTextBoxEndIndex, iconBoxStartIndex, iconBoxEndIndex, verticalIconBoxStartIndex, verticalIconBoxEndIndex, featureIndex, numHorizontalGlyphVertices, numVerticalGlyphVertices, numIconVertices, numVerticalIconVertices, 0, textBoxScale, textOffset0, textOffset1);
+    bucket.symbolInstances.emplaceBack(anchor.x, anchor.y, placedTextSymbolIndices.right >= 0 ? placedTextSymbolIndices.right : -1, placedTextSymbolIndices.center >= 0 ? placedTextSymbolIndices.center : -1, placedTextSymbolIndices.left >= 0 ? placedTextSymbolIndices.left : -1, placedTextSymbolIndices.vertical || -1, placedIconSymbolIndex, verticalPlacedIconSymbolIndex, key, textBoxStartIndex, textBoxEndIndex, verticalTextBoxStartIndex, verticalTextBoxEndIndex, iconBoxStartIndex, iconBoxEndIndex, verticalIconBoxStartIndex, verticalIconBoxEndIndex, featureIndex, numHorizontalGlyphVertices, numVerticalGlyphVertices, numIconVertices, numVerticalIconVertices, useRuntimeCollisionCircles, 0, textBoxScale, textOffset0, textOffset1, collisionCircleDiameter);
 }
 function anchorIsTooClose(bucket, text, repeatDistance, anchor) {
     var compareText = bucket.compareText;
@@ -21057,8 +20969,8 @@ var shaderOpacityAttributes = [{
         offset: 0
     }];
 function addVertex$1(array, anchorX, anchorY, ox, oy, tx, ty, sizeVertex, isSDF, pixelOffsetX, pixelOffsetY, minFontScaleX, minFontScaleY) {
-    var aSizeX = sizeVertex ? Math.min(MAX_PACKED_SIZE, Math.round(sizeVertex[0])) : 0;
-    var aSizeY = sizeVertex ? Math.min(MAX_PACKED_SIZE, Math.round(sizeVertex[1])) : 0;
+    var aSizeX = sizeVertex ? Math.round(sizeVertex[0]) : 0;
+    var aSizeY = sizeVertex ? Math.round(sizeVertex[1]) : 0;
     array.emplaceBack(anchorX, anchorY, Math.round(ox * 32), Math.round(oy * 32), tx, ty, (aSizeX << 1) + (isSDF ? 1 : 0), aSizeY, pixelOffsetX * 16, pixelOffsetY * 16, minFontScaleX * 256, minFontScaleY * 256);
 }
 function addDynamicAttributes(dynamicLayoutVertexArray, p, angle) {
@@ -21151,6 +21063,9 @@ var SymbolBucket = function SymbolBucket(options) {
     this.hasPattern = false;
     this.hasRTLText = false;
     this.sortKeyRanges = [];
+    this.collisionCircleArray = [];
+    this.placementInvProjMatrix = identity([]);
+    this.placementViewportMatrix = identity([]);
     var layer = this.layers[0];
     var unevaluatedLayoutValues = layer._unevaluatedLayout._values;
     this.textSizeData = getSizeData(this.zoom, unevaluatedLayoutValues['text-size']);
@@ -21158,9 +21073,10 @@ var SymbolBucket = function SymbolBucket(options) {
     var layout = this.layers[0].layout;
     var sortKey = layout.get('symbol-sort-key');
     var zOrder = layout.get('symbol-z-order');
+    this.canOverlap = layout.get('text-allow-overlap') || layout.get('icon-allow-overlap') || layout.get('text-ignore-placement') || layout.get('icon-ignore-placement');
     this.sortFeaturesByKey = zOrder !== 'viewport-y' && sortKey.constantOr(1) !== undefined;
     var zOrderByViewportY = zOrder === 'viewport-y' || zOrder === 'auto' && !this.sortFeaturesByKey;
-    this.sortFeaturesByY = zOrderByViewportY && (layout.get('text-allow-overlap') || layout.get('icon-allow-overlap') || layout.get('text-ignore-placement') || layout.get('icon-ignore-placement'));
+    this.sortFeaturesByY = zOrderByViewportY && this.canOverlap;
     if (layout.get('symbol-placement') === 'point') {
         this.writingModes = layout.get('text-writing-mode').map(function (wm) {
             return WritingMode[wm];
@@ -21174,10 +21090,10 @@ var SymbolBucket = function SymbolBucket(options) {
     this.sourceID = options.sourceID;
 };
 SymbolBucket.prototype.createArrays = function createArrays() {
-    this.text = new SymbolBuffers(new ProgramConfigurationSet(symbolLayoutAttributes.members, this.layers, this.zoom, function (property) {
+    this.text = new SymbolBuffers(new ProgramConfigurationSet(this.layers, this.zoom, function (property) {
         return /^text/.test(property);
     }));
-    this.icon = new SymbolBuffers(new ProgramConfigurationSet(symbolLayoutAttributes.members, this.layers, this.zoom, function (property) {
+    this.icon = new SymbolBuffers(new ProgramConfigurationSet(this.layers, this.zoom, function (property) {
         return /^icon/.test(property);
     }));
     this.glyphOffsetArray = new GlyphOffsetArray();
@@ -21219,12 +21135,7 @@ SymbolBucket.prototype.populate = function populate(features, options, canonical
         var index = ref.index;
         var sourceLayerIndex = ref.sourceLayerIndex;
         var needGeometry = layer._featureFilter.needGeometry;
-        var evaluationFeature = {
-            type: feature.type,
-            id: id,
-            properties: feature.properties,
-            geometry: needGeometry ? loadGeometry(feature) : []
-        };
+        var evaluationFeature = toEvaluationFeature(feature, needGeometry);
         if (!layer._featureFilter.filter(globalProperties, evaluationFeature, canonical)) {
             continue;
         }
@@ -21261,7 +21172,7 @@ SymbolBucket.prototype.populate = function populate(features, options, canonical
             icon: icon,
             index: index,
             sourceLayerIndex: sourceLayerIndex,
-            geometry: loadGeometry(feature),
+            geometry: evaluationFeature.geometry,
             properties: feature.properties,
             type: vectorTileFeatureTypes$2[feature.type],
             sortKey: sortKey
@@ -21313,8 +21224,6 @@ SymbolBucket.prototype.upload = function upload(context) {
     if (!this.uploaded && this.hasDebugData()) {
         this.textCollisionBox.upload(context);
         this.iconCollisionBox.upload(context);
-        this.textCollisionCircle.upload(context);
-        this.iconCollisionCircle.upload(context);
     }
     this.text.upload(context, this.sortFeaturesByY, !this.uploaded, this.text.programConfigurations.needsUpload);
     this.icon.upload(context, this.sortFeaturesByY, !this.uploaded, this.icon.programConfigurations.needsUpload);
@@ -21323,8 +21232,6 @@ SymbolBucket.prototype.upload = function upload(context) {
 SymbolBucket.prototype.destroyDebugData = function destroyDebugData() {
     this.textCollisionBox.destroy();
     this.iconCollisionBox.destroy();
-    this.textCollisionCircle.destroy();
-    this.iconCollisionCircle.destroy();
 };
 SymbolBucket.prototype.destroy = function destroy() {
     this.text.destroy();
@@ -21372,7 +21279,7 @@ SymbolBucket.prototype.addToLineVertexArray = function addToLineVertexArray(anch
 SymbolBucket.prototype.addSymbols = function addSymbols(arrays, quads, sizeVertex, lineOffset, alongLine, feature, writingMode, labelAnchor, lineStartIndex, lineLength, associatedIconIndex, canonical) {
     var indexArray = arrays.indexArray;
     var layoutVertexArray = arrays.layoutVertexArray;
-    var segment = arrays.segments.prepareSegment(4 * quads.length, layoutVertexArray, indexArray, feature.sortKey);
+    var segment = arrays.segments.prepareSegment(4 * quads.length, layoutVertexArray, indexArray, this.canOverlap ? feature.sortKey : undefined);
     var glyphOffsetArrayStart = this.glyphOffsetArray.length;
     var vertexStartIndex = segment.vertexLength;
     var angle = this.allowVerticalPlacement && writingMode === WritingMode.vertical ? Math.PI / 2 : 0;
@@ -21413,7 +21320,7 @@ SymbolBucket.prototype._addCollisionDebugVertex = function _addCollisionDebugVer
     collisionVertexArray.emplaceBack(0, 0);
     return layoutVertexArray.emplaceBack(point.x, point.y, anchorX, anchorY, Math.round(extrude.x), Math.round(extrude.y));
 };
-SymbolBucket.prototype.addCollisionDebugVertices = function addCollisionDebugVertices(x1, y1, x2, y2, arrays, boxAnchorPoint, symbolInstance, isCircle) {
+SymbolBucket.prototype.addCollisionDebugVertices = function addCollisionDebugVertices(x1, y1, x2, y2, arrays, boxAnchorPoint, symbolInstance) {
     var segment = arrays.segments.prepareSegment(4, arrays.layoutVertexArray, arrays.indexArray);
     var index = segment.vertexLength;
     var layoutVertexArray = arrays.layoutVertexArray;
@@ -21425,19 +21332,12 @@ SymbolBucket.prototype.addCollisionDebugVertices = function addCollisionDebugVer
     this._addCollisionDebugVertex(layoutVertexArray, collisionVertexArray, boxAnchorPoint, anchorX, anchorY, new pointGeometry(x2, y2));
     this._addCollisionDebugVertex(layoutVertexArray, collisionVertexArray, boxAnchorPoint, anchorX, anchorY, new pointGeometry(x1, y2));
     segment.vertexLength += 4;
-    if (isCircle) {
-        var indexArray = arrays.indexArray;
-        indexArray.emplaceBack(index, index + 1, index + 2);
-        indexArray.emplaceBack(index, index + 2, index + 3);
-        segment.primitiveLength += 2;
-    } else {
-        var indexArray$1 = arrays.indexArray;
-        indexArray$1.emplaceBack(index, index + 1);
-        indexArray$1.emplaceBack(index + 1, index + 2);
-        indexArray$1.emplaceBack(index + 2, index + 3);
-        indexArray$1.emplaceBack(index + 3, index);
-        segment.primitiveLength += 4;
-    }
+    var indexArray = arrays.indexArray;
+    indexArray.emplaceBack(index, index + 1);
+    indexArray.emplaceBack(index + 1, index + 2);
+    indexArray.emplaceBack(index + 2, index + 3);
+    indexArray.emplaceBack(index + 3, index);
+    segment.primitiveLength += 4;
 };
 SymbolBucket.prototype.addDebugCollisionBoxes = function addDebugCollisionBoxes(startIndex, endIndex, symbolInstance, isText) {
     for (var b = startIndex; b < endIndex; b++) {
@@ -21446,8 +21346,7 @@ SymbolBucket.prototype.addDebugCollisionBoxes = function addDebugCollisionBoxes(
         var y1 = box.y1;
         var x2 = box.x2;
         var y2 = box.y2;
-        var isCircle = box.radius > 0;
-        this.addCollisionDebugVertices(x1, y1, x2, y2, isCircle ? isText ? this.textCollisionCircle : this.iconCollisionCircle : isText ? this.textCollisionBox : this.iconCollisionBox, box.anchorPoint, symbolInstance, isCircle);
+        this.addCollisionDebugVertices(x1, y1, x2, y2, isText ? this.textCollisionBox : this.iconCollisionBox, box.anchorPoint, symbolInstance);
     }
 };
 SymbolBucket.prototype.generateCollisionDebugBuffers = function generateCollisionDebugBuffers() {
@@ -21456,8 +21355,6 @@ SymbolBucket.prototype.generateCollisionDebugBuffers = function generateCollisio
     }
     this.textCollisionBox = new CollisionBuffers(StructArrayLayout2i2i2i12, collisionBoxLayout.members, StructArrayLayout2ui4);
     this.iconCollisionBox = new CollisionBuffers(StructArrayLayout2i2i2i12, collisionBoxLayout.members, StructArrayLayout2ui4);
-    this.textCollisionCircle = new CollisionBuffers(StructArrayLayout2i2i2i12, collisionCircleLayout.members, StructArrayLayout3ui6);
-    this.iconCollisionCircle = new CollisionBuffers(StructArrayLayout2i2i2i12, collisionCircleLayout.members, StructArrayLayout3ui6);
     for (var i = 0; i < this.symbolInstances.length; i++) {
         var symbolInstance = this.symbolInstances.get(i);
         this.addDebugCollisionBoxes(symbolInstance.textBoxStartIndex, symbolInstance.textBoxEndIndex, symbolInstance, true);
@@ -21470,70 +21367,55 @@ SymbolBucket.prototype._deserializeCollisionBoxesForSymbol = function _deseriali
     var collisionArrays = {};
     for (var k = textStartIndex; k < textEndIndex; k++) {
         var box = collisionBoxArray.get(k);
-        if (box.radius === 0) {
-            collisionArrays.textBox = {
-                x1: box.x1,
-                y1: box.y1,
-                x2: box.x2,
-                y2: box.y2,
-                anchorPointX: box.anchorPointX,
-                anchorPointY: box.anchorPointY
-            };
-            collisionArrays.textFeatureIndex = box.featureIndex;
-            break;
-        } else {
-            if (!collisionArrays.textCircles) {
-                collisionArrays.textCircles = [];
-                collisionArrays.textFeatureIndex = box.featureIndex;
-            }
-            var used = 1;
-            collisionArrays.textCircles.push(box.anchorPointX, box.anchorPointY, box.radius, box.signedDistanceFromAnchor, used);
-        }
+        collisionArrays.textBox = {
+            x1: box.x1,
+            y1: box.y1,
+            x2: box.x2,
+            y2: box.y2,
+            anchorPointX: box.anchorPointX,
+            anchorPointY: box.anchorPointY
+        };
+        collisionArrays.textFeatureIndex = box.featureIndex;
+        break;
     }
     for (var k$1 = verticalTextStartIndex; k$1 < verticalTextEndIndex; k$1++) {
         var box$1 = collisionBoxArray.get(k$1);
-        if (box$1.radius === 0) {
-            collisionArrays.verticalTextBox = {
-                x1: box$1.x1,
-                y1: box$1.y1,
-                x2: box$1.x2,
-                y2: box$1.y2,
-                anchorPointX: box$1.anchorPointX,
-                anchorPointY: box$1.anchorPointY
-            };
-            collisionArrays.verticalTextFeatureIndex = box$1.featureIndex;
-            break;
-        }
+        collisionArrays.verticalTextBox = {
+            x1: box$1.x1,
+            y1: box$1.y1,
+            x2: box$1.x2,
+            y2: box$1.y2,
+            anchorPointX: box$1.anchorPointX,
+            anchorPointY: box$1.anchorPointY
+        };
+        collisionArrays.verticalTextFeatureIndex = box$1.featureIndex;
+        break;
     }
     for (var k$2 = iconStartIndex; k$2 < iconEndIndex; k$2++) {
         var box$2 = collisionBoxArray.get(k$2);
-        if (box$2.radius === 0) {
-            collisionArrays.iconBox = {
-                x1: box$2.x1,
-                y1: box$2.y1,
-                x2: box$2.x2,
-                y2: box$2.y2,
-                anchorPointX: box$2.anchorPointX,
-                anchorPointY: box$2.anchorPointY
-            };
-            collisionArrays.iconFeatureIndex = box$2.featureIndex;
-            break;
-        }
+        collisionArrays.iconBox = {
+            x1: box$2.x1,
+            y1: box$2.y1,
+            x2: box$2.x2,
+            y2: box$2.y2,
+            anchorPointX: box$2.anchorPointX,
+            anchorPointY: box$2.anchorPointY
+        };
+        collisionArrays.iconFeatureIndex = box$2.featureIndex;
+        break;
     }
     for (var k$3 = verticalIconStartIndex; k$3 < verticalIconEndIndex; k$3++) {
         var box$3 = collisionBoxArray.get(k$3);
-        if (box$3.radius === 0) {
-            collisionArrays.verticalIconBox = {
-                x1: box$3.x1,
-                y1: box$3.y1,
-                x2: box$3.x2,
-                y2: box$3.y2,
-                anchorPointX: box$3.anchorPointX,
-                anchorPointY: box$3.anchorPointY
-            };
-            collisionArrays.verticalIconFeatureIndex = box$3.featureIndex;
-            break;
-        }
+        collisionArrays.verticalIconBox = {
+            x1: box$3.x1,
+            y1: box$3.y1,
+            x2: box$3.x2,
+            y2: box$3.y2,
+            anchorPointX: box$3.anchorPointX,
+            anchorPointY: box$3.anchorPointY
+        };
+        collisionArrays.verticalIconFeatureIndex = box$3.featureIndex;
+        break;
     }
     return collisionArrays;
 };
@@ -21551,19 +21433,13 @@ SymbolBucket.prototype.hasIconData = function hasIconData() {
     return this.icon.segments.get().length > 0;
 };
 SymbolBucket.prototype.hasDebugData = function hasDebugData() {
-    return this.textCollisionBox && this.iconCollisionBox && this.textCollisionCircle && this.iconCollisionCircle;
+    return this.textCollisionBox && this.iconCollisionBox;
 };
 SymbolBucket.prototype.hasTextCollisionBoxData = function hasTextCollisionBoxData() {
     return this.hasDebugData() && this.textCollisionBox.segments.get().length > 0;
 };
 SymbolBucket.prototype.hasIconCollisionBoxData = function hasIconCollisionBoxData() {
     return this.hasDebugData() && this.iconCollisionBox.segments.get().length > 0;
-};
-SymbolBucket.prototype.hasTextCollisionCircleData = function hasTextCollisionCircleData() {
-    return this.hasDebugData() && this.textCollisionCircle.segments.get().length > 0;
-};
-SymbolBucket.prototype.hasIconCollisionCircleData = function hasIconCollisionCircleData() {
-    return this.hasDebugData() && this.iconCollisionCircle.segments.get().length > 0;
 };
 SymbolBucket.prototype.addIndicesForPlacedSymbol = function addIndicesForPlacedSymbol(iconOrText, placedSymbolIndex) {
     var placedSymbol = iconOrText.placedSymbolArray.get(placedSymbolIndex);
@@ -22007,11 +21883,11 @@ function createStyleLayer(layer) {
     }
 }
 
-var HTMLImageElement = self.HTMLImageElement;
-var HTMLCanvasElement = self.HTMLCanvasElement;
-var HTMLVideoElement = self.HTMLVideoElement;
-var ImageData$1 = self.ImageData;
-var ImageBitmap$1 = self.ImageBitmap;
+var HTMLImageElement = window$1.HTMLImageElement;
+var HTMLCanvasElement = window$1.HTMLCanvasElement;
+var HTMLVideoElement = window$1.HTMLVideoElement;
+var ImageData$1 = window$1.ImageData;
+var ImageBitmap$1 = window$1.ImageBitmap;
 var Texture = function Texture(context, image, format, options) {
     this.context = context;
     this.format = format;
@@ -22132,7 +22008,7 @@ var Actor = function Actor(target, parent, mapId) {
     ], this);
     this.invoker = new ThrottledInvoker(this.process);
     this.target.addEventListener('message', this.receive, false);
-    this.globalScope = isWorker() ? target : self;
+    this.globalScope = isWorker() ? target : window$1;
 };
 Actor.prototype.send = function send(type, data, callback, targetMapId, mustQueue) {
     var this$1 = this;
@@ -22290,6 +22166,221 @@ function getMercCoords(x, y, z) {
     return [merc_x, merc_y];
 }
 
+var LngLatBounds = function LngLatBounds(sw, ne) {
+    if (!sw) ; else if (ne) {
+        this.setSouthWest(sw).setNorthEast(ne);
+    } else if (sw.length === 4) {
+        this.setSouthWest([
+            sw[0],
+            sw[1]
+        ]).setNorthEast([
+            sw[2],
+            sw[3]
+        ]);
+    } else {
+        this.setSouthWest(sw[0]).setNorthEast(sw[1]);
+    }
+};
+LngLatBounds.prototype.setNorthEast = function setNorthEast(ne) {
+    this._ne = ne instanceof LngLat ? new LngLat(ne.lng, ne.lat) : LngLat.convert(ne);
+    return this;
+};
+LngLatBounds.prototype.setSouthWest = function setSouthWest(sw) {
+    this._sw = sw instanceof LngLat ? new LngLat(sw.lng, sw.lat) : LngLat.convert(sw);
+    return this;
+};
+LngLatBounds.prototype.extend = function extend(obj) {
+    var sw = this._sw, ne = this._ne;
+    var sw2, ne2;
+    if (obj instanceof LngLat) {
+        sw2 = obj;
+        ne2 = obj;
+    } else if (obj instanceof LngLatBounds) {
+        sw2 = obj._sw;
+        ne2 = obj._ne;
+        if (!sw2 || !ne2) {
+            return this;
+        }
+    } else {
+        if (Array.isArray(obj)) {
+            if (obj.length === 4 || obj.every(Array.isArray)) {
+                var lngLatBoundsObj = obj;
+                return this.extend(LngLatBounds.convert(lngLatBoundsObj));
+            } else {
+                var lngLatObj = obj;
+                return this.extend(LngLat.convert(lngLatObj));
+            }
+        }
+        return this;
+    }
+    if (!sw && !ne) {
+        this._sw = new LngLat(sw2.lng, sw2.lat);
+        this._ne = new LngLat(ne2.lng, ne2.lat);
+    } else {
+        sw.lng = Math.min(sw2.lng, sw.lng);
+        sw.lat = Math.min(sw2.lat, sw.lat);
+        ne.lng = Math.max(ne2.lng, ne.lng);
+        ne.lat = Math.max(ne2.lat, ne.lat);
+    }
+    return this;
+};
+LngLatBounds.prototype.getCenter = function getCenter() {
+    return new LngLat((this._sw.lng + this._ne.lng) / 2, (this._sw.lat + this._ne.lat) / 2);
+};
+LngLatBounds.prototype.getSouthWest = function getSouthWest() {
+    return this._sw;
+};
+LngLatBounds.prototype.getNorthEast = function getNorthEast() {
+    return this._ne;
+};
+LngLatBounds.prototype.getNorthWest = function getNorthWest() {
+    return new LngLat(this.getWest(), this.getNorth());
+};
+LngLatBounds.prototype.getSouthEast = function getSouthEast() {
+    return new LngLat(this.getEast(), this.getSouth());
+};
+LngLatBounds.prototype.getWest = function getWest() {
+    return this._sw.lng;
+};
+LngLatBounds.prototype.getSouth = function getSouth() {
+    return this._sw.lat;
+};
+LngLatBounds.prototype.getEast = function getEast() {
+    return this._ne.lng;
+};
+LngLatBounds.prototype.getNorth = function getNorth() {
+    return this._ne.lat;
+};
+LngLatBounds.prototype.toArray = function toArray() {
+    return [
+        this._sw.toArray(),
+        this._ne.toArray()
+    ];
+};
+LngLatBounds.prototype.toString = function toString() {
+    return 'LngLatBounds(' + this._sw.toString() + ', ' + this._ne.toString() + ')';
+};
+LngLatBounds.prototype.isEmpty = function isEmpty() {
+    return !(this._sw && this._ne);
+};
+LngLatBounds.prototype.contains = function contains(lnglat) {
+    var ref = LngLat.convert(lnglat);
+    var lng = ref.lng;
+    var lat = ref.lat;
+    var containsLatitude = this._sw.lat <= lat && lat <= this._ne.lat;
+    var containsLongitude = this._sw.lng <= lng && lng <= this._ne.lng;
+    if (this._sw.lng > this._ne.lng) {
+        containsLongitude = this._sw.lng >= lng && lng >= this._ne.lng;
+    }
+    return containsLatitude && containsLongitude;
+};
+LngLatBounds.convert = function convert(input) {
+    if (!input || input instanceof LngLatBounds) {
+        return input;
+    }
+    return new LngLatBounds(input);
+};
+
+var earthRadius = 6371008.8;
+var LngLat = function LngLat(lng, lat) {
+    if (isNaN(lng) || isNaN(lat)) {
+        throw new Error('Invalid LngLat object: (' + lng + ', ' + lat + ')');
+    }
+    this.lng = +lng;
+    this.lat = +lat;
+    if (this.lat > 90 || this.lat < -90) {
+        throw new Error('Invalid LngLat latitude value: must be between -90 and 90');
+    }
+};
+LngLat.prototype.wrap = function wrap$1() {
+    return new LngLat(wrap(this.lng, -180, 180), this.lat);
+};
+LngLat.prototype.toArray = function toArray() {
+    return [
+        this.lng,
+        this.lat
+    ];
+};
+LngLat.prototype.toString = function toString() {
+    return 'LngLat(' + this.lng + ', ' + this.lat + ')';
+};
+LngLat.prototype.distanceTo = function distanceTo(lngLat) {
+    var rad = Math.PI / 180;
+    var lat1 = this.lat * rad;
+    var lat2 = lngLat.lat * rad;
+    var a = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos((lngLat.lng - this.lng) * rad);
+    var maxMeters = earthRadius * Math.acos(Math.min(a, 1));
+    return maxMeters;
+};
+LngLat.prototype.toBounds = function toBounds(radius) {
+    if (radius === void 0)
+        radius = 0;
+    var earthCircumferenceInMetersAtEquator = 40075017;
+    var latAccuracy = 360 * radius / earthCircumferenceInMetersAtEquator, lngAccuracy = latAccuracy / Math.cos(Math.PI / 180 * this.lat);
+    return new LngLatBounds(new LngLat(this.lng - lngAccuracy, this.lat - latAccuracy), new LngLat(this.lng + lngAccuracy, this.lat + latAccuracy));
+};
+LngLat.convert = function convert(input) {
+    if (input instanceof LngLat) {
+        return input;
+    }
+    if (Array.isArray(input) && (input.length === 2 || input.length === 3)) {
+        return new LngLat(Number(input[0]), Number(input[1]));
+    }
+    if (!Array.isArray(input) && typeof input === 'object' && input !== null) {
+        return new LngLat(Number('lng' in input ? input.lng : input.lon), Number(input.lat));
+    }
+    throw new Error('`LngLatLike` argument must be specified as a LngLat instance, an object {lng: <lng>, lat: <lat>}, an object {lon: <lng>, lat: <lat>}, or an array of [<lng>, <lat>]');
+};
+
+var earthCircumfrence = 2 * Math.PI * earthRadius;
+function circumferenceAtLatitude(latitude) {
+    return earthCircumfrence * Math.cos(latitude * Math.PI / 180);
+}
+function mercatorXfromLng$1(lng) {
+    return (180 + lng) / 360;
+}
+function mercatorYfromLat$1(lat) {
+    return (180 - 180 / Math.PI * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))) / 360;
+}
+function mercatorZfromAltitude(altitude, lat) {
+    return altitude / circumferenceAtLatitude(lat);
+}
+function lngFromMercatorX(x) {
+    return x * 360 - 180;
+}
+function latFromMercatorY(y) {
+    var y2 = 180 - y * 360;
+    return 360 / Math.PI * Math.atan(Math.exp(y2 * Math.PI / 180)) - 90;
+}
+function altitudeFromMercatorZ(z, y) {
+    return z * circumferenceAtLatitude(latFromMercatorY(y));
+}
+function mercatorScale(lat) {
+    return 1 / Math.cos(lat * Math.PI / 180);
+}
+var MercatorCoordinate = function MercatorCoordinate(x, y, z) {
+    if (z === void 0)
+        z = 0;
+    this.x = +x;
+    this.y = +y;
+    this.z = +z;
+};
+MercatorCoordinate.fromLngLat = function fromLngLat(lngLatLike, altitude) {
+    if (altitude === void 0)
+        altitude = 0;
+    var lngLat = LngLat.convert(lngLatLike);
+    return new MercatorCoordinate(mercatorXfromLng$1(lngLat.lng), mercatorYfromLat$1(lngLat.lat), mercatorZfromAltitude(altitude, lngLat.lat));
+};
+MercatorCoordinate.prototype.toLngLat = function toLngLat() {
+    return new LngLat(lngFromMercatorX(this.x), latFromMercatorY(this.y));
+};
+MercatorCoordinate.prototype.toAltitude = function toAltitude() {
+    return altitudeFromMercatorZ(this.z, this.y);
+};
+MercatorCoordinate.prototype.meterInMercatorCoordinateUnits = function meterInMercatorCoordinateUnits() {
+    return 1 / earthCircumfrence * mercatorScale(latFromMercatorY(this.y));
+};
+
 var CanonicalTileID = function CanonicalTileID(z, x, y) {
     this.z = z;
     this.x = x;
@@ -22306,7 +22397,7 @@ CanonicalTileID.prototype.url = function url(urls, scheme) {
 };
 CanonicalTileID.prototype.getTilePoint = function getTilePoint(coord) {
     var tilesAtZoom = Math.pow(2, this.z);
-    return new pointGeometry((coord.x * tilesAtZoom - this.x) * EXTENT, (coord.y * tilesAtZoom - this.y) * EXTENT);
+    return new pointGeometry((coord.x * tilesAtZoom - this.x) * EXTENT$1, (coord.y * tilesAtZoom - this.y) * EXTENT$1);
 };
 CanonicalTileID.prototype.toString = function toString() {
     return this.z + '/' + this.x + '/' + this.y;
@@ -22730,8 +22821,8 @@ var FeatureIndex = function FeatureIndex(tileID, promoteId) {
     this.x = tileID.canonical.x;
     this.y = tileID.canonical.y;
     this.z = tileID.canonical.z;
-    this.grid = new gridIndex(EXTENT, 16, 0);
-    this.grid3D = new gridIndex(EXTENT, 16, 0);
+    this.grid = new gridIndex(EXTENT$1, 16, 0);
+    this.grid3D = new gridIndex(EXTENT$1, 16, 0);
     this.featureIndexArray = new FeatureIndexArray();
     this.promoteId = promoteId;
 };
@@ -22754,7 +22845,7 @@ FeatureIndex.prototype.insert = function insert(feature, geometry, featureIndex,
             bbox[2] = Math.max(bbox[2], p.x);
             bbox[3] = Math.max(bbox[3], p.y);
         }
-        if (bbox[0] < EXTENT && bbox[1] < EXTENT && bbox[2] >= 0 && bbox[3] >= 0) {
+        if (bbox[0] < EXTENT$1 && bbox[1] < EXTENT$1 && bbox[2] >= 0 && bbox[3] >= 0) {
             grid.insert(key, bbox[0], bbox[1], bbox[2], bbox[3]);
         }
     }
@@ -22769,7 +22860,7 @@ FeatureIndex.prototype.loadVTLayers = function loadVTLayers() {
 FeatureIndex.prototype.query = function query(args, styleLayers, serializedLayers, sourceFeatureState) {
     var this$1 = this;
     this.loadVTLayers();
-    var params = args.params || {}, pixelsToTileUnits = EXTENT / args.tileSize / args.scale, filter = createFilter(params.filter);
+    var params = args.params || {}, pixelsToTileUnits = EXTENT$1 / args.tileSize / args.scale, filter = createFilter(params.filter);
     var queryGeometry = args.queryGeometry;
     var queryPadding = args.queryPadding * pixelsToTileUnits;
     var bounds = getBounds(queryGeometry);
@@ -22812,7 +22903,12 @@ FeatureIndex.prototype.loadMatchingFeature = function loadMatchingFeature(result
     var sourceLayerName = this.sourceLayerCoder.decode(sourceLayerIndex);
     var sourceLayer = this.vtLayers[sourceLayerName];
     var feature = sourceLayer.feature(featureIndex);
-    if (!filter.filter(new EvaluationParameters(this.tileID.overscaledZ), feature)) {
+    if (filter.needGeometry) {
+        var evaluationFeature = toEvaluationFeature(feature, true);
+        if (!filter.filter(new EvaluationParameters(this.tileID.overscaledZ), evaluationFeature, this.tileID.canonical)) {
+            return;
+        }
+    } else if (!filter.filter(new EvaluationParameters(this.tileID.overscaledZ), feature)) {
         return;
     }
     var id = this.getId(feature, sourceLayerName);
@@ -22829,7 +22925,7 @@ FeatureIndex.prototype.loadMatchingFeature = function loadMatchingFeature(result
         if (id !== undefined && sourceFeatureState) {
             featureState = sourceFeatureState.getState(styleLayer.sourceLayer || '_geojsonTileLayer', id);
         }
-        var serializedLayer = serializedLayers[layerID];
+        var serializedLayer = extend({}, serializedLayers[layerID]);
         serializedLayer.paint = evaluateProperties(serializedLayer.paint, styleLayer.paint, feature, featureState, availableImages);
         serializedLayer.layout = evaluateProperties(serializedLayer.layout, styleLayer.layout, feature, featureState, availableImages);
         var intersectionZ = !intersectionTest || intersectionTest(feature, styleLayer, featureState);
@@ -23082,12 +23178,18 @@ Tile.prototype.querySourceFeatures = function querySourceFeatures(result, params
     };
     for (var i = 0; i < layer.length; i++) {
         var feature = layer.feature(i);
-        if (filter.filter(new EvaluationParameters(this.tileID.overscaledZ), feature)) {
-            var id = featureIndex.getId(feature, sourceLayer);
-            var geojsonFeature = new Feature(feature, z, x, y, id);
-            geojsonFeature.tile = coord;
-            result.push(geojsonFeature);
+        if (filter.needGeometry) {
+            var evaluationFeature = toEvaluationFeature(feature, true);
+            if (!filter.filter(new EvaluationParameters(this.tileID.overscaledZ), evaluationFeature, this.tileID.canonical)) {
+                continue;
+            }
+        } else if (!filter.filter(new EvaluationParameters(this.tileID.overscaledZ), feature)) {
+            continue;
         }
+        var id = featureIndex.getId(feature, sourceLayer);
+        var geojsonFeature = new Feature(feature, z, x, y, id);
+        geojsonFeature.tile = coord;
+        result.push(geojsonFeature);
     }
 };
 Tile.prototype.hasData = function hasData() {
@@ -23157,8 +23259,9 @@ Tile.prototype.setFeatureState = function setFeatureState(states, painter) {
             continue;
         }
         bucket.update(sourceLayerStates, sourceLayer, this.imageAtlas && this.imageAtlas.patternPositions || {});
-        if (painter && painter.style) {
-            this.queryPadding = Math.max(this.queryPadding, painter.style.getLayer(id).queryRadius(bucket));
+        var layer = painter && painter.style && painter.style.getLayer(id);
+        if (layer) {
+            this.queryPadding = Math.max(this.queryPadding, layer.queryRadius(bucket));
         }
     }
 };
@@ -23208,7 +23311,7 @@ var refProperties = [
     'layout'
 ];
 
-var performance = self.performance;
+var performance = window$1.performance;
 var RequestPerformance = function RequestPerformance(request) {
     this._marks = {
         start: [
@@ -23244,7 +23347,7 @@ exports.Color = Color;
 exports.DEMData = DEMData;
 exports.DataConstantProperty = DataConstantProperty;
 exports.DictionaryCoder = DictionaryCoder;
-exports.EXTENT = EXTENT;
+exports.EXTENT = EXTENT$1;
 exports.ErrorEvent = ErrorEvent;
 exports.EvaluationParameters = EvaluationParameters;
 exports.Event = Event;
@@ -23271,6 +23374,7 @@ exports.ResourceType = ResourceType;
 exports.SegmentVector = SegmentVector;
 exports.SourceFeatureState = SourceFeatureState;
 exports.StructArrayLayout1ui2 = StructArrayLayout1ui2;
+exports.StructArrayLayout2f1f2i16 = StructArrayLayout2f1f2i16;
 exports.StructArrayLayout2i4 = StructArrayLayout2i4;
 exports.StructArrayLayout3ui6 = StructArrayLayout3ui6;
 exports.StructArrayLayout4i8 = StructArrayLayout4i8;
@@ -23298,9 +23402,11 @@ exports.browser = exported;
 exports.cacheEntryPossiblyAdded = cacheEntryPossiblyAdded;
 exports.clamp = clamp;
 exports.clearTileCache = clearTileCache;
+exports.clipLine = clipLine;
 exports.clone = clone$1;
 exports.clone$1 = clone;
 exports.clone$2 = clone$2;
+exports.collisionCircleLayout = collisionCircleLayout;
 exports.config = config;
 exports.create = create$2;
 exports.create$1 = create$1;
@@ -23340,11 +23446,13 @@ exports.isMapboxURL = isMapboxURL;
 exports.keysDifference = keysDifference;
 exports.makeRequest = makeRequest;
 exports.mapObject = mapObject;
-exports.mercatorXfromLng = mercatorXfromLng;
-exports.mercatorYfromLat = mercatorYfromLat;
+exports.mercatorXfromLng = mercatorXfromLng$1;
+exports.mercatorYfromLat = mercatorYfromLat$1;
 exports.mercatorZfromAltitude = mercatorZfromAltitude;
+exports.mul = mul;
 exports.multiply = multiply;
 exports.mvt = vectorTile;
+exports.nextPowerOfTwo = nextPowerOfTwo;
 exports.normalize = normalize;
 exports.number = number;
 exports.offscreenCanvasSupported = offscreenCanvasSupported;
@@ -23362,6 +23470,7 @@ exports.potpack = potpack;
 exports.refProperties = refProperties;
 exports.register = register;
 exports.registerForPluginStateChange = registerForPluginStateChange;
+exports.renderColorRamp = renderColorRamp;
 exports.rotate = rotate;
 exports.rotateX = rotateX;
 exports.rotateZ = rotateZ;
@@ -23388,12 +23497,12 @@ exports.vectorTile = vectorTile;
 exports.version = version;
 exports.warnOnce = warnOnce;
 exports.webpSupported = exported$1;
-exports.window = self;
+exports.window = window$1;
 exports.wrap = wrap;
 
 });
 
-define(['./shared'], function (performance$1) { 'use strict';
+define(['./shared'], function (performance) { 'use strict';
 
 function stringify(obj) {
     var type = typeof obj;
@@ -23417,7 +23526,7 @@ function stringify(obj) {
 }
 function getKey(layer) {
     var key = '';
-    for (var i = 0, list = performance$1.refProperties; i < list.length; i += 1) {
+    for (var i = 0, list = performance.refProperties; i < list.length; i += 1) {
         var k = list[i];
         key += '/' + stringify(layer[k]);
     }
@@ -23459,8 +23568,8 @@ StyleLayerIndex.prototype.update = function update(layerConfigs, removedIds) {
     for (var i = 0, list = layerConfigs; i < list.length; i += 1) {
         var layerConfig = list[i];
         this._layerConfigs[layerConfig.id] = layerConfig;
-        var layer = this._layers[layerConfig.id] = performance$1.createStyleLayer(layerConfig);
-        layer._featureFilter = performance$1.featureFilter(layer.filter);
+        var layer = this._layers[layerConfig.id] = performance.createStyleLayer(layerConfig);
+        layer._featureFilter = performance.featureFilter(layer.filter);
         if (this.keyCache[layerConfig.id]) {
             delete this.keyCache[layerConfig.id];
         }
@@ -23472,7 +23581,7 @@ StyleLayerIndex.prototype.update = function update(layerConfigs, removedIds) {
         delete this._layers[id];
     }
     this.familiesBySource = {};
-    var groups = groupByLayout(performance$1.values(this._layerConfigs), this.keyCache);
+    var groups = groupByLayout(performance.values(this._layerConfigs), this.keyCache);
     for (var i$2 = 0, list$2 = groups; i$2 < list$2.length; i$2 += 1) {
         var layerConfigs$1 = list$2[i$2];
         var layers = layerConfigs$1.map(function (layerConfig) {
@@ -23521,10 +23630,10 @@ var GlyphAtlas = function GlyphAtlas(stacks) {
             };
         }
     }
-    var ref = performance$1.potpack(bins);
+    var ref = performance.potpack(bins);
     var w = ref.w;
     var h = ref.h;
-    var image = new performance$1.AlphaImage({
+    var image = new performance.AlphaImage({
         width: w || 1,
         height: h || 1
     });
@@ -23536,7 +23645,7 @@ var GlyphAtlas = function GlyphAtlas(stacks) {
                 continue;
             }
             var bin$1 = positions[stack$1][id$1].rect;
-            performance$1.AlphaImage.copy(src$1.bitmap, image, {
+            performance.AlphaImage.copy(src$1.bitmap, image, {
                 x: 0,
                 y: 0
             }, {
@@ -23548,10 +23657,10 @@ var GlyphAtlas = function GlyphAtlas(stacks) {
     this.image = image;
     this.positions = positions;
 };
-performance$1.register('GlyphAtlas', GlyphAtlas);
+performance.register('GlyphAtlas', GlyphAtlas);
 
 var WorkerTile = function WorkerTile(params) {
-    this.tileID = new performance$1.OverscaledTileID(params.tileID.overscaledZ, params.tileID.wrap, params.tileID.canonical.z, params.tileID.canonical.x, params.tileID.canonical.y);
+    this.tileID = new performance.OverscaledTileID(params.tileID.overscaledZ, params.tileID.wrap, params.tileID.canonical.z, params.tileID.canonical.x, params.tileID.canonical.y);
     this.uid = params.uid;
     this.zoom = params.zoom;
     this.pixelRatio = params.pixelRatio;
@@ -23567,9 +23676,9 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
     var this$1 = this;
     this.status = 'parsing';
     this.data = data;
-    this.collisionBoxArray = new performance$1.CollisionBoxArray();
-    var sourceLayerCoder = new performance$1.DictionaryCoder(Object.keys(data.layers).sort());
-    var featureIndex = new performance$1.FeatureIndex(this.tileID, this.promoteId);
+    this.collisionBoxArray = new performance.CollisionBoxArray();
+    var sourceLayerCoder = new performance.DictionaryCoder(Object.keys(data.layers).sort());
+    var featureIndex = new performance.FeatureIndex(this.tileID, this.promoteId);
     featureIndex.bucketLayerIDs = [];
     var buckets = {};
     var options = {
@@ -23586,7 +23695,7 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
             continue;
         }
         if (sourceLayer.version === 1) {
-            performance$1.warnOnce('Vector tile source "' + this.source + '" layer "' + sourceLayerId + '" ' + 'does not use vector tile spec v2 and therefore may have some rendering errors.');
+            performance.warnOnce('Vector tile source "' + this.source + '" layer "' + sourceLayerId + '" ' + 'does not use vector tile spec v2 and therefore may have some rendering errors.');
         }
         var sourceLayerIndex = sourceLayerCoder.encode(sourceLayerId);
         var features = [];
@@ -23633,7 +23742,7 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
     var glyphMap;
     var iconMap;
     var patternMap;
-    var stacks = performance$1.mapObject(options.glyphDependencies, function (glyphs) {
+    var stacks = performance.mapObject(options.glyphDependencies, function (glyphs) {
         return Object.keys(glyphs).map(Number);
     });
     if (Object.keys(stacks).length) {
@@ -23690,20 +23799,20 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
             return callback(error);
         } else if (glyphMap && iconMap && patternMap) {
             var glyphAtlas = new GlyphAtlas(glyphMap);
-            var imageAtlas = new performance$1.ImageAtlas(iconMap, patternMap);
+            var imageAtlas = new performance.ImageAtlas(iconMap, patternMap);
             for (var key in buckets) {
                 var bucket = buckets[key];
-                if (bucket instanceof performance$1.SymbolBucket) {
+                if (bucket instanceof performance.SymbolBucket) {
                     recalculateLayers(bucket.layers, this.zoom, availableImages);
-                    performance$1.performSymbolLayout(bucket, glyphMap, glyphAtlas.positions, iconMap, imageAtlas.iconPositions, this.showCollisionBoxes, this.tileID.canonical);
-                } else if (bucket.hasPattern && (bucket instanceof performance$1.LineBucket || bucket instanceof performance$1.FillBucket || bucket instanceof performance$1.FillExtrusionBucket)) {
+                    performance.performSymbolLayout(bucket, glyphMap, glyphAtlas.positions, iconMap, imageAtlas.iconPositions, this.showCollisionBoxes, this.tileID.canonical);
+                } else if (bucket.hasPattern && (bucket instanceof performance.LineBucket || bucket instanceof performance.FillBucket || bucket instanceof performance.FillExtrusionBucket)) {
                     recalculateLayers(bucket.layers, this.zoom, availableImages);
                     bucket.addFeatures(options, this.tileID.canonical, imageAtlas.patternPositions);
                 }
             }
             this.status = 'done';
             callback(null, {
-                buckets: performance$1.values(buckets).filter(function (b) {
+                buckets: performance.values(buckets).filter(function (b) {
                     return !b.isEmpty();
                 }),
                 featureIndex: featureIndex,
@@ -23718,7 +23827,7 @@ WorkerTile.prototype.parse = function parse(data, layerIndex, availableImages, a
     }
 };
 function recalculateLayers(layers, zoom, availableImages) {
-    var parameters = new performance$1.EvaluationParameters(zoom);
+    var parameters = new performance.EvaluationParameters(zoom);
     for (var i = 0, list = layers; i < list.length; i += 1) {
         var layer = list[i];
         layer.recalculate(parameters, availableImages);
@@ -23726,12 +23835,12 @@ function recalculateLayers(layers, zoom, availableImages) {
 }
 
 function loadVectorTile(params, callback) {
-    var request = performance$1.getArrayBuffer(params.request, function (err, data, cacheControl, expires) {
+    var request = performance.getArrayBuffer(params.request, function (err, data, cacheControl, expires) {
         if (err) {
             callback(err);
         } else if (data) {
             callback(null, {
-                vectorTile: new performance$1.vectorTile.VectorTile(new performance$1.pbf(data)),
+                vectorTile: new performance.vectorTile.VectorTile(new performance.pbf(data)),
                 rawData: data,
                 cacheControl: cacheControl,
                 expires: expires
@@ -23757,7 +23866,7 @@ VectorTileWorkerSource.prototype.loadTile = function loadTile(params, callback) 
     if (!this.loading) {
         this.loading = {};
     }
-    var perf = params && params.request && params.request.collectResourceTiming ? new performance$1.RequestPerformance(params.request) : false;
+    var perf = params && params.request && params.request.collectResourceTiming ? new performance.RequestPerformance(params.request) : false;
     var workerTile = this.loading[uid] = new WorkerTile(params);
     workerTile.abort = this.loadVectorData(params, function (err, response) {
         delete this$1.loading[uid];
@@ -23786,7 +23895,7 @@ VectorTileWorkerSource.prototype.loadTile = function loadTile(params, callback) 
             if (err || !result) {
                 return callback(err);
             }
-            callback(null, performance$1.extend({ rawTileData: rawTileData.slice(0) }, result, cacheControl, resourceTiming));
+            callback(null, performance.extend({ rawTileData: rawTileData.slice(0) }, result, cacheControl, resourceTiming));
         });
         this$1.loaded = this$1.loaded || {};
         this$1.loaded[uid] = workerTile;
@@ -23833,7 +23942,7 @@ VectorTileWorkerSource.prototype.removeTile = function removeTile(params, callba
     callback();
 };
 
-var ImageBitmap = performance$1.window.ImageBitmap;
+var ImageBitmap = performance.window.ImageBitmap;
 var RasterDEMTileWorkerSource = function RasterDEMTileWorkerSource() {
     this.loaded = {};
 };
@@ -23842,7 +23951,7 @@ RasterDEMTileWorkerSource.prototype.loadTile = function loadTile(params, callbac
     var encoding = params.encoding;
     var rawImageData = params.rawImageData;
     var imagePixels = ImageBitmap && rawImageData instanceof ImageBitmap ? this.getImageData(rawImageData) : rawImageData;
-    var dem = new performance$1.DEMData(uid, imagePixels, encoding);
+    var dem = new performance.DEMData(uid, imagePixels, encoding);
     this.loaded = this.loaded || {};
     this.loaded[uid] = dem;
     callback(null, dem);
@@ -23857,7 +23966,7 @@ RasterDEMTileWorkerSource.prototype.getImageData = function getImageData(imgBitm
     this.offscreenCanvasContext.drawImage(imgBitmap, 0, 0, imgBitmap.width, imgBitmap.height);
     var imgData = this.offscreenCanvasContext.getImageData(-1, -1, imgBitmap.width + 2, imgBitmap.height + 2);
     this.offscreenCanvasContext.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
-    return new performance$1.RGBAImage({
+    return new performance.RGBAImage({
         width: imgData.width,
         height: imgData.height
     }, imgData.data);
@@ -23910,10 +24019,10 @@ function rewindRing(ring, dir) {
     }
 }
 
-var toGeoJSON = performance$1.vectorTile.VectorTileFeature.prototype.toGeoJSON;
+var toGeoJSON = performance.vectorTile.VectorTileFeature.prototype.toGeoJSON;
 var FeatureWrapper = function FeatureWrapper(feature) {
     this._feature = feature;
-    this.extent = performance$1.EXTENT;
+    this.extent = performance.EXTENT;
     this.type = feature.type;
     this.properties = feature.tags;
     if ('id' in feature && !isNaN(feature.id)) {
@@ -23925,7 +24034,7 @@ FeatureWrapper.prototype.loadGeometry = function loadGeometry() {
         var geometry = [];
         for (var i = 0, list = this._feature.geometry; i < list.length; i += 1) {
             var point = list[i];
-            geometry.push([new performance$1.Point$1(point[0], point[1])]);
+            geometry.push([new performance.Point$1(point[0], point[1])]);
         }
         return geometry;
     } else {
@@ -23935,7 +24044,7 @@ FeatureWrapper.prototype.loadGeometry = function loadGeometry() {
             var newRing = [];
             for (var i$1 = 0, list$1 = ring; i$1 < list$1.length; i$1 += 1) {
                 var point$1 = list$1[i$1];
-                newRing.push(new performance$1.Point$1(point$1[0], point$1[1]));
+                newRing.push(new performance.Point$1(point$1[0], point$1[1]));
             }
             geometry$1.push(newRing);
         }
@@ -23948,7 +24057,7 @@ FeatureWrapper.prototype.toGeoJSON = function toGeoJSON$1(x, y, z) {
 var GeoJSONWrapper = function GeoJSONWrapper(features) {
     this.layers = { '_geojsonTileLayer': this };
     this.name = '_geojsonTileLayer';
-    this.extent = performance$1.EXTENT;
+    this.extent = performance.EXTENT;
     this.length = features.length;
     this._features = features;
 };
@@ -23956,7 +24065,7 @@ GeoJSONWrapper.prototype.feature = function feature(i) {
     return new FeatureWrapper(this._features[i]);
 };
 
-var VectorTileFeature = performance$1.vectorTile.VectorTileFeature;
+var VectorTileFeature = performance.vectorTile.VectorTileFeature;
 var geojson_wrapper = GeoJSONWrapper$1;
 function GeoJSONWrapper$1(features, options) {
     this.options = options || {};
@@ -23980,7 +24089,7 @@ FeatureWrapper$1.prototype.loadGeometry = function () {
         var ring = rings[i];
         var newRing = [];
         for (var j = 0; j < ring.length; j++) {
-            newRing.push(new performance$1.Point$1(ring[j][0], ring[j][1]));
+            newRing.push(new performance.Point$1(ring[j][0], ring[j][1]));
         }
         this.geometry.push(newRing);
     }
@@ -24019,7 +24128,7 @@ var fromVectorTileJs_1 = fromVectorTileJs;
 var fromGeojsonVt_1 = fromGeojsonVt;
 var GeoJSONWrapper_1 = geojson_wrapper;
 function fromVectorTileJs(tile) {
-    var out = new performance$1.pbf();
+    var out = new performance.pbf();
     writeTile(tile, out);
     return out.finish();
 }
@@ -24347,6 +24456,7 @@ KDBush.prototype.within = function within$1(x, y, r) {
 var defaultOptions = {
     minZoom: 0,
     maxZoom: 16,
+    minPoints: 2,
     radius: 40,
     extent: 512,
     nodeSize: 64,
@@ -24357,6 +24467,12 @@ var defaultOptions = {
         return props;
     }
 };
+var fround = Math.fround || function (tmp) {
+    return function (x) {
+        tmp[0] = +x;
+        return tmp[0];
+    };
+}(new Float32Array(1));
 var Supercluster = function Supercluster(options) {
     this.options = extend(Object.create(defaultOptions), options);
     this.trees = new Array(this.options.maxZoom + 1);
@@ -24524,13 +24640,24 @@ Supercluster.prototype._addTileFeatures = function _addTileFeatures(ids, points,
         var i = list[i$1];
         var c = points[i];
         var isCluster = c.numPoints;
+        var tags = void 0, px = void 0, py = void 0;
+        if (isCluster) {
+            tags = getClusterProperties(c);
+            px = c.x;
+            py = c.y;
+        } else {
+            var p = this.points[c.index];
+            tags = p.properties;
+            px = lngX(p.geometry.coordinates[0]);
+            py = latY(p.geometry.coordinates[1]);
+        }
         var f = {
             type: 1,
             geometry: [[
-                    Math.round(this.options.extent * (c.x * z2 - x)),
-                    Math.round(this.options.extent * (c.y * z2 - y))
+                    Math.round(this.options.extent * (px * z2 - x)),
+                    Math.round(this.options.extent * (py * z2 - y))
                 ]],
-            tags: isCluster ? getClusterProperties(c) : this.points[c.index].properties
+            tags: tags
         };
         var id = void 0;
         if (isCluster) {
@@ -24547,7 +24674,7 @@ Supercluster.prototype._addTileFeatures = function _addTileFeatures(ids, points,
     }
 };
 Supercluster.prototype._limitZoom = function _limitZoom(z) {
-    return Math.max(this.options.minZoom, Math.min(z, this.options.maxZoom + 1));
+    return Math.max(this.options.minZoom, Math.min(Math.floor(+z), this.options.maxZoom + 1));
 };
 Supercluster.prototype._cluster = function _cluster(points, zoom) {
     var clusters = [];
@@ -24555,6 +24682,7 @@ Supercluster.prototype._cluster = function _cluster(points, zoom) {
     var radius = ref.radius;
     var extent = ref.extent;
     var reduce = ref.reduce;
+    var minPoints = ref.minPoints;
     var r = radius / (extent * Math.pow(2, zoom));
     for (var i = 0; i < points.length; i++) {
         var p = points[i];
@@ -24564,35 +24692,53 @@ Supercluster.prototype._cluster = function _cluster(points, zoom) {
         p.zoom = zoom;
         var tree = this.trees[zoom + 1];
         var neighborIds = tree.within(p.x, p.y, r);
-        var numPoints = p.numPoints || 1;
-        var wx = p.x * numPoints;
-        var wy = p.y * numPoints;
-        var clusterProperties = reduce && numPoints > 1 ? this._map(p, true) : null;
-        var id = (i << 5) + (zoom + 1) + this.points.length;
+        var numPointsOrigin = p.numPoints || 1;
+        var numPoints = numPointsOrigin;
         for (var i$1 = 0, list = neighborIds; i$1 < list.length; i$1 += 1) {
             var neighborId = list[i$1];
             var b = tree.points[neighborId];
-            if (b.zoom <= zoom) {
-                continue;
-            }
-            b.zoom = zoom;
-            var numPoints2 = b.numPoints || 1;
-            wx += b.x * numPoints2;
-            wy += b.y * numPoints2;
-            numPoints += numPoints2;
-            b.parentId = id;
-            if (reduce) {
-                if (!clusterProperties) {
-                    clusterProperties = this._map(p, true);
-                }
-                reduce(clusterProperties, this._map(b));
+            if (b.zoom > zoom) {
+                numPoints += b.numPoints || 1;
             }
         }
-        if (numPoints === 1) {
-            clusters.push(p);
-        } else {
+        if (numPoints > numPointsOrigin && numPoints >= minPoints) {
+            var wx = p.x * numPointsOrigin;
+            var wy = p.y * numPointsOrigin;
+            var clusterProperties = reduce && numPointsOrigin > 1 ? this._map(p, true) : null;
+            var id = (i << 5) + (zoom + 1) + this.points.length;
+            for (var i$2 = 0, list$1 = neighborIds; i$2 < list$1.length; i$2 += 1) {
+                var neighborId$1 = list$1[i$2];
+                var b$1 = tree.points[neighborId$1];
+                if (b$1.zoom <= zoom) {
+                    continue;
+                }
+                b$1.zoom = zoom;
+                var numPoints2 = b$1.numPoints || 1;
+                wx += b$1.x * numPoints2;
+                wy += b$1.y * numPoints2;
+                b$1.parentId = id;
+                if (reduce) {
+                    if (!clusterProperties) {
+                        clusterProperties = this._map(p, true);
+                    }
+                    reduce(clusterProperties, this._map(b$1));
+                }
+            }
             p.parentId = id;
             clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
+        } else {
+            clusters.push(p);
+            if (numPoints > 1) {
+                for (var i$3 = 0, list$2 = neighborIds; i$3 < list$2.length; i$3 += 1) {
+                    var neighborId$2 = list$2[i$3];
+                    var b$2 = tree.points[neighborId$2];
+                    if (b$2.zoom <= zoom) {
+                        continue;
+                    }
+                    b$2.zoom = zoom;
+                    clusters.push(b$2);
+                }
+            }
         }
     }
     return clusters;
@@ -24613,8 +24759,8 @@ Supercluster.prototype._map = function _map(point, clone) {
 };
 function createCluster(x, y, id, numPoints, properties) {
     return {
-        x: x,
-        y: y,
+        x: fround(x),
+        y: fround(y),
         zoom: Infinity,
         id: id,
         parentId: -1,
@@ -24627,8 +24773,8 @@ function createPointCluster(p, id) {
     var x = ref[0];
     var y = ref[1];
     return {
-        x: lngX(x),
-        y: latY(y),
+        x: fround(lngX(x)),
+        y: fround(latY(y)),
         zoom: Infinity,
         index: id,
         parentId: -1
@@ -25497,7 +25643,7 @@ var GeoJSONWorkerSource = function (VectorTileWorkerSource) {
         var params = this._pendingLoadDataParams;
         delete this._pendingCallback;
         delete this._pendingLoadDataParams;
-        var perf = params && params.request && params.request.collectResourceTiming ? new performance$1.RequestPerformance(params.request) : false;
+        var perf = params && params.request && params.request.collectResourceTiming ? new performance.RequestPerformance(params.request) : false;
         this.loadGeoJSON(params, function (err, data) {
             if (err || !data) {
                 return callback(err);
@@ -25506,6 +25652,26 @@ var GeoJSONWorkerSource = function (VectorTileWorkerSource) {
             } else {
                 geojsonRewind(data, true);
                 try {
+                    if (params.filter) {
+                        var compiled = performance.createExpression(params.filter, {
+                            type: 'boolean',
+                            'property-type': 'data-driven',
+                            overridable: false,
+                            transition: false
+                        });
+                        if (compiled.result === 'error') {
+                            throw new Error(compiled.value.map(function (err) {
+                                return err.key + ': ' + err.message;
+                            }).join(', '));
+                        }
+                        var features = data.features.filter(function (feature) {
+                            return compiled.value.evaluate({ zoom: 0 }, feature);
+                        });
+                        data = {
+                            type: 'FeatureCollection',
+                            features: features
+                        };
+                    }
                     this$1._geoJSONIndex = params.cluster ? new Supercluster(getSuperclusterOptions(params)).load(data.features) : geojsonvt(data, params.geojsonVtOptions);
                 } catch (err) {
                     return callback(err);
@@ -25541,7 +25707,7 @@ var GeoJSONWorkerSource = function (VectorTileWorkerSource) {
     };
     GeoJSONWorkerSource.prototype.loadGeoJSON = function loadGeoJSON(params, callback) {
         if (params.request) {
-            performance$1.getJSON(params.request, callback);
+            performance.getJSON(params.request, callback);
         } else if (typeof params.data === 'string') {
             try {
                 return callback(null, JSON.parse(params.data));
@@ -25600,8 +25766,8 @@ function getSuperclusterOptions(ref) {
         var ref$1 = clusterProperties[key];
         var operator = ref$1[0];
         var mapExpression = ref$1[1];
-        var mapExpressionParsed = performance$1.createExpression(mapExpression);
-        var reduceExpressionParsed = performance$1.createExpression(typeof operator === 'string' ? [
+        var mapExpressionParsed = performance.createExpression(mapExpression);
+        var reduceExpressionParsed = performance.createExpression(typeof operator === 'string' ? [
             operator,
             ['accumulated'],
             [
@@ -25635,7 +25801,7 @@ function getSuperclusterOptions(ref) {
 var Worker = function Worker(self) {
     var this$1 = this;
     this.self = self;
-    this.actor = new performance$1.Actor(self, this);
+    this.actor = new performance.Actor(self, this);
     this.layerIndexes = {};
     this.availableImages = {};
     this.workerSourceTypes = {
@@ -25651,12 +25817,12 @@ var Worker = function Worker(self) {
         this$1.workerSourceTypes[name] = WorkerSource;
     };
     this.self.registerRTLTextPlugin = function (rtlTextPlugin) {
-        if (performance$1.plugin.isParsed()) {
+        if (performance.plugin.isParsed()) {
             throw new Error('RTL text plugin already registered.');
         }
-        performance$1.plugin['applyArabicShaping'] = rtlTextPlugin.applyArabicShaping;
-        performance$1.plugin['processBidirectionalText'] = rtlTextPlugin.processBidirectionalText;
-        performance$1.plugin['processStyledBidirectionalText'] = rtlTextPlugin.processStyledBidirectionalText;
+        performance.plugin['applyArabicShaping'] = rtlTextPlugin.applyArabicShaping;
+        performance.plugin['processBidirectionalText'] = rtlTextPlugin.processBidirectionalText;
+        performance.plugin['processStyledBidirectionalText'] = rtlTextPlugin.processStyledBidirectionalText;
     };
 };
 Worker.prototype.setReferrer = function setReferrer(mapID, referrer) {
@@ -25664,6 +25830,12 @@ Worker.prototype.setReferrer = function setReferrer(mapID, referrer) {
 };
 Worker.prototype.setImages = function setImages(mapId, images, callback) {
     this.availableImages[mapId] = images;
+    for (var workerSource in this.workerSources[mapId]) {
+        var ws = this.workerSources[mapId][workerSource];
+        for (var source in ws) {
+            ws[source].availableImages = images;
+        }
+    }
     callback();
 };
 Worker.prototype.setLayers = function setLayers(mapId, layers, callback) {
@@ -25714,11 +25886,11 @@ Worker.prototype.loadWorkerSource = function loadWorkerSource(map, params, callb
 };
 Worker.prototype.syncRTLPluginState = function syncRTLPluginState(map, state, callback) {
     try {
-        performance$1.plugin.setState(state);
-        var pluginURL = performance$1.plugin.getPluginURL();
-        if (performance$1.plugin.isLoaded() && !performance$1.plugin.isParsed() && pluginURL != null) {
+        performance.plugin.setState(state);
+        var pluginURL = performance.plugin.getPluginURL();
+        if (performance.plugin.isLoaded() && !performance.plugin.isParsed() && pluginURL != null) {
             this.self.importScripts(pluginURL);
-            var complete = performance$1.plugin.isParsed();
+            var complete = performance.plugin.isParsed();
             var error = complete ? undefined : new Error('RTL Text Plugin failed to import scripts from ' + pluginURL);
             callback(error, complete);
         }
@@ -25768,10 +25940,10 @@ Worker.prototype.getDEMWorkerSource = function getDEMWorkerSource(mapId, source)
     return this.demWorkerSources[mapId][source];
 };
 Worker.prototype.enforceCacheSizeLimit = function enforceCacheSizeLimit$1(mapId, limit) {
-    performance$1.enforceCacheSizeLimit(limit);
+    performance.enforceCacheSizeLimit(limit);
 };
-if (typeof WorkerGlobalScope !== 'undefined' && typeof performance$1.window !== 'undefined' && performance$1.window instanceof WorkerGlobalScope) {
-    performance$1.window.worker = new Worker(performance$1.window);
+if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined' && self instanceof WorkerGlobalScope) {
+    self.worker = new Worker(self);
 }
 
 return Worker;
@@ -25929,7 +26101,7 @@ DOM.createNS = function (namespaceURI, tagName) {
     var el = performance.window.document.createElementNS(namespaceURI, tagName);
     return el;
 };
-var docStyle = performance.window.document.documentElement.style;
+var docStyle = performance.window.document && performance.window.document.documentElement.style;
 function testProp(props) {
     if (!docStyle) {
         return props[0];
@@ -26009,12 +26181,10 @@ DOM.suppressClick = function () {
 };
 DOM.mousePos = function (el, e) {
     var rect = el.getBoundingClientRect();
-    var t = performance.window.TouchEvent && e instanceof performance.window.TouchEvent ? e.touches[0] : e;
-    return new performance.Point(t.clientX - rect.left - el.clientLeft, t.clientY - rect.top - el.clientTop);
+    return new performance.Point(e.clientX - rect.left - el.clientLeft, e.clientY - rect.top - el.clientTop);
 };
-DOM.touchPos = function (el, e) {
+DOM.touchPos = function (el, touches) {
     var rect = el.getBoundingClientRect(), points = [];
-    var touches = e.type === 'touchend' ? e.changedTouches : e.touches;
     for (var i = 0; i < touches.length; i++) {
         points.push(new performance.Point(touches[i].clientX - rect.left - el.clientLeft, touches[i].clientY - rect.top - el.clientTop));
     }
@@ -26558,7 +26728,8 @@ GlyphManager.prototype.getGlyphs = function getGlyphs(glyphs, callback) {
         if (!entry) {
             entry = this$1.entries[stack] = {
                 glyphs: {},
-                requests: {}
+                requests: {},
+                ranges: {}
             };
         }
         var glyph = entry.glyphs[id];
@@ -26585,6 +26756,14 @@ GlyphManager.prototype.getGlyphs = function getGlyphs(glyphs, callback) {
             callback(new Error('glyphs > 65535 not supported'));
             return;
         }
+        if (entry.ranges[range]) {
+            callback(null, {
+                stack: stack,
+                id: id,
+                glyph: glyph
+            });
+            return;
+        }
         var requests = entry.requests[range];
         if (!requests) {
             requests = entry.requests[range] = [];
@@ -26595,6 +26774,7 @@ GlyphManager.prototype.getGlyphs = function getGlyphs(glyphs, callback) {
                             entry.glyphs[+id] = response[+id];
                         }
                     }
+                    entry.ranges[range] = true;
                 }
                 for (var i = 0, list = requests; i < list.length; i += 1) {
                     var cb = list[i];
@@ -27064,6 +27244,30 @@ var VectorTileSource = function (Evented) {
         this.map = map;
         this.load();
     };
+    VectorTileSource.prototype.setSourceProperty = function setSourceProperty(callback) {
+        if (this._tileJSONRequest) {
+            this._tileJSONRequest.cancel();
+        }
+        callback();
+        var sourceCache = this.map.style.sourceCaches[this.id];
+        sourceCache.clearTiles();
+        this.load();
+    };
+    VectorTileSource.prototype.setTiles = function setTiles(tiles) {
+        var this$1 = this;
+        this.setSourceProperty(function () {
+            this$1._options.tiles = tiles;
+        });
+        return this;
+    };
+    VectorTileSource.prototype.setUrl = function setUrl(url) {
+        var this$1 = this;
+        this.setSourceProperty(function () {
+            this$1.url = url;
+            this$1._options.url = url;
+        });
+        return this;
+    };
     VectorTileSource.prototype.onRemove = function onRemove() {
         if (this._tileJSONRequest) {
             this._tileJSONRequest.cancel();
@@ -27427,12 +27631,14 @@ var GeoJSONSource = function (Evented) {
             },
             superclusterOptions: {
                 maxZoom: options.clusterMaxZoom !== undefined ? Math.min(options.clusterMaxZoom, this.maxzoom - 1) : this.maxzoom - 1,
+                minPoints: Math.max(2, options.clusterMinPoints || 2),
                 extent: performance.EXTENT,
                 radius: (options.clusterRadius || 50) * scale,
                 log: false,
                 generateId: options.generateId || false
             },
-            clusterProperties: options.clusterProperties
+            clusterProperties: options.clusterProperties,
+            filter: options.filter
         }, options.workerOptions);
     }
     if (Evented)
@@ -27792,6 +27998,7 @@ var VideoSource = function (ImageSource) {
             } else if (video) {
                 this$1.video = video;
                 this$1.video.loop = true;
+                this$1.video.setAttribute('playsinline', '');
                 this$1.video.addEventListener('playing', function () {
                     this$1.map.triggerRepaint();
                 });
@@ -29319,8 +29526,10 @@ var Context = function Context(gl) {
     this.extTextureHalfFloat = gl.getExtension('OES_texture_half_float');
     if (this.extTextureHalfFloat) {
         gl.getExtension('OES_texture_half_float_linear');
+        this.extRenderToTextureHalfFloat = gl.getExtension('EXT_color_buffer_half_float');
     }
     this.extTimerQuery = gl.getExtension('EXT_disjoint_timer_query');
+    this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 };
 Context.prototype.setDefault = function setDefault() {
     this.unbindVAO();
@@ -30183,6 +30392,7 @@ function WebWorker () {
     return new performance.window.Worker(exported.workerUrl);
 }
 
+var PRELOAD_POOL_ID = 'mapboxgl_preloaded_worker_pool';
 var WorkerPool = function WorkerPool() {
     this.active = {};
 };
@@ -30198,12 +30408,18 @@ WorkerPool.prototype.acquire = function acquire(mapId) {
 };
 WorkerPool.prototype.release = function release(mapId) {
     delete this.active[mapId];
-    if (Object.keys(this.active).length === 0) {
+    if (this.numActive() === 0) {
         this.workers.forEach(function (w) {
             w.terminate();
         });
         this.workers = null;
     }
+};
+WorkerPool.prototype.isPreloaded = function isPreloaded() {
+    return !!this.active[PRELOAD_POOL_ID];
+};
+WorkerPool.prototype.numActive = function numActive() {
+    return Object.keys(this.active).length;
 };
 var availableLogicalProcessors = Math.floor(performance.browser.hardwareConcurrency / 2);
 WorkerPool.workerCount = Math.max(Math.min(availableLogicalProcessors, 6), 1);
@@ -30214,6 +30430,21 @@ function getGlobalWorkerPool() {
         globalWorkerPool = new WorkerPool();
     }
     return globalWorkerPool;
+}
+function prewarm() {
+    var workerPool = getGlobalWorkerPool();
+    workerPool.acquire(PRELOAD_POOL_ID);
+}
+function clearPrewarmedResources() {
+    var pool = globalWorkerPool;
+    if (pool) {
+        if (pool.isPreloaded() && pool.numActive() === 1) {
+            pool.release(PRELOAD_POOL_ID);
+            globalWorkerPool = null;
+        } else {
+            console.warn('Could not clear WebWorkers since there are active Map instances that still reference it. The pre-warmed WebWorker pool can only be cleared when all map instances have been removed with map.remove()');
+        }
+    }
 }
 
 function deref(layer, parent) {
@@ -30629,6 +30860,37 @@ function diffStyles(before, after) {
     return commands;
 }
 
+var PathInterpolator = function PathInterpolator(points_, padding_) {
+    this.reset(points_, padding_);
+};
+PathInterpolator.prototype.reset = function reset(points_, padding_) {
+    this.points = points_ || [];
+    this._distances = [0];
+    for (var i = 1; i < this.points.length; i++) {
+        this._distances[i] = this._distances[i - 1] + this.points[i].dist(this.points[i - 1]);
+    }
+    this.length = this._distances[this._distances.length - 1];
+    this.padding = Math.min(padding_ || 0, this.length * 0.5);
+    this.paddedLength = this.length - this.padding * 2;
+};
+PathInterpolator.prototype.lerp = function lerp(t) {
+    if (this.points.length === 1) {
+        return this.points[0];
+    }
+    t = performance.clamp(t, 0, 1);
+    var currentIndex = 1;
+    var distOfCurrentIdx = this._distances[currentIndex];
+    var distToTarget = t * this.paddedLength + this.padding;
+    while (distOfCurrentIdx < distToTarget && currentIndex < this._distances.length) {
+        distOfCurrentIdx = this._distances[++currentIndex];
+    }
+    var idxOfPrevPoint = currentIndex - 1;
+    var distOfPrevIdx = this._distances[idxOfPrevPoint];
+    var segmentLength = distOfCurrentIdx - distOfPrevIdx;
+    var segmentT = segmentLength > 0 ? (distToTarget - distOfPrevIdx) / segmentLength : 0;
+    return this.points[idxOfPrevPoint].mult(1 - segmentT).add(this.points[currentIndex].mult(segmentT));
+};
+
 var GridIndex = function GridIndex(width, height, cellSize) {
     var boxCells = this.boxCells = [];
     var circleCells = this.circleCells = [];
@@ -30930,6 +31192,9 @@ function project(point, matrix) {
         signedDistanceFromCamera: w
     };
 }
+function getPerspectiveRatio(cameraToCenterDistance, signedDistanceFromCamera) {
+    return 0.5 + 0.5 * (cameraToCenterDistance / signedDistanceFromCamera);
+}
 function isVisible(anchorPos, clippingBuffer) {
     var x = anchorPos[0] / anchorPos[3];
     var y = anchorPos[1] / anchorPos[3];
@@ -30968,9 +31233,9 @@ function updateLineLabels(bucket, posMatrix, painter, isText, labelPlaneMatrix, 
             continue;
         }
         var cameraToAnchorDistance = anchorPos[3];
-        var perspectiveRatio = 0.5 + 0.5 * (cameraToAnchorDistance / painter.transform.cameraToCenterDistance);
+        var perspectiveRatio = getPerspectiveRatio(painter.transform.cameraToCenterDistance, cameraToAnchorDistance);
         var fontSize = performance.evaluateSizeForFeature(sizeData, partiallyEvaluatedSize, symbol);
-        var pitchScaledFontSize = pitchWithMap ? fontSize * perspectiveRatio : fontSize / perspectiveRatio;
+        var pitchScaledFontSize = pitchWithMap ? fontSize / perspectiveRatio : fontSize * perspectiveRatio;
         var tileAnchorPoint = new performance.Point(symbol.anchorX, symbol.anchorY);
         var anchorPoint = project(tileAnchorPoint, labelPlaneMatrix).point;
         var projectionCache = {};
@@ -30986,17 +31251,17 @@ function updateLineLabels(bucket, posMatrix, painter, isText, labelPlaneMatrix, 
         bucket.icon.dynamicLayoutVertexBuffer.updateData(dynamicLayoutVertexArray);
     }
 }
-function placeFirstAndLastGlyph(fontScale, glyphOffsetArray, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol, lineVertexArray, labelPlaneMatrix, projectionCache, returnTileDistance) {
+function placeFirstAndLastGlyph(fontScale, glyphOffsetArray, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol, lineVertexArray, labelPlaneMatrix, projectionCache) {
     var glyphEndIndex = symbol.glyphStartIndex + symbol.numGlyphs;
     var lineStartIndex = symbol.lineStartIndex;
     var lineEndIndex = symbol.lineStartIndex + symbol.lineLength;
     var firstGlyphOffset = glyphOffsetArray.getoffsetX(symbol.glyphStartIndex);
     var lastGlyphOffset = glyphOffsetArray.getoffsetX(glyphEndIndex - 1);
-    var firstPlacedGlyph = placeGlyphAlongLine(fontScale * firstGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache, returnTileDistance);
+    var firstPlacedGlyph = placeGlyphAlongLine(fontScale * firstGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache);
     if (!firstPlacedGlyph) {
         return null;
     }
-    var lastPlacedGlyph = placeGlyphAlongLine(fontScale * lastGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache, returnTileDistance);
+    var lastPlacedGlyph = placeGlyphAlongLine(fontScale * lastGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache);
     if (!lastPlacedGlyph) {
         return null;
     }
@@ -31027,7 +31292,7 @@ function placeGlyphsAlongLine(symbol, fontSize, flip, keepUpright, posMatrix, la
         var glyphEndIndex = symbol.glyphStartIndex + symbol.numGlyphs;
         var lineStartIndex = symbol.lineStartIndex;
         var lineEndIndex = symbol.lineStartIndex + symbol.lineLength;
-        var firstAndLastGlyph = placeFirstAndLastGlyph(fontScale, glyphOffsetArray, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol, lineVertexArray, labelPlaneMatrix, projectionCache, false);
+        var firstAndLastGlyph = placeFirstAndLastGlyph(fontScale, glyphOffsetArray, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol, lineVertexArray, labelPlaneMatrix, projectionCache);
         if (!firstAndLastGlyph) {
             return { notEnoughRoom: true };
         }
@@ -31041,7 +31306,7 @@ function placeGlyphsAlongLine(symbol, fontSize, flip, keepUpright, posMatrix, la
         }
         placedGlyphs = [firstAndLastGlyph.first];
         for (var glyphIndex = symbol.glyphStartIndex + 1; glyphIndex < glyphEndIndex - 1; glyphIndex++) {
-            placedGlyphs.push(placeGlyphAlongLine(fontScale * glyphOffsetArray.getoffsetX(glyphIndex), lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache, false));
+            placedGlyphs.push(placeGlyphAlongLine(fontScale * glyphOffsetArray.getoffsetX(glyphIndex), lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache));
         }
         placedGlyphs.push(firstAndLastGlyph.last);
     } else {
@@ -31056,7 +31321,7 @@ function placeGlyphsAlongLine(symbol, fontSize, flip, keepUpright, posMatrix, la
                 return orientationChange$1;
             }
         }
-        var singleGlyph = placeGlyphAlongLine(fontScale * glyphOffsetArray.getoffsetX(symbol.glyphStartIndex), lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, symbol.lineStartIndex, symbol.lineStartIndex + symbol.lineLength, lineVertexArray, labelPlaneMatrix, projectionCache, false);
+        var singleGlyph = placeGlyphAlongLine(fontScale * glyphOffsetArray.getoffsetX(symbol.glyphStartIndex), lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, symbol.lineStartIndex, symbol.lineStartIndex + symbol.lineLength, lineVertexArray, labelPlaneMatrix, projectionCache);
         if (!singleGlyph) {
             return { notEnoughRoom: true };
         }
@@ -31073,7 +31338,7 @@ function projectTruncatedLineSegment(previousTilePoint, currentTilePoint, previo
     var projectedUnitSegment = previousProjectedPoint.sub(projectedUnitVertex);
     return previousProjectedPoint.add(projectedUnitSegment._mult(minimumLength / projectedUnitSegment.mag()));
 }
-function placeGlyphAlongLine(offsetX, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, anchorSegment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache, returnTileDistance) {
+function placeGlyphAlongLine(offsetX, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, anchorSegment, lineStartIndex, lineEndIndex, lineVertexArray, labelPlaneMatrix, projectionCache) {
     var combinedOffsetX = flip ? offsetX - lineOffsetX : offsetX + lineOffsetX;
     var dir = combinedOffsetX > 0 ? 1 : -1;
     var angle = 0;
@@ -31085,18 +31350,19 @@ function placeGlyphAlongLine(offsetX, lineOffsetX, lineOffsetY, flip, anchorPoin
         angle += Math.PI;
     }
     var currentIndex = dir > 0 ? lineStartIndex + anchorSegment : lineStartIndex + anchorSegment + 1;
-    var initialIndex = currentIndex;
     var current = anchorPoint;
     var prev = anchorPoint;
     var distanceToPrev = 0;
     var currentSegmentDistance = 0;
     var absOffsetX = Math.abs(combinedOffsetX);
+    var pathVertices = [];
     while (distanceToPrev + currentSegmentDistance <= absOffsetX) {
         currentIndex += dir;
         if (currentIndex < lineStartIndex || currentIndex >= lineEndIndex) {
             return null;
         }
         prev = current;
+        pathVertices.push(current);
         current = projectionCache[currentIndex];
         if (current === undefined) {
             var currentVertex = new performance.Point(lineVertexArray.getx(currentIndex), lineVertexArray.gety(currentIndex));
@@ -31117,13 +31383,11 @@ function placeGlyphAlongLine(offsetX, lineOffsetX, lineOffsetY, flip, anchorPoin
     var p = prevToCurrent.mult(segmentInterpolationT)._add(prev);
     p._add(prevToCurrent._unit()._perp()._mult(lineOffsetY * dir));
     var segmentAngle = angle + Math.atan2(current.y - prev.y, current.x - prev.x);
+    pathVertices.push(p);
     return {
         point: p,
         angle: segmentAngle,
-        tileDistance: returnTileDistance ? {
-            prevTileDistance: currentIndex - dir === initialIndex ? 0 : lineVertexArray.gettileUnitDistanceFromAnchor(currentIndex - dir),
-            lastSegmentViewportDistance: absOffsetX - distanceToPrev
-        } : null
+        path: pathVertices
     };
 }
 var hiddenGlyphAttributes = new Float32Array([
@@ -31193,83 +31457,108 @@ CollisionIndex.prototype.placeCollisionBox = function placeCollisionBox(collisio
         offscreen: this.isOffscreen(tlX, tlY, brX, brY)
     };
 };
-CollisionIndex.prototype.approximateTileDistance = function approximateTileDistance(tileDistance, lastSegmentAngle, pixelsToTileUnits, cameraToAnchorDistance, pitchWithMap) {
-    var incidenceStretch = pitchWithMap ? 1 : cameraToAnchorDistance / this.pitchfactor;
-    var lastSegmentTile = tileDistance.lastSegmentViewportDistance * pixelsToTileUnits;
-    return tileDistance.prevTileDistance + lastSegmentTile + (incidenceStretch - 1) * lastSegmentTile * Math.abs(Math.sin(lastSegmentAngle));
-};
-CollisionIndex.prototype.placeCollisionCircles = function placeCollisionCircles(collisionCircles, allowOverlap, scale, textPixelRatio, symbol, lineVertexArray, glyphOffsetArray, fontSize, posMatrix, labelPlaneMatrix, showCollisionCircles, pitchWithMap, collisionGroupPredicate) {
+CollisionIndex.prototype.placeCollisionCircles = function placeCollisionCircles(allowOverlap, symbol, lineVertexArray, glyphOffsetArray, fontSize, posMatrix, labelPlaneMatrix, labelToScreenMatrix, showCollisionCircles, pitchWithMap, collisionGroupPredicate, circlePixelDiameter, textPixelPadding) {
     var placedCollisionCircles = [];
-    var projectedAnchor = this.projectAnchor(posMatrix, symbol.anchorX, symbol.anchorY);
-    var projectionCache = {};
-    var fontScale = fontSize / 24;
-    var lineOffsetX = symbol.lineOffsetX * fontSize;
-    var lineOffsetY = symbol.lineOffsetY * fontSize;
     var tileUnitAnchorPoint = new performance.Point(symbol.anchorX, symbol.anchorY);
+    var screenAnchorPoint = project(tileUnitAnchorPoint, posMatrix);
+    var perspectiveRatio = getPerspectiveRatio(this.transform.cameraToCenterDistance, screenAnchorPoint.signedDistanceFromCamera);
+    var labelPlaneFontSize = pitchWithMap ? fontSize / perspectiveRatio : fontSize * perspectiveRatio;
+    var labelPlaneFontScale = labelPlaneFontSize / performance.ONE_EM;
     var labelPlaneAnchorPoint = project(tileUnitAnchorPoint, labelPlaneMatrix).point;
-    var firstAndLastGlyph = placeFirstAndLastGlyph(fontScale, glyphOffsetArray, lineOffsetX, lineOffsetY, false, labelPlaneAnchorPoint, tileUnitAnchorPoint, symbol, lineVertexArray, labelPlaneMatrix, projectionCache, true);
+    var projectionCache = {};
+    var lineOffsetX = symbol.lineOffsetX * labelPlaneFontScale;
+    var lineOffsetY = symbol.lineOffsetY * labelPlaneFontScale;
+    var firstAndLastGlyph = placeFirstAndLastGlyph(labelPlaneFontScale, glyphOffsetArray, lineOffsetX, lineOffsetY, false, labelPlaneAnchorPoint, tileUnitAnchorPoint, symbol, lineVertexArray, labelPlaneMatrix, projectionCache);
     var collisionDetected = false;
     var inGrid = false;
     var entirelyOffscreen = true;
-    var tileToViewport = projectedAnchor.perspectiveRatio * textPixelRatio;
-    var pixelsToTileUnits = 1 / (textPixelRatio * scale);
-    var firstTileDistance = 0, lastTileDistance = 0;
     if (firstAndLastGlyph) {
-        firstTileDistance = this.approximateTileDistance(firstAndLastGlyph.first.tileDistance, firstAndLastGlyph.first.angle, pixelsToTileUnits, projectedAnchor.cameraDistance, pitchWithMap);
-        lastTileDistance = this.approximateTileDistance(firstAndLastGlyph.last.tileDistance, firstAndLastGlyph.last.angle, pixelsToTileUnits, projectedAnchor.cameraDistance, pitchWithMap);
-    }
-    for (var k = 0; k < collisionCircles.length; k += 5) {
-        var anchorPointX = collisionCircles[k];
-        var anchorPointY = collisionCircles[k + 1];
-        var tileUnitRadius = collisionCircles[k + 2];
-        var boxSignedDistanceFromAnchor = collisionCircles[k + 3];
-        if (!firstAndLastGlyph || boxSignedDistanceFromAnchor < -firstTileDistance || boxSignedDistanceFromAnchor > lastTileDistance) {
-            markCollisionCircleUsed(collisionCircles, k, false);
-            continue;
+        var radius = circlePixelDiameter * 0.5 * perspectiveRatio + textPixelPadding;
+        var screenPlaneMin = new performance.Point(-viewportPadding, -viewportPadding);
+        var screenPlaneMax = new performance.Point(this.screenRightBoundary, this.screenBottomBoundary);
+        var interpolator = new PathInterpolator();
+        var first = firstAndLastGlyph.first;
+        var last = firstAndLastGlyph.last;
+        var projectedPath = [];
+        for (var i = first.path.length - 1; i >= 1; i--) {
+            projectedPath.push(first.path[i]);
         }
-        var projectedPoint = this.projectPoint(posMatrix, anchorPointX, anchorPointY);
-        var radius = tileUnitRadius * tileToViewport;
-        var atLeastOneCirclePlaced = placedCollisionCircles.length > 0;
-        if (atLeastOneCirclePlaced) {
-            var dx = projectedPoint.x - placedCollisionCircles[placedCollisionCircles.length - 4];
-            var dy = projectedPoint.y - placedCollisionCircles[placedCollisionCircles.length - 3];
-            var placedTooDensely = radius * radius * 2 > dx * dx + dy * dy;
-            if (placedTooDensely) {
-                var atLeastOneMoreCircle = k + 8 < collisionCircles.length;
-                if (atLeastOneMoreCircle) {
-                    var nextBoxDistanceToAnchor = collisionCircles[k + 8];
-                    if (nextBoxDistanceToAnchor > -firstTileDistance && nextBoxDistanceToAnchor < lastTileDistance) {
-                        markCollisionCircleUsed(collisionCircles, k, false);
-                        continue;
-                    }
-                }
+        for (var i$1 = 1; i$1 < last.path.length; i$1++) {
+            projectedPath.push(last.path[i$1]);
+        }
+        var circleDist = radius * 2.5;
+        if (labelToScreenMatrix) {
+            var screenSpacePath = projectedPath.map(function (p) {
+                return project(p, labelToScreenMatrix);
+            });
+            if (screenSpacePath.some(function (point) {
+                    return point.signedDistanceFromCamera <= 0;
+                })) {
+                projectedPath = [];
+            } else {
+                projectedPath = screenSpacePath.map(function (p) {
+                    return p.point;
+                });
             }
         }
-        var collisionBoxArrayIndex = k / 5;
-        placedCollisionCircles.push(projectedPoint.x, projectedPoint.y, radius, collisionBoxArrayIndex);
-        markCollisionCircleUsed(collisionCircles, k, true);
-        var x1 = projectedPoint.x - radius;
-        var y1 = projectedPoint.y - radius;
-        var x2 = projectedPoint.x + radius;
-        var y2 = projectedPoint.y + radius;
-        entirelyOffscreen = entirelyOffscreen && this.isOffscreen(x1, y1, x2, y2);
-        inGrid = inGrid || this.isInsideGrid(x1, y1, x2, y2);
-        if (!allowOverlap) {
-            if (this.grid.hitTestCircle(projectedPoint.x, projectedPoint.y, radius, collisionGroupPredicate)) {
-                if (!showCollisionCircles) {
-                    return {
-                        circles: [],
-                        offscreen: false
-                    };
-                } else {
-                    collisionDetected = true;
+        var segments = [];
+        if (projectedPath.length > 0) {
+            var minPoint = projectedPath[0].clone();
+            var maxPoint = projectedPath[0].clone();
+            for (var i$2 = 1; i$2 < projectedPath.length; i$2++) {
+                minPoint.x = Math.min(minPoint.x, projectedPath[i$2].x);
+                minPoint.y = Math.min(minPoint.y, projectedPath[i$2].y);
+                maxPoint.x = Math.max(maxPoint.x, projectedPath[i$2].x);
+                maxPoint.y = Math.max(maxPoint.y, projectedPath[i$2].y);
+            }
+            if (minPoint.x >= screenPlaneMin.x && maxPoint.x <= screenPlaneMax.x && minPoint.y >= screenPlaneMin.y && maxPoint.y <= screenPlaneMax.y) {
+                segments = [projectedPath];
+            } else if (maxPoint.x < screenPlaneMin.x || minPoint.x > screenPlaneMax.x || maxPoint.y < screenPlaneMin.y || minPoint.y > screenPlaneMax.y) {
+                segments = [];
+            } else {
+                segments = performance.clipLine([projectedPath], screenPlaneMin.x, screenPlaneMin.y, screenPlaneMax.x, screenPlaneMax.y);
+            }
+        }
+        for (var i$4 = 0, list = segments; i$4 < list.length; i$4 += 1) {
+            var seg = list[i$4];
+            interpolator.reset(seg, radius * 0.25);
+            var numCircles = 0;
+            if (interpolator.length <= 0.5 * radius) {
+                numCircles = 1;
+            } else {
+                numCircles = Math.ceil(interpolator.paddedLength / circleDist) + 1;
+            }
+            for (var i$3 = 0; i$3 < numCircles; i$3++) {
+                var t = i$3 / Math.max(numCircles - 1, 1);
+                var circlePosition = interpolator.lerp(t);
+                var centerX = circlePosition.x + viewportPadding;
+                var centerY = circlePosition.y + viewportPadding;
+                placedCollisionCircles.push(centerX, centerY, radius, 0);
+                var x1 = centerX - radius;
+                var y1 = centerY - radius;
+                var x2 = centerX + radius;
+                var y2 = centerY + radius;
+                entirelyOffscreen = entirelyOffscreen && this.isOffscreen(x1, y1, x2, y2);
+                inGrid = inGrid || this.isInsideGrid(x1, y1, x2, y2);
+                if (!allowOverlap) {
+                    if (this.grid.hitTestCircle(centerX, centerY, radius, collisionGroupPredicate)) {
+                        collisionDetected = true;
+                        if (!showCollisionCircles) {
+                            return {
+                                circles: [],
+                                offscreen: false,
+                                collisionDetected: collisionDetected
+                            };
+                        }
+                    }
                 }
             }
         }
     }
     return {
-        circles: collisionDetected || !inGrid ? [] : placedCollisionCircles,
-        offscreen: entirelyOffscreen
+        circles: !showCollisionCircles && collisionDetected || !inGrid ? [] : placedCollisionCircles,
+        offscreen: entirelyOffscreen,
+        collisionDetected: collisionDetected
     };
 };
 CollisionIndex.prototype.queryRenderedSymbols = function queryRenderedSymbols(viewportQueryGeometry) {
@@ -31339,29 +31628,6 @@ CollisionIndex.prototype.insertCollisionCircles = function insertCollisionCircle
         grid.insertCircle(key, collisionCircles[k], collisionCircles[k + 1], collisionCircles[k + 2]);
     }
 };
-CollisionIndex.prototype.projectAnchor = function projectAnchor(posMatrix, x, y) {
-    var p = [
-        x,
-        y,
-        0,
-        1
-    ];
-    xyTransformMat4(p, p, posMatrix);
-    return {
-        perspectiveRatio: 0.5 + 0.5 * (this.transform.cameraToCenterDistance / p[3]),
-        cameraDistance: p[3]
-    };
-};
-CollisionIndex.prototype.projectPoint = function projectPoint(posMatrix, x, y) {
-    var p = [
-        x,
-        y,
-        0,
-        1
-    ];
-    xyTransformMat4(p, p, posMatrix);
-    return new performance.Point((p[0] / p[3] + 1) / 2 * this.transform.width + viewportPadding, (-p[1] / p[3] + 1) / 2 * this.transform.height + viewportPadding);
-};
 CollisionIndex.prototype.projectAndGetPerspectiveRatio = function projectAndGetPerspectiveRatio(posMatrix, x, y) {
     var p = [
         x,
@@ -31382,9 +31648,15 @@ CollisionIndex.prototype.isOffscreen = function isOffscreen(x1, y1, x2, y2) {
 CollisionIndex.prototype.isInsideGrid = function isInsideGrid(x1, y1, x2, y2) {
     return x2 >= 0 && x1 < this.gridRightBoundary && y2 >= 0 && y1 < this.gridBottomBoundary;
 };
-function markCollisionCircleUsed(collisionCircles, index, used) {
-    collisionCircles[index + 4] = used ? 1 : 0;
-}
+CollisionIndex.prototype.getViewportMatrix = function getViewportMatrix() {
+    var m = performance.identity([]);
+    performance.translate(m, m, [
+        -viewportPadding,
+        -viewportPadding,
+        0
+    ]);
+    return m;
+};
 
 function pixelsToTileUnits (tile, pixelValue, z) {
     return pixelValue * (performance.EXTENT / (tile.tileSize * Math.pow(2, z - tile.tileID.overscaledZ)));
@@ -31412,6 +31684,11 @@ var JointPlacement = function JointPlacement(text, icon, skipFade) {
     this.text = text;
     this.icon = icon;
     this.skipFade = skipFade;
+};
+var CollisionCircleArray = function CollisionCircleArray() {
+    this.invProjMatrix = performance.create();
+    this.viewportMatrix = performance.create();
+    this.circles = [];
 };
 var RetainedQueryData = function RetainedQueryData(bucketInstanceId, featureIndex, sourceLayerIndex, bucketIndex, tileID) {
     this.bucketInstanceId = bucketInstanceId;
@@ -31484,6 +31761,7 @@ var Placement = function Placement(transform, fadeDuration, crossSourceCollision
     this.fadeDuration = fadeDuration;
     this.retainedQueryData = {};
     this.collisionGroups = new CollisionGroups(crossSourceCollisions);
+    this.collisionCircleArrays = {};
     this.prevPlacement = prevPlacement;
     if (prevPlacement) {
         prevPlacement.prevPlacement = undefined;
@@ -31501,13 +31779,22 @@ Placement.prototype.getBucketParts = function getBucketParts(results, styleLayer
     var scale = Math.pow(2, this.transform.zoom - tile.tileID.overscaledZ);
     var textPixelRatio = tile.tileSize / performance.EXTENT;
     var posMatrix = this.transform.calculatePosMatrix(tile.tileID.toUnwrapped());
-    var textLabelPlaneMatrix = getLabelPlaneMatrix(posMatrix, layout.get('text-pitch-alignment') === 'map', layout.get('text-rotation-alignment') === 'map', this.transform, pixelsToTileUnits(tile, 1, this.transform.zoom));
+    var pitchWithMap = layout.get('text-pitch-alignment') === 'map';
+    var rotateWithMap = layout.get('text-rotation-alignment') === 'map';
+    var pixelsToTiles = pixelsToTileUnits(tile, 1, this.transform.zoom);
+    var textLabelPlaneMatrix = getLabelPlaneMatrix(posMatrix, pitchWithMap, rotateWithMap, this.transform, pixelsToTiles);
+    var labelToScreenMatrix = null;
+    if (pitchWithMap) {
+        var glMatrix = getGlCoordMatrix(posMatrix, pitchWithMap, rotateWithMap, this.transform, pixelsToTiles);
+        labelToScreenMatrix = performance.multiply([], this.transform.labelPlaneMatrix, glMatrix);
+    }
     this.retainedQueryData[symbolBucket.bucketInstanceId] = new RetainedQueryData(symbolBucket.bucketInstanceId, bucketFeatureIndex, symbolBucket.sourceLayerIndex, symbolBucket.index, tile.tileID);
     var parameters = {
         bucket: symbolBucket,
         layout: layout,
         posMatrix: posMatrix,
         textLabelPlaneMatrix: textLabelPlaneMatrix,
+        labelToScreenMatrix: labelToScreenMatrix,
         scale: scale,
         textPixelRatio: textPixelRatio,
         holdingForFade: tile.holdingForFade(),
@@ -31580,7 +31867,7 @@ Placement.prototype.placeLayerBucketPart = function placeLayerBucketPart(bucketP
     var layout = ref.layout;
     var posMatrix = ref.posMatrix;
     var textLabelPlaneMatrix = ref.textLabelPlaneMatrix;
-    var scale = ref.scale;
+    var labelToScreenMatrix = ref.labelToScreenMatrix;
     var textPixelRatio = ref.textPixelRatio;
     var holdingForFade = ref.holdingForFade;
     var collisionBoxArray = ref.collisionBoxArray;
@@ -31627,6 +31914,8 @@ Placement.prototype.placeLayerBucketPart = function placeLayerBucketPart(bucketP
         var iconFeatureIndex = 0;
         if (collisionArrays.textFeatureIndex) {
             textFeatureIndex = collisionArrays.textFeatureIndex;
+        } else if (symbolInstance.useRuntimeCollisionCircles) {
+            textFeatureIndex = symbolInstance.featureIndex;
         }
         if (collisionArrays.verticalTextFeatureIndex) {
             verticalTextFeatureIndex = collisionArrays.verticalTextFeatureIndex;
@@ -31755,12 +32044,13 @@ Placement.prototype.placeLayerBucketPart = function placeLayerBucketPart(bucketP
         placedGlyphBoxes = placed;
         placeText = placedGlyphBoxes && placedGlyphBoxes.box && placedGlyphBoxes.box.length > 0;
         offscreen = placedGlyphBoxes && placedGlyphBoxes.offscreen;
-        var textCircles = collisionArrays.textCircles;
-        if (textCircles) {
+        if (symbolInstance.useRuntimeCollisionCircles) {
             var placedSymbol = bucket.text.placedSymbolArray.get(symbolInstance.centerJustifiedTextSymbolIndex);
             var fontSize = performance.evaluateSizeForFeature(bucket.textSizeData, partiallyEvaluatedTextSize, placedSymbol);
-            placedGlyphCircles = this$1.collisionIndex.placeCollisionCircles(textCircles, textAllowOverlap, scale, textPixelRatio, placedSymbol, bucket.lineVertexArray, bucket.glyphOffsetArray, fontSize, posMatrix, textLabelPlaneMatrix, showCollisionBoxes, pitchWithMap, collisionGroup.predicate);
-            placeText = textAllowOverlap || placedGlyphCircles.circles.length > 0;
+            var textPixelPadding = layout.get('text-padding');
+            var circlePixelDiameter = symbolInstance.collisionCircleDiameter;
+            placedGlyphCircles = this$1.collisionIndex.placeCollisionCircles(textAllowOverlap, placedSymbol, bucket.lineVertexArray, bucket.glyphOffsetArray, fontSize, posMatrix, textLabelPlaneMatrix, labelToScreenMatrix, showCollisionBoxes, pitchWithMap, collisionGroup.predicate, circlePixelDiameter, textPixelPadding);
+            placeText = textAllowOverlap || placedGlyphCircles.circles.length > 0 && !placedGlyphCircles.collisionDetected;
             offscreen = offscreen && placedGlyphCircles.offscreen;
         }
         if (collisionArrays.iconFeatureIndex) {
@@ -31799,8 +32089,23 @@ Placement.prototype.placeLayerBucketPart = function placeLayerBucketPart(bucketP
         if (placeIcon && placedIconBoxes) {
             this$1.collisionIndex.insertCollisionBox(placedIconBoxes.box, layout.get('icon-ignore-placement'), bucket.bucketInstanceId, iconFeatureIndex, collisionGroup.ID);
         }
-        if (placeText && placedGlyphCircles) {
-            this$1.collisionIndex.insertCollisionCircles(placedGlyphCircles.circles, layout.get('text-ignore-placement'), bucket.bucketInstanceId, textFeatureIndex, collisionGroup.ID);
+        if (placedGlyphCircles) {
+            if (placeText) {
+                this$1.collisionIndex.insertCollisionCircles(placedGlyphCircles.circles, layout.get('text-ignore-placement'), bucket.bucketInstanceId, textFeatureIndex, collisionGroup.ID);
+            }
+            if (showCollisionBoxes) {
+                var id = bucket.bucketInstanceId;
+                var circleArray = this$1.collisionCircleArrays[id];
+                if (circleArray === undefined) {
+                    circleArray = this$1.collisionCircleArrays[id] = new CollisionCircleArray();
+                }
+                for (var i = 0; i < placedGlyphCircles.circles.length; i += 4) {
+                    circleArray.circles.push(placedGlyphCircles.circles[i + 0]);
+                    circleArray.circles.push(placedGlyphCircles.circles[i + 1]);
+                    circleArray.circles.push(placedGlyphCircles.circles[i + 2]);
+                    circleArray.circles.push(placedGlyphCircles.collisionDetected ? 1 : 0);
+                }
+            }
         }
         this$1.placements[symbolInstance.crossTileID] = new JointPlacement(placeText || alwaysShowText, placeIcon || alwaysShowIcon, offscreen || bucket.justReloaded);
         seenCrossTileIDs[symbolInstance.crossTileID] = true;
@@ -31815,6 +32120,11 @@ Placement.prototype.placeLayerBucketPart = function placeLayerBucketPart(bucketP
         for (var i$1 = bucketPart.symbolInstanceStart; i$1 < bucketPart.symbolInstanceEnd; i$1++) {
             placeSymbol(bucket.symbolInstances.get(i$1), bucket.collisionArrays[i$1]);
         }
+    }
+    if (showCollisionBoxes && bucket.bucketInstanceId in this.collisionCircleArrays) {
+        var circleArray = this.collisionCircleArrays[bucket.bucketInstanceId];
+        performance.invert(circleArray.invProjMatrix, posMatrix);
+        circleArray.viewportMatrix = this.collisionIndex.getViewportMatrix();
     }
     bucket.justReloaded = false;
 };
@@ -31934,12 +32244,6 @@ Placement.prototype.updateBucketOpacities = function updateBucketOpacities(bucke
     if (bucket.hasTextCollisionBoxData()) {
         bucket.textCollisionBox.collisionVertexArray.clear();
     }
-    if (bucket.hasIconCollisionCircleData()) {
-        bucket.iconCollisionCircle.collisionVertexArray.clear();
-    }
-    if (bucket.hasTextCollisionCircleData()) {
-        bucket.textCollisionCircle.collisionVertexArray.clear();
-    }
     var layout = bucket.layers[0].layout;
     var duplicateOpacityState = new JointOpacityState(null, 0, false, false, true);
     var textAllowOverlap = layout.get('text-allow-overlap');
@@ -31949,7 +32253,7 @@ Placement.prototype.updateBucketOpacities = function updateBucketOpacities(bucke
     var pitchWithMap = layout.get('text-pitch-alignment') === 'map';
     var hasIconTextFit = layout.get('icon-text-fit') !== 'none';
     var defaultOpacityState = new JointOpacityState(null, 0, textAllowOverlap && (iconAllowOverlap || !bucket.hasIconData() || layout.get('icon-optional')), iconAllowOverlap && (textAllowOverlap || !bucket.hasTextData() || layout.get('text-optional')), true);
-    if (!bucket.collisionArrays && collisionBoxArray && (bucket.hasIconCollisionBoxData() || bucket.hasIconCollisionCircleData() || bucket.hasTextCollisionBoxData() || bucket.hasTextCollisionCircleData())) {
+    if (!bucket.collisionArrays && collisionBoxArray && (bucket.hasIconCollisionBoxData() || bucket.hasTextCollisionBoxData())) {
         bucket.deserializeCollisionBoxes(collisionBoxArray);
     }
     var addOpacities = function (iconOrText, numVertices, opacity) {
@@ -32019,7 +32323,7 @@ Placement.prototype.updateBucketOpacities = function updateBucketOpacities(bucke
                 bucket.icon.placedSymbolArray.get(symbolInstance.verticalPlacedIconSymbolIndex).hidden = opacityState.icon.isHidden();
             }
         }
-        if (bucket.hasIconCollisionBoxData() || bucket.hasIconCollisionCircleData() || bucket.hasTextCollisionBoxData() || bucket.hasTextCollisionCircleData()) {
+        if (bucket.hasIconCollisionBoxData() || bucket.hasTextCollisionBoxData()) {
             var collisionArrays = bucket.collisionArrays[s];
             if (collisionArrays) {
                 var shift = new performance.Point(0, 0);
@@ -32050,13 +32354,6 @@ Placement.prototype.updateBucketOpacities = function updateBucketOpacities(bucke
                 if (collisionArrays.verticalIconBox) {
                     updateCollisionVertices(bucket.iconCollisionBox.collisionVertexArray, opacityState.icon.placed, !verticalIconUsed, hasIconTextFit ? shift.x : 0, hasIconTextFit ? shift.y : 0);
                 }
-                var textCircles = collisionArrays.textCircles;
-                if (textCircles && bucket.hasTextCollisionCircleData()) {
-                    for (var k = 0; k < textCircles.length; k += 5) {
-                        var notUsed = isDuplicate || textCircles[k + 4] === 0;
-                        updateCollisionVertices(bucket.textCollisionCircle.collisionVertexArray, opacityState.text.placed, notUsed);
-                    }
-                }
             }
         }
     };
@@ -32078,11 +32375,12 @@ Placement.prototype.updateBucketOpacities = function updateBucketOpacities(bucke
     if (bucket.hasTextCollisionBoxData() && bucket.textCollisionBox.collisionVertexBuffer) {
         bucket.textCollisionBox.collisionVertexBuffer.updateData(bucket.textCollisionBox.collisionVertexArray);
     }
-    if (bucket.hasIconCollisionCircleData() && bucket.iconCollisionCircle.collisionVertexBuffer) {
-        bucket.iconCollisionCircle.collisionVertexBuffer.updateData(bucket.iconCollisionCircle.collisionVertexArray);
-    }
-    if (bucket.hasTextCollisionCircleData() && bucket.textCollisionCircle.collisionVertexBuffer) {
-        bucket.textCollisionCircle.collisionVertexBuffer.updateData(bucket.textCollisionCircle.collisionVertexArray);
+    if (bucket.bucketInstanceId in this.collisionCircleArrays) {
+        var instance = this.collisionCircleArrays[bucket.bucketInstanceId];
+        bucket.placementInvProjMatrix = instance.invProjMatrix;
+        bucket.placementViewportMatrix = instance.viewportMatrix;
+        bucket.collisionCircleArray = instance.circles;
+        delete this.collisionCircleArrays[bucket.bucketInstanceId];
     }
 };
 Placement.prototype.symbolFadeChange = function symbolFadeChange(now) {
@@ -32648,8 +32946,11 @@ var Style = function (Evented) {
             this.light.updateTransitions(parameters);
             this._resetUpdates();
         }
+        var sourcesUsedBefore = {};
         for (var sourceId in this.sourceCaches) {
-            this.sourceCaches[sourceId].used = false;
+            var sourceCache = this.sourceCaches[sourceId];
+            sourcesUsedBefore[sourceId] = sourceCache.used;
+            sourceCache.used = false;
         }
         for (var i = 0, list = this._order; i < list.length; i += 1) {
             var layerId = list[i];
@@ -32657,6 +32958,16 @@ var Style = function (Evented) {
             layer.recalculate(parameters, this._availableImages);
             if (!layer.isHidden(parameters.zoom) && layer.source) {
                 this.sourceCaches[layer.source].used = true;
+            }
+        }
+        for (var sourceId$1 in sourcesUsedBefore) {
+            var sourceCache$1 = this.sourceCaches[sourceId$1];
+            if (sourcesUsedBefore[sourceId$1] !== sourceCache$1.used) {
+                sourceCache$1.fire(new performance.Event('data', {
+                    sourceDataType: 'visibility',
+                    dataType: 'source',
+                    sourceId: sourceId$1
+                }));
             }
         }
         this.light.recalculate(parameters);
@@ -32727,10 +33038,7 @@ var Style = function (Evented) {
             return this.fire(new performance.ErrorEvent(new Error('An image with this name already exists.')));
         }
         this.imageManager.addImage(id, image);
-        this._availableImages = this.imageManager.listImages();
-        this._changedImages[id] = true;
-        this._changed = true;
-        this.fire(new performance.Event('data', { dataType: 'style' }));
+        this._afterImageUpdated(id);
     };
     Style.prototype.updateImage = function updateImage(id, image) {
         this.imageManager.updateImage(id, image);
@@ -32743,9 +33051,13 @@ var Style = function (Evented) {
             return this.fire(new performance.ErrorEvent(new Error('No image with this name exists.')));
         }
         this.imageManager.removeImage(id);
+        this._afterImageUpdated(id);
+    };
+    Style.prototype._afterImageUpdated = function _afterImageUpdated(id) {
         this._availableImages = this.imageManager.listImages();
         this._changedImages[id] = true;
         this._changed = true;
+        this.dispatcher.broadcast('setImages', this._availableImages);
         this.fire(new performance.Event('data', { dataType: 'style' }));
     };
     Style.prototype.listImages = function listImages() {
@@ -32761,7 +33073,7 @@ var Style = function (Evented) {
             throw new Error('There is already a source with this ID');
         }
         if (!source.type) {
-            throw new Error('The type property must be defined, but the only the following properties were given: ' + Object.keys(source).join(', ') + '.');
+            throw new Error('The type property must be defined, but only the following properties were given: ' + Object.keys(source).join(', ') + '.');
         }
         var builtIns = [
             'vector',
@@ -33050,7 +33362,7 @@ var Style = function (Evented) {
             return;
         }
         if (key && (typeof target.id !== 'string' && typeof target.id !== 'number')) {
-            this.fire(new performance.ErrorEvent(new Error('A feature id is requred to remove its specific state property.')));
+            this.fire(new performance.ErrorEvent(new Error('A feature id is required to remove its specific state property.')));
             return;
         }
         sourceCache.removeFeatureState(sourceLayer, target.id, key);
@@ -33412,9 +33724,9 @@ var collisionBoxFrag = "varying float v_placed;varying float v_notUsed;void main
 
 var collisionBoxVert = "attribute vec2 a_pos;attribute vec2 a_anchor_pos;attribute vec2 a_extrude;attribute vec2 a_placed;attribute vec2 a_shift;uniform mat4 u_matrix;uniform vec2 u_extrude_scale;uniform float u_camera_to_center_distance;varying float v_placed;varying float v_notUsed;void main() {vec4 projectedPoint=u_matrix*vec4(a_anchor_pos,0,1);highp float camera_to_anchor_distance=projectedPoint.w;highp float collision_perspective_ratio=clamp(0.5+0.5*(u_camera_to_center_distance/camera_to_anchor_distance),0.0,4.0);gl_Position=u_matrix*vec4(a_pos,0.0,1.0);gl_Position.xy+=(a_extrude+a_shift)*u_extrude_scale*gl_Position.w*collision_perspective_ratio;v_placed=a_placed.x;v_notUsed=a_placed.y;}";
 
-var collisionCircleFrag = "uniform float u_overscale_factor;varying float v_placed;varying float v_notUsed;varying float v_radius;varying vec2 v_extrude;varying vec2 v_extrude_scale;void main() {float alpha=0.5;vec4 color=vec4(1.0,0.0,0.0,1.0)*alpha;if (v_placed > 0.5) {color=vec4(0.0,0.0,1.0,0.5)*alpha;}if (v_notUsed > 0.5) {color*=.2;}float extrude_scale_length=length(v_extrude_scale);float extrude_length=length(v_extrude)*extrude_scale_length;float stroke_width=15.0*extrude_scale_length/u_overscale_factor;float radius=v_radius*extrude_scale_length;float distance_to_edge=abs(extrude_length-radius);float opacity_t=smoothstep(-stroke_width,0.0,-distance_to_edge);gl_FragColor=opacity_t*color;}";
+var collisionCircleFrag = "varying float v_radius;varying vec2 v_extrude;varying float v_perspective_ratio;varying float v_collision;void main() {float alpha=0.5*min(v_perspective_ratio,1.0);float stroke_radius=0.9*max(v_perspective_ratio,1.0);float distance_to_center=length(v_extrude);float distance_to_edge=abs(distance_to_center-v_radius);float opacity_t=smoothstep(-stroke_radius,0.0,-distance_to_edge);vec4 color=mix(vec4(0.0,0.0,1.0,0.5),vec4(1.0,0.0,0.0,1.0),v_collision);gl_FragColor=color*alpha*opacity_t;}";
 
-var collisionCircleVert = "attribute vec2 a_pos;attribute vec2 a_anchor_pos;attribute vec2 a_extrude;attribute vec2 a_placed;uniform mat4 u_matrix;uniform vec2 u_extrude_scale;uniform float u_camera_to_center_distance;varying float v_placed;varying float v_notUsed;varying float v_radius;varying vec2 v_extrude;varying vec2 v_extrude_scale;void main() {vec4 projectedPoint=u_matrix*vec4(a_anchor_pos,0,1);highp float camera_to_anchor_distance=projectedPoint.w;highp float collision_perspective_ratio=clamp(0.5+0.5*(u_camera_to_center_distance/camera_to_anchor_distance),0.0,4.0);gl_Position=u_matrix*vec4(a_pos,0.0,1.0);highp float padding_factor=1.2;gl_Position.xy+=a_extrude*u_extrude_scale*padding_factor*gl_Position.w*collision_perspective_ratio;v_placed=a_placed.x;v_notUsed=a_placed.y;v_radius=abs(a_extrude.y);v_extrude=a_extrude*padding_factor;v_extrude_scale=u_extrude_scale*u_camera_to_center_distance*collision_perspective_ratio;}";
+var collisionCircleVert = "attribute vec2 a_pos;attribute float a_radius;attribute vec2 a_flags;uniform mat4 u_matrix;uniform mat4 u_inv_matrix;uniform vec2 u_viewport_size;uniform float u_camera_to_center_distance;varying float v_radius;varying vec2 v_extrude;varying float v_perspective_ratio;varying float v_collision;vec3 toTilePosition(vec2 screenPos) {vec4 rayStart=u_inv_matrix*vec4(screenPos,-1.0,1.0);vec4 rayEnd  =u_inv_matrix*vec4(screenPos, 1.0,1.0);rayStart.xyz/=rayStart.w;rayEnd.xyz  /=rayEnd.w;highp float t=(0.0-rayStart.z)/(rayEnd.z-rayStart.z);return mix(rayStart.xyz,rayEnd.xyz,t);}void main() {vec2 quadCenterPos=a_pos;float radius=a_radius;float collision=a_flags.x;float vertexIdx=a_flags.y;vec2 quadVertexOffset=vec2(mix(-1.0,1.0,float(vertexIdx >=2.0)),mix(-1.0,1.0,float(vertexIdx >=1.0 && vertexIdx <=2.0)));vec2 quadVertexExtent=quadVertexOffset*radius;vec3 tilePos=toTilePosition(quadCenterPos);vec4 clipPos=u_matrix*vec4(tilePos,1.0);highp float camera_to_anchor_distance=clipPos.w;highp float collision_perspective_ratio=clamp(0.5+0.5*(u_camera_to_center_distance/camera_to_anchor_distance),0.0,4.0);float padding_factor=1.2;v_radius=radius;v_extrude=quadVertexExtent*padding_factor;v_perspective_ratio=collision_perspective_ratio;v_collision=collision;gl_Position=vec4(clipPos.xyz/clipPos.w,1.0)+vec4(quadVertexExtent*padding_factor/u_viewport_size*2.0,0.0,0.0);}";
 
 var debugFrag = "uniform highp vec4 u_color;uniform sampler2D u_overlay;varying vec2 v_uv;void main() {vec4 overlay_color=texture2D(u_overlay,v_uv);gl_FragColor=mix(u_color,overlay_color,overlay_color.a);}";
 
@@ -33444,7 +33756,7 @@ var fillExtrusionPatternFrag = "uniform vec2 u_texsize;uniform float u_fade;unif
 
 var fillExtrusionPatternVert = "uniform mat4 u_matrix;uniform vec2 u_pixel_coord_upper;uniform vec2 u_pixel_coord_lower;uniform float u_height_factor;uniform vec3 u_scale;uniform float u_vertical_gradient;uniform lowp float u_opacity;uniform vec3 u_lightcolor;uniform lowp vec3 u_lightpos;uniform lowp float u_lightintensity;attribute vec2 a_pos;attribute vec4 a_normal_ed;varying vec2 v_pos_a;varying vec2 v_pos_b;varying vec4 v_lighting;\n#pragma mapbox: define lowp float base\n#pragma mapbox: define lowp float height\n#pragma mapbox: define lowp vec4 pattern_from\n#pragma mapbox: define lowp vec4 pattern_to\n#pragma mapbox: define lowp float pixel_ratio_from\n#pragma mapbox: define lowp float pixel_ratio_to\nvoid main() {\n#pragma mapbox: initialize lowp float base\n#pragma mapbox: initialize lowp float height\n#pragma mapbox: initialize mediump vec4 pattern_from\n#pragma mapbox: initialize mediump vec4 pattern_to\n#pragma mapbox: initialize lowp float pixel_ratio_from\n#pragma mapbox: initialize lowp float pixel_ratio_to\nvec2 pattern_tl_a=pattern_from.xy;vec2 pattern_br_a=pattern_from.zw;vec2 pattern_tl_b=pattern_to.xy;vec2 pattern_br_b=pattern_to.zw;float tileRatio=u_scale.x;float fromScale=u_scale.y;float toScale=u_scale.z;vec3 normal=a_normal_ed.xyz;float edgedistance=a_normal_ed.w;vec2 display_size_a=(pattern_br_a-pattern_tl_a)/pixel_ratio_from;vec2 display_size_b=(pattern_br_b-pattern_tl_b)/pixel_ratio_to;base=max(0.0,base);height=max(0.0,height);float t=mod(normal.x,2.0);float z=t > 0.0 ? height : base;gl_Position=u_matrix*vec4(a_pos,z,1);vec2 pos=normal.x==1.0 && normal.y==0.0 && normal.z==16384.0\n? a_pos\n: vec2(edgedistance,z*u_height_factor);v_pos_a=get_pattern_pos(u_pixel_coord_upper,u_pixel_coord_lower,fromScale*display_size_a,tileRatio,pos);v_pos_b=get_pattern_pos(u_pixel_coord_upper,u_pixel_coord_lower,toScale*display_size_b,tileRatio,pos);v_lighting=vec4(0.0,0.0,0.0,1.0);float directional=clamp(dot(normal/16383.0,u_lightpos),0.0,1.0);directional=mix((1.0-u_lightintensity),max((0.5+u_lightintensity),1.0),directional);if (normal.y !=0.0) {directional*=((1.0-u_vertical_gradient)+(u_vertical_gradient*clamp((t+base)*pow(height/150.0,0.5),mix(0.7,0.98,1.0-u_lightintensity),1.0)));}v_lighting.rgb+=clamp(directional*u_lightcolor,mix(vec3(0.0),vec3(0.3),1.0-u_lightcolor),vec3(1.0));v_lighting*=u_opacity;}";
 
-var hillshadePrepareFrag = "#ifdef GL_ES\nprecision highp float;\n#endif\nuniform sampler2D u_image;varying vec2 v_pos;uniform vec2 u_dimension;uniform float u_zoom;uniform float u_maxzoom;uniform vec4 u_unpack;float getElevation(vec2 coord,float bias) {vec4 data=texture2D(u_image,coord)*255.0;data.a=-1.0;return dot(data,u_unpack)/4.0;}void main() {vec2 epsilon=1.0/u_dimension;float a=getElevation(v_pos+vec2(-epsilon.x,-epsilon.y),0.0);float b=getElevation(v_pos+vec2(0,-epsilon.y),0.0);float c=getElevation(v_pos+vec2(epsilon.x,-epsilon.y),0.0);float d=getElevation(v_pos+vec2(-epsilon.x,0),0.0);float e=getElevation(v_pos,0.0);float f=getElevation(v_pos+vec2(epsilon.x,0),0.0);float g=getElevation(v_pos+vec2(-epsilon.x,epsilon.y),0.0);float h=getElevation(v_pos+vec2(0,epsilon.y),0.0);float i=getElevation(v_pos+vec2(epsilon.x,epsilon.y),0.0);float exaggeration=u_zoom < 2.0 ? 0.4 : u_zoom < 4.5 ? 0.35 : 0.3;vec2 deriv=vec2((c+f+f+i)-(a+d+d+g),(g+h+h+i)-(a+b+b+c))/ pow(2.0,(u_zoom-u_maxzoom)*exaggeration+19.2562-u_zoom);gl_FragColor=clamp(vec4(deriv.x/2.0+0.5,deriv.y/2.0+0.5,1.0,1.0),0.0,1.0);\n#ifdef OVERDRAW_INSPECTOR\ngl_FragColor=vec4(1.0);\n#endif\n}";
+var hillshadePrepareFrag = "#ifdef GL_ES\nprecision highp float;\n#endif\nuniform sampler2D u_image;varying vec2 v_pos;uniform vec2 u_dimension;uniform float u_zoom;uniform vec4 u_unpack;float getElevation(vec2 coord,float bias) {vec4 data=texture2D(u_image,coord)*255.0;data.a=-1.0;return dot(data,u_unpack)/4.0;}void main() {vec2 epsilon=1.0/u_dimension;float a=getElevation(v_pos+vec2(-epsilon.x,-epsilon.y),0.0);float b=getElevation(v_pos+vec2(0,-epsilon.y),0.0);float c=getElevation(v_pos+vec2(epsilon.x,-epsilon.y),0.0);float d=getElevation(v_pos+vec2(-epsilon.x,0),0.0);float e=getElevation(v_pos,0.0);float f=getElevation(v_pos+vec2(epsilon.x,0),0.0);float g=getElevation(v_pos+vec2(-epsilon.x,epsilon.y),0.0);float h=getElevation(v_pos+vec2(0,epsilon.y),0.0);float i=getElevation(v_pos+vec2(epsilon.x,epsilon.y),0.0);float exaggerationFactor=u_zoom < 2.0 ? 0.4 : u_zoom < 4.5 ? 0.35 : 0.3;float exaggeration=u_zoom < 15.0 ? (u_zoom-15.0)*exaggerationFactor : 0.0;vec2 deriv=vec2((c+f+f+i)-(a+d+d+g),(g+h+h+i)-(a+b+b+c))/pow(2.0,exaggeration+(19.2562-u_zoom));gl_FragColor=clamp(vec4(deriv.x/2.0+0.5,deriv.y/2.0+0.5,1.0,1.0),0.0,1.0);\n#ifdef OVERDRAW_INSPECTOR\ngl_FragColor=vec4(1.0);\n#endif\n}";
 
 var hillshadePrepareVert = "uniform mat4 u_matrix;uniform vec2 u_dimension;attribute vec2 a_pos;attribute vec2 a_texture_pos;varying vec2 v_pos;void main() {gl_Position=u_matrix*vec4(a_pos,0,1);highp vec2 epsilon=1.0/u_dimension;float scale=(u_dimension.x-2.0)/u_dimension.x;v_pos=(a_texture_pos/8192.0)*scale+epsilon;}";
 
@@ -33456,9 +33768,9 @@ var lineFrag = "uniform lowp float u_device_pixel_ratio;varying vec2 v_width2;va
 
 var lineVert = "\n#define scale 0.015873016\nattribute vec2 a_pos_normal;attribute vec4 a_data;uniform mat4 u_matrix;uniform mediump float u_ratio;uniform vec2 u_units_to_pixels;uniform lowp float u_device_pixel_ratio;varying vec2 v_normal;varying vec2 v_width2;varying float v_gamma_scale;varying highp float v_linesofar;\n#pragma mapbox: define highp vec4 color\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\n#pragma mapbox: define mediump float gapwidth\n#pragma mapbox: define lowp float offset\n#pragma mapbox: define mediump float width\nvoid main() {\n#pragma mapbox: initialize highp vec4 color\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\n#pragma mapbox: initialize mediump float gapwidth\n#pragma mapbox: initialize lowp float offset\n#pragma mapbox: initialize mediump float width\nfloat ANTIALIASING=1.0/u_device_pixel_ratio/2.0;vec2 a_extrude=a_data.xy-128.0;float a_direction=mod(a_data.z,4.0)-1.0;v_linesofar=(floor(a_data.z/4.0)+a_data.w*64.0)*2.0;vec2 pos=floor(a_pos_normal*0.5);mediump vec2 normal=a_pos_normal-2.0*pos;normal.y=normal.y*2.0-1.0;v_normal=normal;gapwidth=gapwidth/2.0;float halfwidth=width/2.0;offset=-1.0*offset;float inset=gapwidth+(gapwidth > 0.0 ? ANTIALIASING : 0.0);float outset=gapwidth+halfwidth*(gapwidth > 0.0 ? 2.0 : 1.0)+(halfwidth==0.0 ? 0.0 : ANTIALIASING);mediump vec2 dist=outset*a_extrude*scale;mediump float u=0.5*a_direction;mediump float t=1.0-abs(u);mediump vec2 offset2=offset*a_extrude*scale*normal.y*mat2(t,-u,u,t);vec4 projected_extrude=u_matrix*vec4(dist/u_ratio,0.0,0.0);gl_Position=u_matrix*vec4(pos+offset2/u_ratio,0.0,1.0)+projected_extrude;float extrude_length_without_perspective=length(dist);float extrude_length_with_perspective=length(projected_extrude.xy/gl_Position.w*u_units_to_pixels);v_gamma_scale=extrude_length_without_perspective/extrude_length_with_perspective;v_width2=vec2(outset,inset);}";
 
-var lineGradientFrag = "uniform lowp float u_device_pixel_ratio;uniform sampler2D u_image;varying vec2 v_width2;varying vec2 v_normal;varying float v_gamma_scale;varying highp float v_lineprogress;\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\nvoid main() {\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\nfloat dist=length(v_normal)*v_width2.s;float blur2=(blur+1.0/u_device_pixel_ratio)*v_gamma_scale;float alpha=clamp(min(dist-(v_width2.t-blur2),v_width2.s-dist)/blur2,0.0,1.0);vec4 color=texture2D(u_image,vec2(v_lineprogress,0.5));gl_FragColor=color*(alpha*opacity);\n#ifdef OVERDRAW_INSPECTOR\ngl_FragColor=vec4(1.0);\n#endif\n}";
+var lineGradientFrag = "uniform lowp float u_device_pixel_ratio;uniform sampler2D u_image;varying vec2 v_width2;varying vec2 v_normal;varying float v_gamma_scale;varying highp vec2 v_uv;\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\nvoid main() {\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\nfloat dist=length(v_normal)*v_width2.s;float blur2=(blur+1.0/u_device_pixel_ratio)*v_gamma_scale;float alpha=clamp(min(dist-(v_width2.t-blur2),v_width2.s-dist)/blur2,0.0,1.0);vec4 color=texture2D(u_image,v_uv);gl_FragColor=color*(alpha*opacity);\n#ifdef OVERDRAW_INSPECTOR\ngl_FragColor=vec4(1.0);\n#endif\n}";
 
-var lineGradientVert = "\n#define MAX_LINE_DISTANCE 32767.0\n#define scale 0.015873016\nattribute vec2 a_pos_normal;attribute vec4 a_data;uniform mat4 u_matrix;uniform mediump float u_ratio;uniform lowp float u_device_pixel_ratio;uniform vec2 u_units_to_pixels;varying vec2 v_normal;varying vec2 v_width2;varying float v_gamma_scale;varying highp float v_lineprogress;\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\n#pragma mapbox: define mediump float gapwidth\n#pragma mapbox: define lowp float offset\n#pragma mapbox: define mediump float width\nvoid main() {\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\n#pragma mapbox: initialize mediump float gapwidth\n#pragma mapbox: initialize lowp float offset\n#pragma mapbox: initialize mediump float width\nfloat ANTIALIASING=1.0/u_device_pixel_ratio/2.0;vec2 a_extrude=a_data.xy-128.0;float a_direction=mod(a_data.z,4.0)-1.0;v_lineprogress=(floor(a_data.z/4.0)+a_data.w*64.0)*2.0/MAX_LINE_DISTANCE;vec2 pos=floor(a_pos_normal*0.5);mediump vec2 normal=a_pos_normal-2.0*pos;normal.y=normal.y*2.0-1.0;v_normal=normal;gapwidth=gapwidth/2.0;float halfwidth=width/2.0;offset=-1.0*offset;float inset=gapwidth+(gapwidth > 0.0 ? ANTIALIASING : 0.0);float outset=gapwidth+halfwidth*(gapwidth > 0.0 ? 2.0 : 1.0)+(halfwidth==0.0 ? 0.0 : ANTIALIASING);mediump vec2 dist=outset*a_extrude*scale;mediump float u=0.5*a_direction;mediump float t=1.0-abs(u);mediump vec2 offset2=offset*a_extrude*scale*normal.y*mat2(t,-u,u,t);vec4 projected_extrude=u_matrix*vec4(dist/u_ratio,0.0,0.0);gl_Position=u_matrix*vec4(pos+offset2/u_ratio,0.0,1.0)+projected_extrude;float extrude_length_without_perspective=length(dist);float extrude_length_with_perspective=length(projected_extrude.xy/gl_Position.w*u_units_to_pixels);v_gamma_scale=extrude_length_without_perspective/extrude_length_with_perspective;v_width2=vec2(outset,inset);}";
+var lineGradientVert = "\n#define scale 0.015873016\nattribute vec2 a_pos_normal;attribute vec4 a_data;attribute float a_uv_x;attribute float a_split_index;uniform mat4 u_matrix;uniform mediump float u_ratio;uniform lowp float u_device_pixel_ratio;uniform vec2 u_units_to_pixels;uniform float u_image_height;varying vec2 v_normal;varying vec2 v_width2;varying float v_gamma_scale;varying highp vec2 v_uv;\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\n#pragma mapbox: define mediump float gapwidth\n#pragma mapbox: define lowp float offset\n#pragma mapbox: define mediump float width\nvoid main() {\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\n#pragma mapbox: initialize mediump float gapwidth\n#pragma mapbox: initialize lowp float offset\n#pragma mapbox: initialize mediump float width\nfloat ANTIALIASING=1.0/u_device_pixel_ratio/2.0;vec2 a_extrude=a_data.xy-128.0;float a_direction=mod(a_data.z,4.0)-1.0;highp float texel_height=1.0/u_image_height;highp float half_texel_height=0.5*texel_height;v_uv=vec2(a_uv_x,a_split_index*texel_height-half_texel_height);vec2 pos=floor(a_pos_normal*0.5);mediump vec2 normal=a_pos_normal-2.0*pos;normal.y=normal.y*2.0-1.0;v_normal=normal;gapwidth=gapwidth/2.0;float halfwidth=width/2.0;offset=-1.0*offset;float inset=gapwidth+(gapwidth > 0.0 ? ANTIALIASING : 0.0);float outset=gapwidth+halfwidth*(gapwidth > 0.0 ? 2.0 : 1.0)+(halfwidth==0.0 ? 0.0 : ANTIALIASING);mediump vec2 dist=outset*a_extrude*scale;mediump float u=0.5*a_direction;mediump float t=1.0-abs(u);mediump vec2 offset2=offset*a_extrude*scale*normal.y*mat2(t,-u,u,t);vec4 projected_extrude=u_matrix*vec4(dist/u_ratio,0.0,0.0);gl_Position=u_matrix*vec4(pos+offset2/u_ratio,0.0,1.0)+projected_extrude;float extrude_length_without_perspective=length(dist);float extrude_length_with_perspective=length(projected_extrude.xy/gl_Position.w*u_units_to_pixels);v_gamma_scale=extrude_length_without_perspective/extrude_length_with_perspective;v_width2=vec2(outset,inset);}";
 
 var linePatternFrag = "uniform lowp float u_device_pixel_ratio;uniform vec2 u_texsize;uniform float u_fade;uniform mediump vec3 u_scale;uniform sampler2D u_image;varying vec2 v_normal;varying vec2 v_width2;varying float v_linesofar;varying float v_gamma_scale;varying float v_width;\n#pragma mapbox: define lowp vec4 pattern_from\n#pragma mapbox: define lowp vec4 pattern_to\n#pragma mapbox: define lowp float pixel_ratio_from\n#pragma mapbox: define lowp float pixel_ratio_to\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\nvoid main() {\n#pragma mapbox: initialize mediump vec4 pattern_from\n#pragma mapbox: initialize mediump vec4 pattern_to\n#pragma mapbox: initialize lowp float pixel_ratio_from\n#pragma mapbox: initialize lowp float pixel_ratio_to\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\nvec2 pattern_tl_a=pattern_from.xy;vec2 pattern_br_a=pattern_from.zw;vec2 pattern_tl_b=pattern_to.xy;vec2 pattern_br_b=pattern_to.zw;float tileZoomRatio=u_scale.x;float fromScale=u_scale.y;float toScale=u_scale.z;vec2 display_size_a=(pattern_br_a-pattern_tl_a)/pixel_ratio_from;vec2 display_size_b=(pattern_br_b-pattern_tl_b)/pixel_ratio_to;vec2 pattern_size_a=vec2(display_size_a.x*fromScale/tileZoomRatio,display_size_a.y);vec2 pattern_size_b=vec2(display_size_b.x*toScale/tileZoomRatio,display_size_b.y);float aspect_a=display_size_a.y/v_width;float aspect_b=display_size_b.y/v_width;float dist=length(v_normal)*v_width2.s;float blur2=(blur+1.0/u_device_pixel_ratio)*v_gamma_scale;float alpha=clamp(min(dist-(v_width2.t-blur2),v_width2.s-dist)/blur2,0.0,1.0);float x_a=mod(v_linesofar/pattern_size_a.x*aspect_a,1.0);float x_b=mod(v_linesofar/pattern_size_b.x*aspect_b,1.0);float y=0.5*v_normal.y+0.5;vec2 texel_size=1.0/u_texsize;vec2 pos_a=mix(pattern_tl_a*texel_size-texel_size,pattern_br_a*texel_size+texel_size,vec2(x_a,y));vec2 pos_b=mix(pattern_tl_b*texel_size-texel_size,pattern_br_b*texel_size+texel_size,vec2(x_b,y));vec4 color=mix(texture2D(u_image,pos_a),texture2D(u_image,pos_b),u_fade);gl_FragColor=color*alpha*opacity;\n#ifdef OVERDRAW_INSPECTOR\ngl_FragColor=vec4(1.0);\n#endif\n}";
 
@@ -33512,6 +33824,10 @@ var symbolSDF = compile(symbolSDFFrag, symbolSDFVert);
 var symbolTextAndIcon = compile(symbolTextAndIconFrag, symbolTextAndIconVert);
 function compile(fragmentSource, vertexSource) {
     var re = /#pragma mapbox: ([\w]+) ([\w]+) ([\w]+) ([\w]+)/g;
+    var staticAttributes = vertexSource.match(/attribute ([\w]+) ([\w]+)/g);
+    var fragmentUniforms = fragmentSource.match(/uniform ([\w]+) ([\w]+)([\s]*)([\w]*)/g);
+    var vertexUniforms = vertexSource.match(/uniform ([\w]+) ([\w]+)([\s]*)([\w]*)/g);
+    var staticUniforms = vertexUniforms ? vertexUniforms.concat(fragmentUniforms) : fragmentUniforms;
     var fragmentPragmas = {};
     fragmentSource = fragmentSource.replace(re, function (match, operation, precision, type, name) {
         fragmentPragmas[name] = true;
@@ -33548,7 +33864,9 @@ function compile(fragmentSource, vertexSource) {
     });
     return {
         fragmentSource: fragmentSource,
-        vertexSource: vertexSource
+        vertexSource: vertexSource,
+        staticAttributes: staticAttributes,
+        staticUniforms: staticUniforms
     };
 }
 
@@ -33678,9 +33996,33 @@ VertexArrayObject.prototype.destroy = function destroy() {
     }
 };
 
-var Program$1 = function Program(context, source, configuration, fixedUniforms, showOverdrawInspector) {
+function getTokenizedAttributesAndUniforms(array) {
+    var result = [];
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === null) {
+            continue;
+        }
+        var token = array[i].split(' ');
+        result.push(token.pop());
+    }
+    return result;
+}
+var Program$1 = function Program(context, name, source, configuration, fixedUniforms, showOverdrawInspector) {
     var gl = context.gl;
     this.program = gl.createProgram();
+    var staticAttrInfo = getTokenizedAttributesAndUniforms(source.staticAttributes);
+    var dynamicAttrInfo = configuration ? configuration.getBinderAttributes() : [];
+    var allAttrInfo = staticAttrInfo.concat(dynamicAttrInfo);
+    var staticUniformsInfo = source.staticUniforms ? getTokenizedAttributesAndUniforms(source.staticUniforms) : [];
+    var dynamicUniformsInfo = configuration ? configuration.getBinderUniforms() : [];
+    var uniformList = staticUniformsInfo.concat(dynamicUniformsInfo);
+    var allUniformsInfo = [];
+    for (var i$1 = 0, list = uniformList; i$1 < list.length; i$1 += 1) {
+        var uniform = list[i$1];
+        if (allUniformsInfo.indexOf(uniform) < 0) {
+            allUniformsInfo.push(uniform);
+        }
+    }
     var defines = configuration ? configuration.defines() : [];
     if (showOverdrawInspector) {
         defines.push('#define OVERDRAW_INSPECTOR;');
@@ -33703,25 +34045,25 @@ var Program$1 = function Program(context, source, configuration, fixedUniforms, 
     gl.shaderSource(vertexShader, vertexSource);
     gl.compileShader(vertexShader);
     gl.attachShader(this.program, vertexShader);
-    var layoutAttributes = configuration ? configuration.layoutAttributes : [];
-    for (var i = 0; i < layoutAttributes.length; i++) {
-        gl.bindAttribLocation(this.program, i, layoutAttributes[i].name);
-    }
-    gl.linkProgram(this.program);
-    this.numAttributes = gl.getProgramParameter(this.program, gl.ACTIVE_ATTRIBUTES);
     this.attributes = {};
     var uniformLocations = {};
-    for (var i$1 = 0; i$1 < this.numAttributes; i$1++) {
-        var attribute = gl.getActiveAttrib(this.program, i$1);
-        if (attribute) {
-            this.attributes[attribute.name] = gl.getAttribLocation(this.program, attribute.name);
+    this.numAttributes = allAttrInfo.length;
+    for (var i = 0; i < this.numAttributes; i++) {
+        if (allAttrInfo[i]) {
+            gl.bindAttribLocation(this.program, i, allAttrInfo[i]);
+            this.attributes[allAttrInfo[i]] = i;
         }
     }
-    var numUniforms = gl.getProgramParameter(this.program, gl.ACTIVE_UNIFORMS);
-    for (var i$2 = 0; i$2 < numUniforms; i$2++) {
-        var uniform = gl.getActiveUniform(this.program, i$2);
-        if (uniform) {
-            uniformLocations[uniform.name] = gl.getUniformLocation(this.program, uniform.name);
+    gl.linkProgram(this.program);
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+    for (var it = 0; it < allUniformsInfo.length; it++) {
+        var uniform$1 = allUniformsInfo[it];
+        if (uniform$1 && !uniformLocations[uniform$1]) {
+            var uniformLocation = gl.getUniformLocation(this.program, uniform$1);
+            if (uniformLocation) {
+                uniformLocations[uniform$1] = uniformLocation;
+            }
         }
     }
     this.fixedUniforms = fixedUniforms(context, uniformLocations);
@@ -33965,6 +34307,14 @@ var collisionUniforms = function (context, locations) {
         'u_overscale_factor': new performance.Uniform1f(context, locations.u_overscale_factor)
     };
 };
+var collisionCircleUniforms = function (context, locations) {
+    return {
+        'u_matrix': new performance.UniformMatrix4f(context, locations.u_matrix),
+        'u_inv_matrix': new performance.UniformMatrix4f(context, locations.u_inv_matrix),
+        'u_camera_to_center_distance': new performance.Uniform1f(context, locations.u_camera_to_center_distance),
+        'u_viewport_size': new performance.Uniform2f(context, locations.u_viewport_size)
+    };
+};
 var collisionUniformValues = function (matrix, transform, tile) {
     var pixelRatio = pixelsToTileUnits(tile, 1, transform.zoom);
     var scale = Math.pow(2, transform.zoom - tile.tileID.overscaledZ);
@@ -33978,6 +34328,17 @@ var collisionUniformValues = function (matrix, transform, tile) {
             transform.pixelsToGLUnits[1] / (pixelRatio * scale)
         ],
         'u_overscale_factor': overscaleFactor
+    };
+};
+var collisionCircleUniformValues = function (matrix, invMatrix, transform) {
+    return {
+        'u_matrix': matrix,
+        'u_inv_matrix': invMatrix,
+        'u_camera_to_center_distance': transform.cameraToCenterDistance,
+        'u_viewport_size': [
+            transform.width,
+            transform.height
+        ]
     };
 };
 
@@ -34063,7 +34424,6 @@ var hillshadePrepareUniforms = function (context, locations) {
         'u_image': new performance.Uniform1i(context, locations.u_image),
         'u_dimension': new performance.Uniform2f(context, locations.u_dimension),
         'u_zoom': new performance.Uniform1f(context, locations.u_zoom),
-        'u_maxzoom': new performance.Uniform1f(context, locations.u_maxzoom),
         'u_unpack': new performance.Uniform4f(context, locations.u_unpack)
     };
 };
@@ -34089,7 +34449,7 @@ var hillshadeUniformValues = function (painter, tile, layer) {
         'u_accent': accent
     };
 };
-var hillshadeUniformPrepareValues = function (tileID, dem, maxzoom) {
+var hillshadeUniformPrepareValues = function (tileID, dem) {
     var stride = dem.stride;
     var matrix = performance.create();
     performance.ortho(matrix, 0, performance.EXTENT, -performance.EXTENT, 0, 0, 1);
@@ -34106,7 +34466,6 @@ var hillshadeUniformPrepareValues = function (tileID, dem, maxzoom) {
             stride
         ],
         'u_zoom': tileID.overscaledZ,
-        'u_maxzoom': maxzoom,
         'u_unpack': dem.getUnpackVector()
     };
 };
@@ -34133,7 +34492,8 @@ var lineGradientUniforms = function (context, locations) {
         'u_ratio': new performance.Uniform1f(context, locations.u_ratio),
         'u_device_pixel_ratio': new performance.Uniform1f(context, locations.u_device_pixel_ratio),
         'u_units_to_pixels': new performance.Uniform2f(context, locations.u_units_to_pixels),
-        'u_image': new performance.Uniform1i(context, locations.u_image)
+        'u_image': new performance.Uniform1i(context, locations.u_image),
+        'u_image_height': new performance.Uniform1f(context, locations.u_image_height)
     };
 };
 var linePatternUniforms = function (context, locations) {
@@ -34175,8 +34535,11 @@ var lineUniformValues = function (painter, tile, layer) {
         ]
     };
 };
-var lineGradientUniformValues = function (painter, tile, layer) {
-    return performance.extend(lineUniformValues(painter, tile, layer), { 'u_image': 0 });
+var lineGradientUniformValues = function (painter, tile, layer, imageHeight) {
+    return performance.extend(lineUniformValues(painter, tile, layer), {
+        'u_image': 0,
+        'u_image_height': imageHeight
+    });
 };
 var linePatternUniformValues = function (painter, tile, layer, crossfade) {
     var transform = painter.transform;
@@ -34436,7 +34799,7 @@ var programUniforms = {
     fillOutlinePattern: fillOutlinePatternUniforms,
     circle: circleUniforms,
     collisionBox: collisionUniforms,
-    collisionCircle: collisionUniforms,
+    collisionCircle: collisionCircleUniforms,
     debug: debugUniforms,
     clippingMask: clippingMaskUniforms,
     heatmap: heatmapUniforms,
@@ -34455,10 +34818,14 @@ var programUniforms = {
     backgroundPattern: backgroundPatternUniforms
 };
 
-function drawCollisionDebugGeometry(painter, sourceCache, layer, coords, drawCircles, translate, translateAnchor, isText) {
+var quadTriangles;
+function drawCollisionDebug(painter, sourceCache, layer, coords, translate, translateAnchor, isText) {
     var context = painter.context;
     var gl = context.gl;
-    var program = drawCircles ? painter.useProgram('collisionCircle') : painter.useProgram('collisionBox');
+    var program = painter.useProgram('collisionBox');
+    var tileBatches = [];
+    var circleCount = 0;
+    var circleOffset = 0;
     for (var i = 0; i < coords.length; i++) {
         var coord = coords[i];
         var tile = sourceCache.getTile(coord);
@@ -34466,20 +34833,81 @@ function drawCollisionDebugGeometry(painter, sourceCache, layer, coords, drawCir
         if (!bucket) {
             continue;
         }
-        var buffers = drawCircles ? isText ? bucket.textCollisionCircle : bucket.iconCollisionCircle : isText ? bucket.textCollisionBox : bucket.iconCollisionBox;
-        if (!buffers) {
-            continue;
-        }
         var posMatrix = coord.posMatrix;
         if (translate[0] !== 0 || translate[1] !== 0) {
             posMatrix = painter.translatePosMatrix(coord.posMatrix, tile, translate, translateAnchor);
         }
-        program.draw(context, drawCircles ? gl.TRIANGLES : gl.LINES, DepthMode.disabled, StencilMode.disabled, painter.colorModeForRenderPass(), CullFaceMode.disabled, collisionUniformValues(posMatrix, painter.transform, tile), layer.id, buffers.layoutVertexBuffer, buffers.indexBuffer, buffers.segments, null, painter.transform.zoom, null, null, buffers.collisionVertexBuffer);
+        var buffers = isText ? bucket.textCollisionBox : bucket.iconCollisionBox;
+        var circleArray = bucket.collisionCircleArray;
+        if (circleArray.length > 0) {
+            var invTransform = performance.create();
+            var transform = posMatrix;
+            performance.mul(invTransform, bucket.placementInvProjMatrix, painter.transform.glCoordMatrix);
+            performance.mul(invTransform, invTransform, bucket.placementViewportMatrix);
+            tileBatches.push({
+                circleArray: circleArray,
+                circleOffset: circleOffset,
+                transform: transform,
+                invTransform: invTransform
+            });
+            circleCount += circleArray.length / 4;
+            circleOffset = circleCount;
+        }
+        if (!buffers) {
+            continue;
+        }
+        program.draw(context, gl.LINES, DepthMode.disabled, StencilMode.disabled, painter.colorModeForRenderPass(), CullFaceMode.disabled, collisionUniformValues(posMatrix, painter.transform, tile), layer.id, buffers.layoutVertexBuffer, buffers.indexBuffer, buffers.segments, null, painter.transform.zoom, null, null, buffers.collisionVertexBuffer);
     }
+    if (!isText || !tileBatches.length) {
+        return;
+    }
+    var circleProgram = painter.useProgram('collisionCircle');
+    var vertexData = new performance.StructArrayLayout2f1f2i16();
+    vertexData.resize(circleCount * 4);
+    vertexData._trim();
+    var vertexOffset = 0;
+    for (var i$2 = 0, list = tileBatches; i$2 < list.length; i$2 += 1) {
+        var batch = list[i$2];
+        for (var i$1 = 0; i$1 < batch.circleArray.length / 4; i$1++) {
+            var circleIdx = i$1 * 4;
+            var x = batch.circleArray[circleIdx + 0];
+            var y = batch.circleArray[circleIdx + 1];
+            var radius = batch.circleArray[circleIdx + 2];
+            var collision = batch.circleArray[circleIdx + 3];
+            vertexData.emplace(vertexOffset++, x, y, radius, collision, 0);
+            vertexData.emplace(vertexOffset++, x, y, radius, collision, 1);
+            vertexData.emplace(vertexOffset++, x, y, radius, collision, 2);
+            vertexData.emplace(vertexOffset++, x, y, radius, collision, 3);
+        }
+    }
+    if (!quadTriangles || quadTriangles.length < circleCount * 2) {
+        quadTriangles = createQuadTriangles(circleCount);
+    }
+    var indexBuffer = context.createIndexBuffer(quadTriangles, true);
+    var vertexBuffer = context.createVertexBuffer(vertexData, performance.collisionCircleLayout.members, true);
+    for (var i$3 = 0, list$1 = tileBatches; i$3 < list$1.length; i$3 += 1) {
+        var batch$1 = list$1[i$3];
+        var uniforms = collisionCircleUniformValues(batch$1.transform, batch$1.invTransform, painter.transform);
+        circleProgram.draw(context, gl.TRIANGLES, DepthMode.disabled, StencilMode.disabled, painter.colorModeForRenderPass(), CullFaceMode.disabled, uniforms, layer.id, vertexBuffer, indexBuffer, performance.SegmentVector.simpleSegment(0, batch$1.circleOffset * 2, batch$1.circleArray.length, batch$1.circleArray.length / 2), null, painter.transform.zoom, null, null, null);
+    }
+    vertexBuffer.destroy();
+    indexBuffer.destroy();
 }
-function drawCollisionDebug(painter, sourceCache, layer, coords, translate, translateAnchor, isText) {
-    drawCollisionDebugGeometry(painter, sourceCache, layer, coords, false, translate, translateAnchor, isText);
-    drawCollisionDebugGeometry(painter, sourceCache, layer, coords, true, translate, translateAnchor, isText);
+function createQuadTriangles(quadCount) {
+    var triCount = quadCount * 2;
+    var array = new performance.StructArrayLayout3ui6();
+    array.resize(triCount);
+    array._trim();
+    for (var i = 0; i < triCount; i++) {
+        var idx = i * 6;
+        array.uint16[idx + 0] = i * 4 + 0;
+        array.uint16[idx + 1] = i * 4 + 1;
+        array.uint16[idx + 2] = i * 4 + 2;
+        array.uint16[idx + 3] = i * 4 + 2;
+        array.uint16[idx + 4] = i * 4 + 3;
+        array.uint16[idx + 5] = i * 4 + 0;
+    }
+    return array;
 }
 
 var identityMat4 = performance.identity(new Float32Array(16));
@@ -34550,7 +34978,7 @@ function updateVariableAnchorsForBucket(bucket, rotateWithMap, pitchWithMap, var
         } else {
             var tileAnchor = new performance.Point(symbol.anchorX, symbol.anchorY);
             var projectedAnchor = project(tileAnchor, pitchWithMap ? posMatrix : labelPlaneMatrix);
-            var perspectiveRatio = 0.5 + 0.5 * (transform.cameraToCenterDistance / projectedAnchor.signedDistanceFromCamera);
+            var perspectiveRatio = getPerspectiveRatio(transform.cameraToCenterDistance, projectedAnchor.signedDistanceFromCamera);
             var renderTextSize = symbolSize.evaluateSizeForFeature(bucket.textSizeData, size, symbol) * perspectiveRatio / performance.ONE_EM;
             if (pitchWithMap) {
                 renderTextSize *= bucket.tilePixelRatio / tileScale;
@@ -34613,7 +35041,8 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
     var pitchWithMap = pitchAlignment === 'map';
     var alongLine = rotateWithMap && layer.layout.get('symbol-placement') !== 'point';
     var rotateInShader = rotateWithMap && !pitchWithMap && !alongLine;
-    var sortFeaturesByKey = layer.layout.get('symbol-sort-key').constantOr(1) !== undefined;
+    var hasSortKey = layer.layout.get('symbol-sort-key').constantOr(1) !== undefined;
+    var sortFeaturesByKey = false;
     var depthMode = painter.depthModeForSublayer(0, DepthMode.ReadOnly);
     var variablePlacement = layer.layout.get('text-variable-anchor');
     var tileRenderState = [];
@@ -34690,7 +35119,8 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
             isSDF: isSDF,
             hasHalo: hasHalo
         };
-        if (sortFeaturesByKey) {
+        if (hasSortKey && bucket.canOverlap) {
+            sortFeaturesByKey = true;
             var oldSegments = buffers.segments.get();
             for (var i = 0, list = oldSegments; i < list.length; i += 1) {
                 var segment = list[i];
@@ -34885,13 +35315,9 @@ function bindFramebuffer(context, painter, layer) {
 }
 function bindTextureToFramebuffer(context, painter, texture, fbo) {
     var gl = context.gl;
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, painter.width / 4, painter.height / 4, 0, gl.RGBA, context.extTextureHalfFloat ? context.extTextureHalfFloat.HALF_FLOAT_OES : gl.UNSIGNED_BYTE, null);
+    var internalFormat = context.extRenderToTextureHalfFloat ? context.extTextureHalfFloat.HALF_FLOAT_OES : gl.UNSIGNED_BYTE;
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, painter.width / 4, painter.height / 4, 0, gl.RGBA, internalFormat, null);
     fbo.colorAttachment.set(texture);
-    if (context.extTextureHalfFloat && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-        context.extTextureHalfFloat = null;
-        fbo.colorAttachment.setDirty();
-        bindTextureToFramebuffer(context, painter, texture, fbo);
-    }
 }
 function renderTextureToMap(painter, layer) {
     var context = painter.context;
@@ -34931,17 +35357,6 @@ function drawLine(painter, sourceCache, layer, coords) {
     var context = painter.context;
     var gl = context.gl;
     var firstTile = true;
-    if (gradient) {
-        context.activeTexture.set(gl.TEXTURE0);
-        var gradientTexture = layer.gradientTexture;
-        if (!layer.gradient) {
-            return;
-        }
-        if (!gradientTexture) {
-            gradientTexture = layer.gradientTexture = new performance.Texture(context, layer.gradient, gl.RGBA);
-        }
-        gradientTexture.bind(gl.LINEAR, gl.CLAMP_TO_EDGE);
-    }
     for (var i = 0, list = coords; i < list.length; i += 1) {
         var coord = list[i];
         var tile = sourceCache.getTile(coord);
@@ -34965,7 +35380,7 @@ function drawLine(painter, sourceCache, layer, coords) {
                 programConfiguration.setConstantPatternPositions(posTo, posFrom);
             }
         }
-        var uniformValues = image ? linePatternUniformValues(painter, tile, layer, crossfade) : dasharray ? lineSDFUniformValues(painter, tile, layer, dasharray, crossfade) : gradient ? lineGradientUniformValues(painter, tile, layer) : lineUniformValues(painter, tile, layer);
+        var uniformValues = image ? linePatternUniformValues(painter, tile, layer, crossfade) : dasharray ? lineSDFUniformValues(painter, tile, layer, dasharray, crossfade) : gradient ? lineGradientUniformValues(painter, tile, layer, bucket.lineClipsArray.length) : lineUniformValues(painter, tile, layer);
         if (image) {
             context.activeTexture.set(gl.TEXTURE0);
             tile.imageAtlasTexture.bind(gl.LINEAR, gl.CLAMP_TO_EDGE);
@@ -34973,8 +35388,38 @@ function drawLine(painter, sourceCache, layer, coords) {
         } else if (dasharray && (programChanged || painter.lineAtlas.dirty)) {
             context.activeTexture.set(gl.TEXTURE0);
             painter.lineAtlas.bind(context);
+        } else if (gradient) {
+            var layerGradient = bucket.gradients[layer.id];
+            var gradientTexture = layerGradient.texture;
+            if (layer.gradientVersion !== layerGradient.version) {
+                var textureResolution = 256;
+                if (layer.stepInterpolant) {
+                    var sourceMaxZoom = sourceCache.getSource().maxzoom;
+                    var potentialOverzoom = coord.canonical.z === sourceMaxZoom ? Math.ceil(1 << painter.transform.maxZoom - coord.canonical.z) : 1;
+                    var lineLength = bucket.maxLineLength / performance.EXTENT;
+                    var maxTilePixelSize = 1024;
+                    var maxTextureCoverage = lineLength * maxTilePixelSize * potentialOverzoom;
+                    textureResolution = performance.clamp(performance.nextPowerOfTwo(maxTextureCoverage), 256, context.maxTextureSize);
+                }
+                layerGradient.gradient = performance.renderColorRamp({
+                    expression: layer.gradientExpression(),
+                    evaluationKey: 'lineProgress',
+                    resolution: textureResolution,
+                    image: layerGradient.gradient || undefined,
+                    clips: bucket.lineClipsArray
+                });
+                if (layerGradient.texture) {
+                    layerGradient.texture.update(layerGradient.gradient);
+                } else {
+                    layerGradient.texture = new performance.Texture(context, layerGradient.gradient, gl.RGBA);
+                }
+                layerGradient.version = layer.gradientVersion;
+                gradientTexture = layerGradient.texture;
+            }
+            context.activeTexture.set(gl.TEXTURE0);
+            gradientTexture.bind(layer.stepInterpolant ? gl.NEAREST : gl.LINEAR, gl.CLAMP_TO_EDGE);
         }
-        program.draw(context, gl.TRIANGLES, depthMode, painter.stencilModeForClipping(coord), colorMode, CullFaceMode.disabled, uniformValues, layer.id, bucket.layoutVertexBuffer, bucket.indexBuffer, bucket.segments, layer.paint, painter.transform.zoom, programConfiguration);
+        program.draw(context, gl.TRIANGLES, depthMode, painter.stencilModeForClipping(coord), colorMode, CullFaceMode.disabled, uniformValues, layer.id, bucket.layoutVertexBuffer, bucket.indexBuffer, bucket.segments, layer.paint, painter.transform.zoom, programConfiguration, bucket.layoutVertexBuffer2);
         firstTile = false;
     }
 }
@@ -35112,7 +35557,6 @@ function drawHillshade(painter, sourceCache, layer, tileIDs) {
         return;
     }
     var context = painter.context;
-    var sourceMaxZoom = sourceCache.getSource().maxzoom;
     var depthMode = painter.depthModeForSublayer(0, DepthMode.ReadOnly);
     var colorMode = painter.colorModeForRenderPass();
     var ref = painter.renderPass === 'translucent' ? painter.stencilConfigForOverlap(tileIDs) : [
@@ -35125,7 +35569,7 @@ function drawHillshade(painter, sourceCache, layer, tileIDs) {
         var coord = list[i];
         var tile = sourceCache.getTile(coord);
         if (tile.needsHillshadePrepare && painter.renderPass === 'offscreen') {
-            prepareHillshade(painter, tile, layer, sourceMaxZoom, depthMode, StencilMode.disabled, colorMode);
+            prepareHillshade(painter, tile, layer, depthMode, StencilMode.disabled, colorMode);
         } else if (painter.renderPass === 'translucent') {
             renderHillshade(painter, tile, layer, depthMode, stencilModes[coord.overscaledZ], colorMode);
         }
@@ -35150,7 +35594,7 @@ function renderHillshade(painter, tile, layer, depthMode, stencilMode, colorMode
     var uniformValues = hillshadeUniformValues(painter, tile, layer);
     program.draw(context, gl.TRIANGLES, depthMode, stencilMode, colorMode, CullFaceMode.disabled, uniformValues, layer.id, painter.rasterBoundsBuffer, painter.quadTriangleIndexBuffer, painter.rasterBoundsSegments);
 }
-function prepareHillshade(painter, tile, layer, sourceMaxZoom, depthMode, stencilMode, colorMode) {
+function prepareHillshade(painter, tile, layer, depthMode, stencilMode, colorMode) {
     var context = painter.context;
     var gl = context.gl;
     var dem = tile.dem;
@@ -35188,7 +35632,7 @@ function prepareHillshade(painter, tile, layer, sourceMaxZoom, depthMode, stenci
             tileSize,
             tileSize
         ]);
-        painter.useProgram('hillshadePrepare').draw(context, gl.TRIANGLES, depthMode, stencilMode, colorMode, CullFaceMode.disabled, hillshadeUniformPrepareValues(tile.tileID, dem, sourceMaxZoom), layer.id, painter.rasterBoundsBuffer, painter.quadTriangleIndexBuffer, painter.rasterBoundsSegments);
+        painter.useProgram('hillshadePrepare').draw(context, gl.TRIANGLES, depthMode, stencilMode, colorMode, CullFaceMode.disabled, hillshadeUniformPrepareValues(tile.tileID, dem), layer.id, painter.rasterBoundsBuffer, painter.quadTriangleIndexBuffer, painter.rasterBoundsSegments);
         tile.needsHillshadePrepare = false;
     }
 }
@@ -35833,6 +36277,9 @@ Painter.prototype.isPatternMissing = function isPatternMissing(image) {
     if (!image) {
         return false;
     }
+    if (!image.from || !image.to) {
+        return true;
+    }
     var imagePosA = this.imageManager.getPattern(image.from.toString());
     var imagePosB = this.imageManager.getPattern(image.to.toString());
     return !imagePosA || !imagePosB;
@@ -35841,7 +36288,7 @@ Painter.prototype.useProgram = function useProgram(name, programConfiguration) {
     this.cache = this.cache || {};
     var key = '' + name + (programConfiguration ? programConfiguration.cacheKey : '') + (this._showOverdrawInspector ? '/overdraw' : '');
     if (!this.cache[key]) {
-        this.cache[key] = new Program$1(this.context, shaders[name], programConfiguration, programUniforms[name], this._showOverdrawInspector);
+        this.cache[key] = new Program$1(this.context, name, shaders[name], programConfiguration, programUniforms[name], this._showOverdrawInspector);
     }
     return this.cache[key];
 };
@@ -36907,12 +37354,131 @@ Hash.prototype._onHashChange = function _onHashChange() {
     return false;
 };
 Hash.prototype._updateHashUnthrottled = function _updateHashUnthrottled() {
-    var hash = this.getHashString();
+    var location = performance.window.location.href.replace(/(#.+)?$/, this.getHashString());
     try {
-        performance.window.history.replaceState(performance.window.history.state, '', hash);
+        performance.window.history.replaceState(performance.window.history.state, null, location);
     } catch (SecurityError) {
     }
 };
+
+var defaultInertiaOptions = {
+    linearity: 0.3,
+    easing: performance.bezier(0, 0, 0.3, 1)
+};
+var defaultPanInertiaOptions = performance.extend({
+    deceleration: 2500,
+    maxSpeed: 1400
+}, defaultInertiaOptions);
+var defaultZoomInertiaOptions = performance.extend({
+    deceleration: 20,
+    maxSpeed: 1400
+}, defaultInertiaOptions);
+var defaultBearingInertiaOptions = performance.extend({
+    deceleration: 1000,
+    maxSpeed: 360
+}, defaultInertiaOptions);
+var defaultPitchInertiaOptions = performance.extend({
+    deceleration: 1000,
+    maxSpeed: 90
+}, defaultInertiaOptions);
+var HandlerInertia = function HandlerInertia(map) {
+    this._map = map;
+    this.clear();
+};
+HandlerInertia.prototype.clear = function clear() {
+    this._inertiaBuffer = [];
+};
+HandlerInertia.prototype.record = function record(settings) {
+    this._drainInertiaBuffer();
+    this._inertiaBuffer.push({
+        time: performance.browser.now(),
+        settings: settings
+    });
+};
+HandlerInertia.prototype._drainInertiaBuffer = function _drainInertiaBuffer() {
+    var inertia = this._inertiaBuffer, now = performance.browser.now(), cutoff = 160;
+    while (inertia.length > 0 && now - inertia[0].time > cutoff) {
+        inertia.shift();
+    }
+};
+HandlerInertia.prototype._onMoveEnd = function _onMoveEnd(panInertiaOptions) {
+    this._drainInertiaBuffer();
+    if (this._inertiaBuffer.length < 2) {
+        return;
+    }
+    var deltas = {
+        zoom: 0,
+        bearing: 0,
+        pitch: 0,
+        pan: new performance.Point(0, 0),
+        pinchAround: undefined,
+        around: undefined
+    };
+    for (var i = 0, list = this._inertiaBuffer; i < list.length; i += 1) {
+        var ref = list[i];
+        var settings = ref.settings;
+        deltas.zoom += settings.zoomDelta || 0;
+        deltas.bearing += settings.bearingDelta || 0;
+        deltas.pitch += settings.pitchDelta || 0;
+        if (settings.panDelta) {
+            deltas.pan._add(settings.panDelta);
+        }
+        if (settings.around) {
+            deltas.around = settings.around;
+        }
+        if (settings.pinchAround) {
+            deltas.pinchAround = settings.pinchAround;
+        }
+    }
+    var lastEntry = this._inertiaBuffer[this._inertiaBuffer.length - 1];
+    var duration = lastEntry.time - this._inertiaBuffer[0].time;
+    var easeOptions = {};
+    if (deltas.pan.mag()) {
+        var result = calculateEasing(deltas.pan.mag(), duration, performance.extend({}, defaultPanInertiaOptions, panInertiaOptions || {}));
+        easeOptions.offset = deltas.pan.mult(result.amount / deltas.pan.mag());
+        easeOptions.center = this._map.transform.center;
+        extendDuration(easeOptions, result);
+    }
+    if (deltas.zoom) {
+        var result$1 = calculateEasing(deltas.zoom, duration, defaultZoomInertiaOptions);
+        easeOptions.zoom = this._map.transform.zoom + result$1.amount;
+        extendDuration(easeOptions, result$1);
+    }
+    if (deltas.bearing) {
+        var result$2 = calculateEasing(deltas.bearing, duration, defaultBearingInertiaOptions);
+        easeOptions.bearing = this._map.transform.bearing + performance.clamp(result$2.amount, -179, 179);
+        extendDuration(easeOptions, result$2);
+    }
+    if (deltas.pitch) {
+        var result$3 = calculateEasing(deltas.pitch, duration, defaultPitchInertiaOptions);
+        easeOptions.pitch = this._map.transform.pitch + result$3.amount;
+        extendDuration(easeOptions, result$3);
+    }
+    if (easeOptions.zoom || easeOptions.bearing) {
+        var last = deltas.pinchAround === undefined ? deltas.around : deltas.pinchAround;
+        easeOptions.around = last ? this._map.unproject(last) : this._map.getCenter();
+    }
+    this.clear();
+    return performance.extend(easeOptions, { noMoveStart: true });
+};
+function extendDuration(easeOptions, result) {
+    if (!easeOptions.duration || easeOptions.duration < result.duration) {
+        easeOptions.duration = result.duration;
+        easeOptions.easing = result.easing;
+    }
+}
+function calculateEasing(amount, inertiaDuration, inertiaOptions) {
+    var maxSpeed = inertiaOptions.maxSpeed;
+    var linearity = inertiaOptions.linearity;
+    var deceleration = inertiaOptions.deceleration;
+    var speed = performance.clamp(amount * linearity / (inertiaDuration / 1000), -maxSpeed, maxSpeed);
+    var duration = Math.abs(speed) / (deceleration * linearity);
+    return {
+        easing: inertiaOptions.easing,
+        duration: duration * 1000,
+        amount: speed * (duration / 2)
+    };
+}
 
 var MapMouseEvent = function (Event) {
     function MapMouseEvent(type, map, originalEvent, data) {
@@ -36944,7 +37510,8 @@ var MapMouseEvent = function (Event) {
 }(performance.Event);
 var MapTouchEvent = function (Event) {
     function MapTouchEvent(type, map, originalEvent) {
-        var points = DOM.touchPos(map.getCanvasContainer(), originalEvent);
+        var touches = type === 'touchend' ? originalEvent.changedTouches : originalEvent.touches;
+        var points = DOM.touchPos(map.getCanvasContainer(), touches);
         var lngLats = points.map(function (t) {
             return map.unproject(t);
         });
@@ -36995,182 +37562,105 @@ var MapWheelEvent = function (Event) {
     return MapWheelEvent;
 }(performance.Event);
 
-var wheelZoomDelta = 4.000244140625;
-var defaultZoomRate = 1 / 100;
-var wheelZoomRate = 1 / 450;
-var maxScalePerFrame = 2;
-var ScrollZoomHandler = function ScrollZoomHandler(map) {
+var MapEventHandler = function MapEventHandler(map, options) {
     this._map = map;
-    this._el = map.getCanvasContainer();
-    this._delta = 0;
-    this._defaultZoomRate = defaultZoomRate;
-    this._wheelZoomRate = wheelZoomRate;
-    performance.bindAll([
-        '_onWheel',
-        '_onTimeout',
-        '_onScrollFrame',
-        '_onScrollFinished'
-    ], this);
+    this._clickTolerance = options.clickTolerance;
 };
-ScrollZoomHandler.prototype.setZoomRate = function setZoomRate(zoomRate) {
-    this._defaultZoomRate = zoomRate;
+MapEventHandler.prototype.reset = function reset() {
+    delete this._mousedownPos;
 };
-ScrollZoomHandler.prototype.setWheelZoomRate = function setWheelZoomRate(wheelZoomRate) {
-    this._wheelZoomRate = wheelZoomRate;
+MapEventHandler.prototype.wheel = function wheel(e) {
+    return this._firePreventable(new MapWheelEvent(e.type, this._map, e));
 };
-ScrollZoomHandler.prototype.isEnabled = function isEnabled() {
-    return !!this._enabled;
+MapEventHandler.prototype.mousedown = function mousedown(e, point) {
+    this._mousedownPos = point;
+    return this._firePreventable(new MapMouseEvent(e.type, this._map, e));
 };
-ScrollZoomHandler.prototype.isActive = function isActive() {
-    return !!this._active;
+MapEventHandler.prototype.mouseup = function mouseup(e) {
+    this._map.fire(new MapMouseEvent(e.type, this._map, e));
 };
-ScrollZoomHandler.prototype.isZooming = function isZooming() {
-    return !!this._zooming;
-};
-ScrollZoomHandler.prototype.enable = function enable(options) {
-    if (this.isEnabled()) {
+MapEventHandler.prototype.click = function click(e, point) {
+    if (this._mousedownPos && this._mousedownPos.dist(point) >= this._clickTolerance) {
         return;
     }
-    this._enabled = true;
-    this._aroundCenter = options && options.around === 'center';
+    this._map.fire(new MapMouseEvent(e.type, this._map, e));
 };
-ScrollZoomHandler.prototype.disable = function disable() {
-    if (!this.isEnabled()) {
-        return;
-    }
-    this._enabled = false;
+MapEventHandler.prototype.dblclick = function dblclick(e) {
+    return this._firePreventable(new MapMouseEvent(e.type, this._map, e));
 };
-ScrollZoomHandler.prototype.onWheel = function onWheel(e) {
-    if (!this.isEnabled()) {
-        return;
-    }
-    var value = e.deltaMode === performance.window.WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY;
-    var now = performance.browser.now(), timeDelta = now - (this._lastWheelEventTime || 0);
-    this._lastWheelEventTime = now;
-    if (value !== 0 && value % wheelZoomDelta === 0) {
-        this._type = 'wheel';
-    } else if (value !== 0 && Math.abs(value) < 4) {
-        this._type = 'trackpad';
-    } else if (timeDelta > 400) {
-        this._type = null;
-        this._lastValue = value;
-        this._timeout = setTimeout(this._onTimeout, 40, e);
-    } else if (!this._type) {
-        this._type = Math.abs(timeDelta * value) < 200 ? 'trackpad' : 'wheel';
-        if (this._timeout) {
-            clearTimeout(this._timeout);
-            this._timeout = null;
-            value += this._lastValue;
-        }
-    }
-    if (e.shiftKey && value) {
-        value = value / 4;
-    }
-    if (this._type) {
-        this._lastWheelEvent = e;
-        this._delta -= value;
-        if (!this.isActive()) {
-            this._start(e);
-        }
-    }
-    e.preventDefault();
+MapEventHandler.prototype.mouseover = function mouseover(e) {
+    this._map.fire(new MapMouseEvent(e.type, this._map, e));
 };
-ScrollZoomHandler.prototype._onTimeout = function _onTimeout(initialEvent) {
-    this._type = 'wheel';
-    this._delta -= this._lastValue;
-    if (!this.isActive()) {
-        this._start(initialEvent);
+MapEventHandler.prototype.mouseout = function mouseout(e) {
+    this._map.fire(new MapMouseEvent(e.type, this._map, e));
+};
+MapEventHandler.prototype.touchstart = function touchstart(e) {
+    return this._firePreventable(new MapTouchEvent(e.type, this._map, e));
+};
+MapEventHandler.prototype.touchmove = function touchmove(e) {
+    this._map.fire(new MapTouchEvent(e.type, this._map, e));
+};
+MapEventHandler.prototype.touchend = function touchend(e) {
+    this._map.fire(new MapTouchEvent(e.type, this._map, e));
+};
+MapEventHandler.prototype.touchcancel = function touchcancel(e) {
+    this._map.fire(new MapTouchEvent(e.type, this._map, e));
+};
+MapEventHandler.prototype._firePreventable = function _firePreventable(mapEvent) {
+    this._map.fire(mapEvent);
+    if (mapEvent.defaultPrevented) {
+        return {};
     }
 };
-ScrollZoomHandler.prototype._start = function _start(e) {
-    if (!this._delta) {
-        return;
-    }
-    if (this._frameId) {
-        this._map._cancelRenderFrame(this._frameId);
-        this._frameId = null;
-    }
-    this._active = true;
-    if (!this.isZooming()) {
-        this._zooming = true;
-        this._map.fire(new performance.Event('movestart', { originalEvent: e }));
-        this._map.fire(new performance.Event('zoomstart', { originalEvent: e }));
-    }
-    if (this._finishTimeout) {
-        clearTimeout(this._finishTimeout);
-    }
-    var pos = DOM.mousePos(this._el, e);
-    this._around = performance.LngLat.convert(this._aroundCenter ? this._map.getCenter() : this._map.unproject(pos));
-    this._aroundPoint = this._map.transform.locationPoint(this._around);
-    if (!this._frameId) {
-        this._frameId = this._map._requestRenderFrame(this._onScrollFrame);
+MapEventHandler.prototype.isEnabled = function isEnabled() {
+    return true;
+};
+MapEventHandler.prototype.isActive = function isActive() {
+    return false;
+};
+MapEventHandler.prototype.enable = function enable() {
+};
+MapEventHandler.prototype.disable = function disable() {
+};
+var BlockableMapEventHandler = function BlockableMapEventHandler(map) {
+    this._map = map;
+};
+BlockableMapEventHandler.prototype.reset = function reset() {
+    this._delayContextMenu = false;
+    delete this._contextMenuEvent;
+};
+BlockableMapEventHandler.prototype.mousemove = function mousemove(e) {
+    this._map.fire(new MapMouseEvent(e.type, this._map, e));
+};
+BlockableMapEventHandler.prototype.mousedown = function mousedown() {
+    this._delayContextMenu = true;
+};
+BlockableMapEventHandler.prototype.mouseup = function mouseup() {
+    this._delayContextMenu = false;
+    if (this._contextMenuEvent) {
+        this._map.fire(new MapMouseEvent('contextmenu', this._map, this._contextMenuEvent));
+        delete this._contextMenuEvent;
     }
 };
-ScrollZoomHandler.prototype._onScrollFrame = function _onScrollFrame() {
-    var this$1 = this;
-    this._frameId = null;
-    if (!this.isActive()) {
-        return;
-    }
-    var tr = this._map.transform;
-    if (this._delta !== 0) {
-        var zoomRate = this._type === 'wheel' && Math.abs(this._delta) > wheelZoomDelta ? this._wheelZoomRate : this._defaultZoomRate;
-        var scale = maxScalePerFrame / (1 + Math.exp(-Math.abs(this._delta * zoomRate)));
-        if (this._delta < 0 && scale !== 0) {
-            scale = 1 / scale;
-        }
-        var fromScale = typeof this._targetZoom === 'number' ? tr.zoomScale(this._targetZoom) : tr.scale;
-        this._targetZoom = Math.min(tr.maxZoom, Math.max(tr.minZoom, tr.scaleZoom(fromScale * scale)));
-        if (this._type === 'wheel') {
-            this._startZoom = tr.zoom;
-            this._easing = this._smoothOutEasing(200);
-        }
-        this._delta = 0;
-    }
-    var targetZoom = typeof this._targetZoom === 'number' ? this._targetZoom : tr.zoom;
-    var startZoom = this._startZoom;
-    var easing = this._easing;
-    var finished = false;
-    if (this._type === 'wheel' && startZoom && easing) {
-        var t = Math.min((performance.browser.now() - this._lastWheelEventTime) / 200, 1);
-        var k = easing(t);
-        tr.zoom = performance.number(startZoom, targetZoom, k);
-        if (t < 1) {
-            if (!this._frameId) {
-                this._frameId = this._map._requestRenderFrame(this._onScrollFrame);
-            }
-        } else {
-            finished = true;
-        }
+BlockableMapEventHandler.prototype.contextmenu = function contextmenu(e) {
+    if (this._delayContextMenu) {
+        this._contextMenuEvent = e;
     } else {
-        tr.zoom = targetZoom;
-        finished = true;
+        this._map.fire(new MapMouseEvent(e.type, this._map, e));
     }
-    tr.setLocationAtPoint(this._around, this._aroundPoint);
-    this._map.fire(new performance.Event('move', { originalEvent: this._lastWheelEvent }));
-    this._map.fire(new performance.Event('zoom', { originalEvent: this._lastWheelEvent }));
-    if (finished) {
-        this._active = false;
-        this._finishTimeout = setTimeout(function () {
-            this$1._zooming = false;
-            this$1._map.fire(new performance.Event('zoomend', { originalEvent: this$1._lastWheelEvent }));
-            this$1._map.fire(new performance.Event('moveend', { originalEvent: this$1._lastWheelEvent }));
-            delete this$1._targetZoom;
-        }, 200);
+    if (this._map.listens('contextmenu')) {
+        e.preventDefault();
     }
 };
-ScrollZoomHandler.prototype._smoothOutEasing = function _smoothOutEasing(duration) {
-    var easing = performance.ease;
-    if (this._prevEase) {
-        var ease = this._prevEase, t = (performance.browser.now() - ease.start) / ease.duration, speed = ease.easing(t + 0.01) - ease.easing(t), x = 0.27 / Math.sqrt(speed * speed + 0.0001) * 0.01, y = Math.sqrt(0.27 * 0.27 - x * x);
-        easing = performance.bezier(x, y, 0.25, 1);
-    }
-    this._prevEase = {
-        start: performance.browser.now(),
-        duration: duration,
-        easing: easing
-    };
-    return easing;
+BlockableMapEventHandler.prototype.isEnabled = function isEnabled() {
+    return true;
+};
+BlockableMapEventHandler.prototype.isActive = function isActive() {
+    return false;
+};
+BlockableMapEventHandler.prototype.enable = function enable() {
+};
+BlockableMapEventHandler.prototype.disable = function disable() {
 };
 
 var BoxZoomHandler = function BoxZoomHandler(map, options) {
@@ -37178,11 +37668,6 @@ var BoxZoomHandler = function BoxZoomHandler(map, options) {
     this._el = map.getCanvasContainer();
     this._container = map.getContainer();
     this._clickTolerance = options.clickTolerance || 1;
-    performance.bindAll([
-        '_onMouseMove',
-        '_onMouseUp',
-        '_onKeyDown'
-    ], this);
 };
 BoxZoomHandler.prototype.isEnabled = function isEnabled() {
     return !!this._enabled;
@@ -37202,22 +37687,22 @@ BoxZoomHandler.prototype.disable = function disable() {
     }
     this._enabled = false;
 };
-BoxZoomHandler.prototype.onMouseDown = function onMouseDown(e) {
+BoxZoomHandler.prototype.mousedown = function mousedown(e, point) {
     if (!this.isEnabled()) {
         return;
     }
     if (!(e.shiftKey && e.button === 0)) {
         return;
     }
-    performance.window.document.addEventListener('mousemove', this._onMouseMove, false);
-    performance.window.document.addEventListener('keydown', this._onKeyDown, false);
-    performance.window.document.addEventListener('mouseup', this._onMouseUp, false);
     DOM.disableDrag();
-    this._startPos = this._lastPos = DOM.mousePos(this._el, e);
+    this._startPos = this._lastPos = point;
     this._active = true;
 };
-BoxZoomHandler.prototype._onMouseMove = function _onMouseMove(e) {
-    var pos = DOM.mousePos(this._el, e);
+BoxZoomHandler.prototype.mousemoveWindow = function mousemoveWindow(e, point) {
+    if (!this._active) {
+        return;
+    }
+    var pos = point;
     if (this._lastPos.equals(pos) || !this._box && pos.dist(this._startPos) < this._clickTolerance) {
         return;
     }
@@ -37233,30 +37718,42 @@ BoxZoomHandler.prototype._onMouseMove = function _onMouseMove(e) {
     this._box.style.width = maxX - minX + 'px';
     this._box.style.height = maxY - minY + 'px';
 };
-BoxZoomHandler.prototype._onMouseUp = function _onMouseUp(e) {
+BoxZoomHandler.prototype.mouseupWindow = function mouseupWindow(e, point) {
+    var this$1 = this;
+    if (!this._active) {
+        return;
+    }
     if (e.button !== 0) {
         return;
     }
-    var p0 = this._startPos, p1 = DOM.mousePos(this._el, e);
-    this._finish();
+    var p0 = this._startPos, p1 = point;
+    this.reset();
     DOM.suppressClick();
     if (p0.x === p1.x && p0.y === p1.y) {
         this._fireEvent('boxzoomcancel', e);
     } else {
-        this._map.fitScreenCoordinates(p0, p1, this._map.getBearing(), { linear: true }).fire(new performance.Event('boxzoomend', { originalEvent: e }));
+        this._map.fire(new performance.Event('boxzoomend', { originalEvent: e }));
+        return {
+            cameraAnimation: function (map) {
+                return map.fitScreenCoordinates(p0, p1, this$1._map.getBearing(), { linear: true });
+            }
+        };
     }
 };
-BoxZoomHandler.prototype._onKeyDown = function _onKeyDown(e) {
+BoxZoomHandler.prototype.keydown = function keydown(e) {
+    if (!this._active) {
+        return;
+    }
     if (e.keyCode === 27) {
-        this._finish();
+        this.reset();
         this._fireEvent('boxzoomcancel', e);
     }
 };
-BoxZoomHandler.prototype._finish = function _finish() {
+BoxZoomHandler.prototype.blur = function blur() {
+    this.reset();
+};
+BoxZoomHandler.prototype.reset = function reset() {
     this._active = false;
-    performance.window.document.removeEventListener('mousemove', this._onMouseMove, false);
-    performance.window.document.removeEventListener('keydown', this._onKeyDown, false);
-    performance.window.document.removeEventListener('mouseup', this._onMouseUp, false);
     this._container.classList.remove('mapboxgl-crosshair');
     if (this._box) {
         DOM.remove(this._box);
@@ -37270,568 +37767,664 @@ BoxZoomHandler.prototype._fireEvent = function _fireEvent(type, e) {
     return this._map.fire(new performance.Event(type, { originalEvent: e }));
 };
 
-var inertiaLinearity = 0.25, inertiaEasing = performance.bezier(0, 0, inertiaLinearity, 1), inertiaMaxSpeed = 180, inertiaDeceleration = 720;
-var DragRotateHandler = function DragRotateHandler(map, options) {
-    this._map = map;
-    this._el = options.element || map.getCanvasContainer();
-    this._state = 'disabled';
-    this._button = options.button || 'right';
-    this._bearingSnap = options.bearingSnap || 0;
-    this._pitchWithRotate = options.pitchWithRotate !== false;
-    this._clickTolerance = options.clickTolerance || 1;
-    performance.bindAll([
-        'onMouseDown',
-        '_onMouseMove',
-        '_onMouseUp',
-        '_onBlur',
-        '_onDragFrame'
-    ], this);
+function indexTouches(touches, points) {
+    var obj = {};
+    for (var i = 0; i < touches.length; i++) {
+        obj[touches[i].identifier] = points[i];
+    }
+    return obj;
+}
+
+function getCentroid(points) {
+    var sum = new performance.Point(0, 0);
+    for (var i = 0, list = points; i < list.length; i += 1) {
+        var point = list[i];
+        sum._add(point);
+    }
+    return sum.div(points.length);
+}
+var MAX_TAP_INTERVAL = 500;
+var MAX_TOUCH_TIME = 500;
+var MAX_DIST = 30;
+var SingleTapRecognizer = function SingleTapRecognizer(options) {
+    this.reset();
+    this.numTouches = options.numTouches;
 };
-DragRotateHandler.prototype.isEnabled = function isEnabled() {
-    return this._state !== 'disabled';
+SingleTapRecognizer.prototype.reset = function reset() {
+    delete this.centroid;
+    delete this.startTime;
+    delete this.touches;
+    this.aborted = false;
 };
-DragRotateHandler.prototype.isActive = function isActive() {
-    return this._state === 'active';
-};
-DragRotateHandler.prototype.enable = function enable() {
-    if (this.isEnabled()) {
+SingleTapRecognizer.prototype.touchstart = function touchstart(e, points, mapTouches) {
+    if (this.centroid || mapTouches.length > this.numTouches) {
+        this.aborted = true;
+    }
+    if (this.aborted) {
         return;
     }
-    this._state = 'enabled';
-};
-DragRotateHandler.prototype.disable = function disable() {
-    if (!this.isEnabled()) {
-        return;
+    if (this.startTime === undefined) {
+        this.startTime = e.timeStamp;
     }
-    switch (this._state) {
-    case 'active':
-        this._state = 'disabled';
-        this._unbind();
-        this._deactivate();
-        this._fireEvent('rotateend');
-        if (this._pitchWithRotate) {
-            this._fireEvent('pitchend');
-        }
-        this._fireEvent('moveend');
-        break;
-    case 'pending':
-        this._state = 'disabled';
-        this._unbind();
-        break;
-    default:
-        this._state = 'disabled';
-        break;
+    if (mapTouches.length === this.numTouches) {
+        this.centroid = getCentroid(points);
+        this.touches = indexTouches(mapTouches, points);
     }
 };
-DragRotateHandler.prototype.onMouseDown = function onMouseDown(e) {
-    if (this._state !== 'enabled') {
+SingleTapRecognizer.prototype.touchmove = function touchmove(e, points, mapTouches) {
+    if (this.aborted || !this.centroid) {
         return;
     }
-    var touchEvent = e.type === 'touchstart';
-    if (touchEvent) {
-        this._startTime = Date.now();
-    } else {
-        if (this._button === 'right') {
-            this._eventButton = DOM.mouseButton(e);
-            if (e.altKey || e.metaKey) {
-                return;
-            }
-            if (this._eventButton !== (e.ctrlKey ? 0 : 2)) {
-                return;
-            }
-        } else {
-            if (e.ctrlKey || DOM.mouseButton(e) !== 0) {
-                return;
-            }
-            this._eventButton = 0;
+    var newTouches = indexTouches(mapTouches, points);
+    for (var id in this.touches) {
+        var prevPos = this.touches[id];
+        var pos = newTouches[id];
+        if (!pos || pos.dist(prevPos) > MAX_DIST) {
+            this.aborted = true;
         }
     }
-    DOM.disableDrag();
-    if (touchEvent) {
-        performance.window.document.addEventListener('touchmove', this._onMouseMove, { capture: true });
-        performance.window.document.addEventListener('touchend', this._onMouseUp);
-    } else {
-        performance.window.document.addEventListener('mousemove', this._onMouseMove, { capture: true });
-        performance.window.document.addEventListener('mouseup', this._onMouseUp);
-    }
-    performance.window.addEventListener('blur', this._onBlur);
-    this._state = 'pending';
-    this._inertia = [[
-            performance.browser.now(),
-            this._map.getBearing()
-        ]];
-    this._startPos = this._prevPos = this._lastPos = DOM.mousePos(this._el, e);
-    this._center = this._map.transform.centerPoint;
-    e.preventDefault();
 };
-DragRotateHandler.prototype._onMouseMove = function _onMouseMove(e) {
-    var pos = DOM.mousePos(this._el, e);
-    if (this._lastPos.equals(pos) || this._state === 'pending' && pos.dist(this._startPos) < this._clickTolerance) {
-        return;
+SingleTapRecognizer.prototype.touchend = function touchend(e, points, mapTouches) {
+    if (!this.centroid || e.timeStamp - this.startTime > MAX_TOUCH_TIME) {
+        this.aborted = true;
     }
-    this._lastMoveEvent = e;
-    this._lastPos = pos;
-    if (this._state === 'pending') {
-        this._state = 'active';
-        this._fireEvent('rotatestart', e);
-        this._fireEvent('movestart', e);
-        if (this._pitchWithRotate) {
-            this._fireEvent('pitchstart', e);
+    if (mapTouches.length === 0) {
+        var centroid = !this.aborted && this.centroid;
+        this.reset();
+        if (centroid) {
+            return centroid;
         }
     }
-    if (!this._frameId) {
-        this._frameId = this._map._requestRenderFrame(this._onDragFrame);
-    }
 };
-DragRotateHandler.prototype._onDragFrame = function _onDragFrame() {
-    this._frameId = null;
-    var e = this._lastMoveEvent;
-    if (!e) {
-        return;
-    }
-    var tr = this._map.transform;
-    var p1 = this._prevPos, p2 = this._lastPos, bearingDiff = (p1.x - p2.x) * 0.8, pitchDiff = (p1.y - p2.y) * -0.5, bearing = tr.bearing - bearingDiff, pitch = tr.pitch - pitchDiff, inertia = this._inertia, last = inertia[inertia.length - 1];
-    this._drainInertiaBuffer();
-    inertia.push([
-        performance.browser.now(),
-        this._map._normalizeBearing(bearing, last[1])
-    ]);
-    var prevBearing = tr.bearing;
-    tr.bearing = bearing;
-    if (this._pitchWithRotate) {
-        var prevPitch = tr.pitch;
-        tr.pitch = pitch;
-        if (tr.pitch !== prevPitch) {
-            this._fireEvent('pitch', e);
+var TapRecognizer = function TapRecognizer(options) {
+    this.singleTap = new SingleTapRecognizer(options);
+    this.numTaps = options.numTaps;
+    this.reset();
+};
+TapRecognizer.prototype.reset = function reset() {
+    this.lastTime = Infinity;
+    delete this.lastTap;
+    this.count = 0;
+    this.singleTap.reset();
+};
+TapRecognizer.prototype.touchstart = function touchstart(e, points, mapTouches) {
+    this.singleTap.touchstart(e, points, mapTouches);
+};
+TapRecognizer.prototype.touchmove = function touchmove(e, points, mapTouches) {
+    this.singleTap.touchmove(e, points, mapTouches);
+};
+TapRecognizer.prototype.touchend = function touchend(e, points, mapTouches) {
+    var tap = this.singleTap.touchend(e, points, mapTouches);
+    if (tap) {
+        var soonEnough = e.timeStamp - this.lastTime < MAX_TAP_INTERVAL;
+        var closeEnough = !this.lastTap || this.lastTap.dist(tap) < MAX_DIST;
+        if (!soonEnough || !closeEnough) {
+            this.reset();
+        }
+        this.count++;
+        this.lastTime = e.timeStamp;
+        this.lastTap = tap;
+        if (this.count === this.numTaps) {
+            this.reset();
+            return tap;
         }
     }
-    if (tr.bearing !== prevBearing) {
-        this._fireEvent('rotate', e);
-    }
-    this._fireEvent('move', e);
-    delete this._lastMoveEvent;
-    this._prevPos = this._lastPos;
 };
-DragRotateHandler.prototype._onMouseUp = function _onMouseUp(e) {
-    var touchEvent = e.type === 'touchend';
-    if (touchEvent && this._startPos === this._lastPos && Date.now() - this._startTime < 300) {
-        this._el.click();
-    }
-    if (!touchEvent && DOM.mouseButton(e) !== this._eventButton) {
-        return;
-    }
-    switch (this._state) {
-    case 'active':
-        this._state = 'enabled';
-        DOM.suppressClick();
-        this._unbind();
-        this._deactivate();
-        this._inertialRotate(e);
-        break;
-    case 'pending':
-        this._state = 'enabled';
-        this._unbind();
-        break;
-    }
+
+var TapZoomHandler = function TapZoomHandler() {
+    this._zoomIn = new TapRecognizer({
+        numTouches: 1,
+        numTaps: 2
+    });
+    this._zoomOut = new TapRecognizer({
+        numTouches: 2,
+        numTaps: 1
+    });
+    this.reset();
 };
-DragRotateHandler.prototype._onBlur = function _onBlur(e) {
-    switch (this._state) {
-    case 'active':
-        this._state = 'enabled';
-        this._unbind();
-        this._deactivate();
-        this._fireEvent('rotateend', e);
-        if (this._pitchWithRotate) {
-            this._fireEvent('pitchend', e);
-        }
-        this._fireEvent('moveend', e);
-        break;
-    case 'pending':
-        this._state = 'enabled';
-        this._unbind();
-        break;
-    }
+TapZoomHandler.prototype.reset = function reset() {
+    this._active = false;
+    this._zoomIn.reset();
+    this._zoomOut.reset();
 };
-DragRotateHandler.prototype._unbind = function _unbind() {
-    performance.window.document.removeEventListener('mousemove', this._onMouseMove, { capture: true });
-    performance.window.document.removeEventListener('mouseup', this._onMouseUp);
-    performance.window.document.removeEventListener('touchmove', this._onMouseMove, { capture: true });
-    performance.window.document.removeEventListener('touchend', this._onMouseUp);
-    performance.window.removeEventListener('blur', this._onBlur);
-    DOM.enableDrag();
+TapZoomHandler.prototype.touchstart = function touchstart(e, points, mapTouches) {
+    this._zoomIn.touchstart(e, points, mapTouches);
+    this._zoomOut.touchstart(e, points, mapTouches);
 };
-DragRotateHandler.prototype._deactivate = function _deactivate() {
-    if (this._frameId) {
-        this._map._cancelRenderFrame(this._frameId);
-        this._frameId = null;
-    }
-    delete this._lastMoveEvent;
-    delete this._startPos;
-    delete this._prevPos;
-    delete this._lastPos;
+TapZoomHandler.prototype.touchmove = function touchmove(e, points, mapTouches) {
+    this._zoomIn.touchmove(e, points, mapTouches);
+    this._zoomOut.touchmove(e, points, mapTouches);
 };
-DragRotateHandler.prototype._inertialRotate = function _inertialRotate(e) {
+TapZoomHandler.prototype.touchend = function touchend(e, points, mapTouches) {
     var this$1 = this;
-    this._fireEvent('rotateend', e);
-    this._drainInertiaBuffer();
-    var map = this._map, mapBearing = map.getBearing(), inertia = this._inertia;
-    var finish = function () {
-        if (Math.abs(mapBearing) < this$1._bearingSnap) {
-            map.resetNorth({ noMoveStart: true }, { originalEvent: e });
-        } else {
-            this$1._fireEvent('moveend', e);
-        }
-        if (this$1._pitchWithRotate) {
-            this$1._fireEvent('pitchend', e);
-        }
-    };
-    if (inertia.length < 2) {
-        finish();
-        return;
-    }
-    var first = inertia[0], last = inertia[inertia.length - 1], previous = inertia[inertia.length - 2];
-    var bearing = map._normalizeBearing(mapBearing, previous[1]);
-    var flingDiff = last[1] - first[1], sign = flingDiff < 0 ? -1 : 1, flingDuration = (last[0] - first[0]) / 1000;
-    if (flingDiff === 0 || flingDuration === 0) {
-        finish();
-        return;
-    }
-    var speed = Math.abs(flingDiff * (inertiaLinearity / flingDuration));
-    if (speed > inertiaMaxSpeed) {
-        speed = inertiaMaxSpeed;
-    }
-    var duration = speed / (inertiaDeceleration * inertiaLinearity), offset = sign * speed * (duration / 2);
-    bearing += offset;
-    if (Math.abs(map._normalizeBearing(bearing, 0)) < this._bearingSnap) {
-        bearing = map._normalizeBearing(0, bearing);
-    }
-    map.rotateTo(bearing, {
-        duration: duration * 1000,
-        easing: inertiaEasing,
-        noMoveStart: true
-    }, { originalEvent: e });
-};
-DragRotateHandler.prototype._fireEvent = function _fireEvent(type, e) {
-    return this._map.fire(new performance.Event(type, e ? { originalEvent: e } : {}));
-};
-DragRotateHandler.prototype._drainInertiaBuffer = function _drainInertiaBuffer() {
-    var inertia = this._inertia, now = performance.browser.now(), cutoff = 160;
-    while (inertia.length > 0 && now - inertia[0][0] > cutoff) {
-        inertia.shift();
+    var zoomInPoint = this._zoomIn.touchend(e, points, mapTouches);
+    var zoomOutPoint = this._zoomOut.touchend(e, points, mapTouches);
+    if (zoomInPoint) {
+        this._active = true;
+        e.preventDefault();
+        setTimeout(function () {
+            return this$1.reset();
+        }, 0);
+        return {
+            cameraAnimation: function (map) {
+                return map.easeTo({
+                    duration: 300,
+                    zoom: map.getZoom() + 1,
+                    around: map.unproject(zoomInPoint)
+                }, { originalEvent: e });
+            }
+        };
+    } else if (zoomOutPoint) {
+        this._active = true;
+        e.preventDefault();
+        setTimeout(function () {
+            return this$1.reset();
+        }, 0);
+        return {
+            cameraAnimation: function (map) {
+                return map.easeTo({
+                    duration: 300,
+                    zoom: map.getZoom() - 1,
+                    around: map.unproject(zoomOutPoint)
+                }, { originalEvent: e });
+            }
+        };
     }
 };
-
-var defaultInertia = {
-    linearity: 0.3,
-    easing: performance.bezier(0, 0, 0.3, 1),
-    maxSpeed: 1400,
-    deceleration: 2500
+TapZoomHandler.prototype.touchcancel = function touchcancel() {
+    this.reset();
 };
-var DragPanHandler = function DragPanHandler(map, options) {
-    this._map = map;
-    this._el = map.getCanvasContainer();
-    this._state = 'disabled';
-    this._clickTolerance = options.clickTolerance || 1;
-    this._inertiaOptions = defaultInertia;
-    performance.bindAll([
-        '_onMove',
-        '_onMouseUp',
-        '_onTouchEnd',
-        '_onBlur',
-        '_onDragFrame'
-    ], this);
-};
-DragPanHandler.prototype.isEnabled = function isEnabled() {
-    return this._state !== 'disabled';
-};
-DragPanHandler.prototype.isActive = function isActive() {
-    return this._state === 'active';
-};
-DragPanHandler.prototype.enable = function enable(options) {
-    if (this.isEnabled()) {
-        return;
-    }
-    this._el.classList.add('mapboxgl-touch-drag-pan');
-    this._state = 'enabled';
-    this._inertiaOptions = performance.extend(defaultInertia, options);
-};
-DragPanHandler.prototype.disable = function disable() {
-    if (!this.isEnabled()) {
-        return;
-    }
-    this._el.classList.remove('mapboxgl-touch-drag-pan');
-    switch (this._state) {
-    case 'active':
-        this._state = 'disabled';
-        this._unbind();
-        this._deactivate();
-        this._fireEvent('dragend');
-        this._fireEvent('moveend');
-        break;
-    case 'pending':
-        this._state = 'disabled';
-        this._unbind();
-        break;
-    default:
-        this._state = 'disabled';
-        break;
-    }
-};
-DragPanHandler.prototype.onMouseDown = function onMouseDown(e) {
-    if (this._state !== 'enabled') {
-        return;
-    }
-    if (e.ctrlKey || DOM.mouseButton(e) !== 0) {
-        return;
-    }
-    DOM.addEventListener(performance.window.document, 'mousemove', this._onMove, { capture: true });
-    DOM.addEventListener(performance.window.document, 'mouseup', this._onMouseUp);
-    this._start(e);
-};
-DragPanHandler.prototype.onTouchStart = function onTouchStart(e) {
-    if (!this.isEnabled()) {
-        return;
-    }
-    if (e.touches && e.touches.length > 1) {
-        if (this._state === 'pending' || this._state === 'active') {
-            return;
-        }
-    }
-    DOM.addEventListener(performance.window.document, 'touchmove', this._onMove, {
-        capture: true,
-        passive: false
-    });
-    DOM.addEventListener(performance.window.document, 'touchend', this._onTouchEnd);
-    this._start(e);
-};
-DragPanHandler.prototype._start = function _start(e) {
-    performance.window.addEventListener('blur', this._onBlur);
-    this._state = 'pending';
-    this._startPos = this._mouseDownPos = this._prevPos = this._lastPos = DOM.mousePos(this._el, e);
-    this._startTouch = this._lastTouch = performance.window.TouchEvent && e instanceof performance.window.TouchEvent ? DOM.touchPos(this._el, e) : null;
-    this._inertia = [[
-            performance.browser.now(),
-            this._startPos
-        ]];
-};
-DragPanHandler.prototype._touchesMatch = function _touchesMatch(lastTouch, thisTouch) {
-    if (!lastTouch || !thisTouch || lastTouch.length !== thisTouch.length) {
-        return false;
-    }
-    return lastTouch.every(function (pos, i) {
-        return thisTouch[i] === pos;
-    });
-};
-DragPanHandler.prototype._onMove = function _onMove(e) {
-    e.preventDefault();
-    var touchPos = performance.window.TouchEvent && e instanceof performance.window.TouchEvent ? DOM.touchPos(this._el, e) : null;
-    var pos = DOM.mousePos(this._el, e);
-    var matchesLastPos = touchPos ? this._touchesMatch(this._lastTouch, touchPos) : this._lastPos.equals(pos);
-    if (matchesLastPos || this._state === 'pending' && pos.dist(this._mouseDownPos) < this._clickTolerance) {
-        return;
-    }
-    this._lastMoveEvent = e;
-    this._lastPos = pos;
-    this._lastTouch = touchPos;
-    this._drainInertiaBuffer();
-    this._inertia.push([
-        performance.browser.now(),
-        this._lastPos
-    ]);
-    if (this._state === 'pending') {
-        this._state = 'active';
-        this._shouldStart = true;
-    }
-    if (!this._frameId) {
-        this._frameId = this._map._requestRenderFrame(this._onDragFrame);
-    }
-};
-DragPanHandler.prototype._onDragFrame = function _onDragFrame() {
-    this._frameId = null;
-    var e = this._lastMoveEvent;
-    if (!e) {
-        return;
-    }
-    if (this._map.touchZoomRotate.isActive()) {
-        this._abort(e);
-        return;
-    }
-    if (this._shouldStart) {
-        this._fireEvent('dragstart', e);
-        this._fireEvent('movestart', e);
-        this._shouldStart = false;
-    }
-    if (!this.isActive()) {
-        return;
-    }
-    var tr = this._map.transform;
-    tr.setLocationAtPoint(tr.pointLocation(this._prevPos), this._lastPos);
-    this._fireEvent('drag', e);
-    this._fireEvent('move', e);
-    this._prevPos = this._lastPos;
-    delete this._lastMoveEvent;
-};
-DragPanHandler.prototype._onMouseUp = function _onMouseUp(e) {
-    if (DOM.mouseButton(e) !== 0) {
-        return;
-    }
-    switch (this._state) {
-    case 'active':
-        this._state = 'enabled';
-        DOM.suppressClick();
-        this._unbind();
-        this._deactivate();
-        this._inertialPan(e);
-        break;
-    case 'pending':
-        this._state = 'enabled';
-        this._unbind();
-        break;
-    }
-};
-DragPanHandler.prototype._onTouchEnd = function _onTouchEnd(e) {
-    if (!e.touches || e.touches.length === 0) {
-        switch (this._state) {
-        case 'active':
-            this._state = 'enabled';
-            this._unbind();
-            this._deactivate();
-            this._inertialPan(e);
-            break;
-        case 'pending':
-            this._state = 'enabled';
-            this._unbind();
-            break;
-        case 'enabled':
-            this._unbind();
-            break;
-        }
-    } else {
-        switch (this._state) {
-        case 'pending':
-        case 'active':
-            break;
-        case 'enabled':
-            this.onTouchStart(e);
-            break;
-        }
-    }
-};
-DragPanHandler.prototype._abort = function _abort(e) {
-    switch (this._state) {
-    case 'active':
-        this._state = 'enabled';
-        if (!this._shouldStart) {
-            this._fireEvent('dragend', e);
-            this._fireEvent('moveend', e);
-        }
-        this._unbind();
-        this._deactivate();
-        if (performance.window.TouchEvent && e instanceof performance.window.TouchEvent && e.touches.length > 1) {
-            DOM.addEventListener(performance.window.document, 'touchend', this._onTouchEnd);
-        }
-        break;
-    case 'pending':
-        this._state = 'enabled';
-        this._unbind();
-        break;
-    case 'enabled':
-        this._unbind();
-        break;
-    }
-};
-DragPanHandler.prototype._onBlur = function _onBlur(e) {
-    this._abort(e);
-};
-DragPanHandler.prototype._unbind = function _unbind() {
-    DOM.removeEventListener(performance.window.document, 'touchmove', this._onMove, {
-        capture: true,
-        passive: false
-    });
-    DOM.removeEventListener(performance.window.document, 'touchend', this._onTouchEnd);
-    DOM.removeEventListener(performance.window.document, 'mousemove', this._onMove, { capture: true });
-    DOM.removeEventListener(performance.window.document, 'mouseup', this._onMouseUp);
-    DOM.removeEventListener(performance.window, 'blur', this._onBlur);
-};
-DragPanHandler.prototype._deactivate = function _deactivate() {
-    if (this._frameId) {
-        this._map._cancelRenderFrame(this._frameId);
-        this._frameId = null;
-    }
-    delete this._lastMoveEvent;
-    delete this._startPos;
-    delete this._prevPos;
-    delete this._mouseDownPos;
-    delete this._lastPos;
-    delete this._startTouch;
-    delete this._lastTouch;
-    delete this._shouldStart;
-};
-DragPanHandler.prototype._inertialPan = function _inertialPan(e) {
-    this._fireEvent('dragend', e);
-    this._drainInertiaBuffer();
-    var inertia = this._inertia;
-    if (inertia.length < 2) {
-        this._fireEvent('moveend', e);
-        return;
-    }
-    var last = inertia[inertia.length - 1], first = inertia[0], flingOffset = last[1].sub(first[1]), flingDuration = (last[0] - first[0]) / 1000;
-    if (flingDuration === 0 || last[1].equals(first[1])) {
-        this._fireEvent('moveend', e);
-        return;
-    }
-    var ref = this._inertiaOptions;
-    var linearity = ref.linearity;
-    var easing = ref.easing;
-    var maxSpeed = ref.maxSpeed;
-    var deceleration = ref.deceleration;
-    var velocity = flingOffset.mult(linearity / flingDuration);
-    var speed = velocity.mag();
-    if (speed > maxSpeed) {
-        speed = maxSpeed;
-        velocity._unit()._mult(speed);
-    }
-    var duration = speed / (deceleration * linearity), offset = velocity.mult(-duration / 2);
-    this._map.panBy(offset, {
-        duration: duration * 1000,
-        easing: easing,
-        noMoveStart: true
-    }, { originalEvent: e });
-};
-DragPanHandler.prototype._fireEvent = function _fireEvent(type, e) {
-    return this._map.fire(new performance.Event(type, e ? { originalEvent: e } : {}));
-};
-DragPanHandler.prototype._drainInertiaBuffer = function _drainInertiaBuffer() {
-    var inertia = this._inertia, now = performance.browser.now(), cutoff = 160;
-    while (inertia.length > 0 && now - inertia[0][0] > cutoff) {
-        inertia.shift();
-    }
-};
-
-var panStep = 100, bearingStep = 15, pitchStep = 10;
-var KeyboardHandler = function KeyboardHandler(map) {
-    this._map = map;
-    this._el = map.getCanvasContainer();
-    performance.bindAll(['_onKeyDown'], this);
-};
-KeyboardHandler.prototype.isEnabled = function isEnabled() {
-    return !!this._enabled;
-};
-KeyboardHandler.prototype.enable = function enable() {
-    if (this.isEnabled()) {
-        return;
-    }
-    this._el.addEventListener('keydown', this._onKeyDown, false);
+TapZoomHandler.prototype.enable = function enable() {
     this._enabled = true;
 };
-KeyboardHandler.prototype.disable = function disable() {
-    if (!this.isEnabled()) {
+TapZoomHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+TapZoomHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+TapZoomHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+
+var LEFT_BUTTON = 0;
+var RIGHT_BUTTON = 2;
+var BUTTONS_FLAGS = {};
+BUTTONS_FLAGS[LEFT_BUTTON] = 1;
+BUTTONS_FLAGS[RIGHT_BUTTON] = 2;
+function buttonStillPressed(e, button) {
+    var flag = BUTTONS_FLAGS[button];
+    return e.buttons === undefined || (e.buttons & flag) !== flag;
+}
+var MouseHandler = function MouseHandler(options) {
+    this.reset();
+    this._clickTolerance = options.clickTolerance || 1;
+};
+MouseHandler.prototype.blur = function blur() {
+    this.reset();
+};
+MouseHandler.prototype.reset = function reset() {
+    this._active = false;
+    this._moved = false;
+    delete this._lastPoint;
+    delete this._eventButton;
+};
+MouseHandler.prototype._correctButton = function _correctButton(e, button) {
+    return false;
+};
+MouseHandler.prototype._move = function _move(lastPoint, point) {
+    return {};
+};
+MouseHandler.prototype.mousedown = function mousedown(e, point) {
+    if (this._lastPoint) {
         return;
     }
-    this._el.removeEventListener('keydown', this._onKeyDown);
-    this._enabled = false;
+    var eventButton = DOM.mouseButton(e);
+    if (!this._correctButton(e, eventButton)) {
+        return;
+    }
+    this._lastPoint = point;
+    this._eventButton = eventButton;
 };
-KeyboardHandler.prototype._onKeyDown = function _onKeyDown(e) {
+MouseHandler.prototype.mousemoveWindow = function mousemoveWindow(e, point) {
+    var lastPoint = this._lastPoint;
+    if (!lastPoint) {
+        return;
+    }
+    e.preventDefault();
+    if (buttonStillPressed(e, this._eventButton)) {
+        this.reset();
+        return;
+    }
+    if (!this._moved && point.dist(lastPoint) < this._clickTolerance) {
+        return;
+    }
+    this._moved = true;
+    this._lastPoint = point;
+    return this._move(lastPoint, point);
+};
+MouseHandler.prototype.mouseupWindow = function mouseupWindow(e) {
+    if (!this._lastPoint) {
+        return;
+    }
+    var eventButton = DOM.mouseButton(e);
+    if (eventButton !== this._eventButton) {
+        return;
+    }
+    if (this._moved) {
+        DOM.suppressClick();
+    }
+    this.reset();
+};
+MouseHandler.prototype.enable = function enable() {
+    this._enabled = true;
+};
+MouseHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+MouseHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+MouseHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+var MousePanHandler = function (MouseHandler) {
+    function MousePanHandler() {
+        MouseHandler.apply(this, arguments);
+    }
+    if (MouseHandler)
+        MousePanHandler.__proto__ = MouseHandler;
+    MousePanHandler.prototype = Object.create(MouseHandler && MouseHandler.prototype);
+    MousePanHandler.prototype.constructor = MousePanHandler;
+    MousePanHandler.prototype.mousedown = function mousedown(e, point) {
+        MouseHandler.prototype.mousedown.call(this, e, point);
+        if (this._lastPoint) {
+            this._active = true;
+        }
+    };
+    MousePanHandler.prototype._correctButton = function _correctButton(e, button) {
+        return button === LEFT_BUTTON && !e.ctrlKey;
+    };
+    MousePanHandler.prototype._move = function _move(lastPoint, point) {
+        return {
+            around: point,
+            panDelta: point.sub(lastPoint)
+        };
+    };
+    return MousePanHandler;
+}(MouseHandler);
+var MouseRotateHandler = function (MouseHandler) {
+    function MouseRotateHandler() {
+        MouseHandler.apply(this, arguments);
+    }
+    if (MouseHandler)
+        MouseRotateHandler.__proto__ = MouseHandler;
+    MouseRotateHandler.prototype = Object.create(MouseHandler && MouseHandler.prototype);
+    MouseRotateHandler.prototype.constructor = MouseRotateHandler;
+    MouseRotateHandler.prototype._correctButton = function _correctButton(e, button) {
+        return button === LEFT_BUTTON && e.ctrlKey || button === RIGHT_BUTTON;
+    };
+    MouseRotateHandler.prototype._move = function _move(lastPoint, point) {
+        var degreesPerPixelMoved = 0.8;
+        var bearingDelta = (point.x - lastPoint.x) * degreesPerPixelMoved;
+        if (bearingDelta) {
+            this._active = true;
+            return { bearingDelta: bearingDelta };
+        }
+    };
+    MouseRotateHandler.prototype.contextmenu = function contextmenu(e) {
+        e.preventDefault();
+    };
+    return MouseRotateHandler;
+}(MouseHandler);
+var MousePitchHandler = function (MouseHandler) {
+    function MousePitchHandler() {
+        MouseHandler.apply(this, arguments);
+    }
+    if (MouseHandler)
+        MousePitchHandler.__proto__ = MouseHandler;
+    MousePitchHandler.prototype = Object.create(MouseHandler && MouseHandler.prototype);
+    MousePitchHandler.prototype.constructor = MousePitchHandler;
+    MousePitchHandler.prototype._correctButton = function _correctButton(e, button) {
+        return button === LEFT_BUTTON && e.ctrlKey || button === RIGHT_BUTTON;
+    };
+    MousePitchHandler.prototype._move = function _move(lastPoint, point) {
+        var degreesPerPixelMoved = -0.5;
+        var pitchDelta = (point.y - lastPoint.y) * degreesPerPixelMoved;
+        if (pitchDelta) {
+            this._active = true;
+            return { pitchDelta: pitchDelta };
+        }
+    };
+    MousePitchHandler.prototype.contextmenu = function contextmenu(e) {
+        e.preventDefault();
+    };
+    return MousePitchHandler;
+}(MouseHandler);
+
+var TouchPanHandler = function TouchPanHandler(options) {
+    this._minTouches = 1;
+    this._clickTolerance = options.clickTolerance || 1;
+    this.reset();
+};
+TouchPanHandler.prototype.reset = function reset() {
+    this._active = false;
+    this._touches = {};
+    this._sum = new performance.Point(0, 0);
+};
+TouchPanHandler.prototype.touchstart = function touchstart(e, points, mapTouches) {
+    return this._calculateTransform(e, points, mapTouches);
+};
+TouchPanHandler.prototype.touchmove = function touchmove(e, points, mapTouches) {
+    if (!this._active || mapTouches.length < this._minTouches) {
+        return;
+    }
+    e.preventDefault();
+    return this._calculateTransform(e, points, mapTouches);
+};
+TouchPanHandler.prototype.touchend = function touchend(e, points, mapTouches) {
+    this._calculateTransform(e, points, mapTouches);
+    if (this._active && mapTouches.length < this._minTouches) {
+        this.reset();
+    }
+};
+TouchPanHandler.prototype.touchcancel = function touchcancel() {
+    this.reset();
+};
+TouchPanHandler.prototype._calculateTransform = function _calculateTransform(e, points, mapTouches) {
+    if (mapTouches.length > 0) {
+        this._active = true;
+    }
+    var touches = indexTouches(mapTouches, points);
+    var touchPointSum = new performance.Point(0, 0);
+    var touchDeltaSum = new performance.Point(0, 0);
+    var touchDeltaCount = 0;
+    for (var identifier in touches) {
+        var point = touches[identifier];
+        var prevPoint = this._touches[identifier];
+        if (prevPoint) {
+            touchPointSum._add(point);
+            touchDeltaSum._add(point.sub(prevPoint));
+            touchDeltaCount++;
+            touches[identifier] = point;
+        }
+    }
+    this._touches = touches;
+    if (touchDeltaCount < this._minTouches || !touchDeltaSum.mag()) {
+        return;
+    }
+    var panDelta = touchDeltaSum.div(touchDeltaCount);
+    this._sum._add(panDelta);
+    if (this._sum.mag() < this._clickTolerance) {
+        return;
+    }
+    var around = touchPointSum.div(touchDeltaCount);
+    return {
+        around: around,
+        panDelta: panDelta
+    };
+};
+TouchPanHandler.prototype.enable = function enable() {
+    this._enabled = true;
+};
+TouchPanHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+TouchPanHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+TouchPanHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+
+var TwoTouchHandler = function TwoTouchHandler() {
+    this.reset();
+};
+TwoTouchHandler.prototype.reset = function reset() {
+    this._active = false;
+    delete this._firstTwoTouches;
+};
+TwoTouchHandler.prototype._start = function _start(points) {
+};
+TwoTouchHandler.prototype._move = function _move(points, pinchAround, e) {
+    return {};
+};
+TwoTouchHandler.prototype.touchstart = function touchstart(e, points, mapTouches) {
+    if (this._firstTwoTouches || mapTouches.length < 2) {
+        return;
+    }
+    this._firstTwoTouches = [
+        mapTouches[0].identifier,
+        mapTouches[1].identifier
+    ];
+    this._start([
+        points[0],
+        points[1]
+    ]);
+};
+TwoTouchHandler.prototype.touchmove = function touchmove(e, points, mapTouches) {
+    if (!this._firstTwoTouches) {
+        return;
+    }
+    e.preventDefault();
+    var ref = this._firstTwoTouches;
+    var idA = ref[0];
+    var idB = ref[1];
+    var a = getTouchById(mapTouches, points, idA);
+    var b = getTouchById(mapTouches, points, idB);
+    if (!a || !b) {
+        return;
+    }
+    var pinchAround = this._aroundCenter ? null : a.add(b).div(2);
+    return this._move([
+        a,
+        b
+    ], pinchAround, e);
+};
+TwoTouchHandler.prototype.touchend = function touchend(e, points, mapTouches) {
+    if (!this._firstTwoTouches) {
+        return;
+    }
+    var ref = this._firstTwoTouches;
+    var idA = ref[0];
+    var idB = ref[1];
+    var a = getTouchById(mapTouches, points, idA);
+    var b = getTouchById(mapTouches, points, idB);
+    if (a && b) {
+        return;
+    }
+    if (this._active) {
+        DOM.suppressClick();
+    }
+    this.reset();
+};
+TwoTouchHandler.prototype.touchcancel = function touchcancel() {
+    this.reset();
+};
+TwoTouchHandler.prototype.enable = function enable(options) {
+    this._enabled = true;
+    this._aroundCenter = !!options && options.around === 'center';
+};
+TwoTouchHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+TwoTouchHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+TwoTouchHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+function getTouchById(mapTouches, points, identifier) {
+    for (var i = 0; i < mapTouches.length; i++) {
+        if (mapTouches[i].identifier === identifier) {
+            return points[i];
+        }
+    }
+}
+var ZOOM_THRESHOLD = 0.1;
+function getZoomDelta(distance, lastDistance) {
+    return Math.log(distance / lastDistance) / Math.LN2;
+}
+var TouchZoomHandler = function (TwoTouchHandler) {
+    function TouchZoomHandler() {
+        TwoTouchHandler.apply(this, arguments);
+    }
+    if (TwoTouchHandler)
+        TouchZoomHandler.__proto__ = TwoTouchHandler;
+    TouchZoomHandler.prototype = Object.create(TwoTouchHandler && TwoTouchHandler.prototype);
+    TouchZoomHandler.prototype.constructor = TouchZoomHandler;
+    TouchZoomHandler.prototype.reset = function reset() {
+        TwoTouchHandler.prototype.reset.call(this);
+        delete this._distance;
+        delete this._startDistance;
+    };
+    TouchZoomHandler.prototype._start = function _start(points) {
+        this._startDistance = this._distance = points[0].dist(points[1]);
+    };
+    TouchZoomHandler.prototype._move = function _move(points, pinchAround) {
+        var lastDistance = this._distance;
+        this._distance = points[0].dist(points[1]);
+        if (!this._active && Math.abs(getZoomDelta(this._distance, this._startDistance)) < ZOOM_THRESHOLD) {
+            return;
+        }
+        this._active = true;
+        return {
+            zoomDelta: getZoomDelta(this._distance, lastDistance),
+            pinchAround: pinchAround
+        };
+    };
+    return TouchZoomHandler;
+}(TwoTouchHandler);
+var ROTATION_THRESHOLD = 25;
+function getBearingDelta(a, b) {
+    return a.angleWith(b) * 180 / Math.PI;
+}
+var TouchRotateHandler = function (TwoTouchHandler) {
+    function TouchRotateHandler() {
+        TwoTouchHandler.apply(this, arguments);
+    }
+    if (TwoTouchHandler)
+        TouchRotateHandler.__proto__ = TwoTouchHandler;
+    TouchRotateHandler.prototype = Object.create(TwoTouchHandler && TwoTouchHandler.prototype);
+    TouchRotateHandler.prototype.constructor = TouchRotateHandler;
+    TouchRotateHandler.prototype.reset = function reset() {
+        TwoTouchHandler.prototype.reset.call(this);
+        delete this._minDiameter;
+        delete this._startVector;
+        delete this._vector;
+    };
+    TouchRotateHandler.prototype._start = function _start(points) {
+        this._startVector = this._vector = points[0].sub(points[1]);
+        this._minDiameter = points[0].dist(points[1]);
+    };
+    TouchRotateHandler.prototype._move = function _move(points, pinchAround) {
+        var lastVector = this._vector;
+        this._vector = points[0].sub(points[1]);
+        if (!this._active && this._isBelowThreshold(this._vector)) {
+            return;
+        }
+        this._active = true;
+        return {
+            bearingDelta: getBearingDelta(this._vector, lastVector),
+            pinchAround: pinchAround
+        };
+    };
+    TouchRotateHandler.prototype._isBelowThreshold = function _isBelowThreshold(vector) {
+        this._minDiameter = Math.min(this._minDiameter, vector.mag());
+        var circumference = Math.PI * this._minDiameter;
+        var threshold = ROTATION_THRESHOLD / circumference * 360;
+        var bearingDeltaSinceStart = getBearingDelta(vector, this._startVector);
+        return Math.abs(bearingDeltaSinceStart) < threshold;
+    };
+    return TouchRotateHandler;
+}(TwoTouchHandler);
+function isVertical(vector) {
+    return Math.abs(vector.y) > Math.abs(vector.x);
+}
+var ALLOWED_SINGLE_TOUCH_TIME = 100;
+var TouchPitchHandler = function (TwoTouchHandler) {
+    function TouchPitchHandler() {
+        TwoTouchHandler.apply(this, arguments);
+    }
+    if (TwoTouchHandler)
+        TouchPitchHandler.__proto__ = TwoTouchHandler;
+    TouchPitchHandler.prototype = Object.create(TwoTouchHandler && TwoTouchHandler.prototype);
+    TouchPitchHandler.prototype.constructor = TouchPitchHandler;
+    TouchPitchHandler.prototype.reset = function reset() {
+        TwoTouchHandler.prototype.reset.call(this);
+        this._valid = undefined;
+        delete this._firstMove;
+        delete this._lastPoints;
+    };
+    TouchPitchHandler.prototype._start = function _start(points) {
+        this._lastPoints = points;
+        if (isVertical(points[0].sub(points[1]))) {
+            this._valid = false;
+        }
+    };
+    TouchPitchHandler.prototype._move = function _move(points, center, e) {
+        var vectorA = points[0].sub(this._lastPoints[0]);
+        var vectorB = points[1].sub(this._lastPoints[1]);
+        this._valid = this.gestureBeginsVertically(vectorA, vectorB, e.timeStamp);
+        if (!this._valid) {
+            return;
+        }
+        this._lastPoints = points;
+        this._active = true;
+        var yDeltaAverage = (vectorA.y + vectorB.y) / 2;
+        var degreesPerPixelMoved = -0.5;
+        return { pitchDelta: yDeltaAverage * degreesPerPixelMoved };
+    };
+    TouchPitchHandler.prototype.gestureBeginsVertically = function gestureBeginsVertically(vectorA, vectorB, timeStamp) {
+        if (this._valid !== undefined) {
+            return this._valid;
+        }
+        var threshold = 2;
+        var movedA = vectorA.mag() >= threshold;
+        var movedB = vectorB.mag() >= threshold;
+        if (!movedA && !movedB) {
+            return;
+        }
+        if (!movedA || !movedB) {
+            if (this._firstMove === undefined) {
+                this._firstMove = timeStamp;
+            }
+            if (timeStamp - this._firstMove < ALLOWED_SINGLE_TOUCH_TIME) {
+                return undefined;
+            } else {
+                return false;
+            }
+        }
+        var isSameDirection = vectorA.y > 0 === vectorB.y > 0;
+        return isVertical(vectorA) && isVertical(vectorB) && isSameDirection;
+    };
+    return TouchPitchHandler;
+}(TwoTouchHandler);
+
+var defaultOptions = {
+    panStep: 100,
+    bearingStep: 15,
+    pitchStep: 10
+};
+var KeyboardHandler = function KeyboardHandler() {
+    var stepOptions = defaultOptions;
+    this._panStep = stepOptions.panStep;
+    this._bearingStep = stepOptions.bearingStep;
+    this._pitchStep = stepOptions.pitchStep;
+    this._rotationDisabled = false;
+};
+KeyboardHandler.prototype.blur = function blur() {
+    this.reset();
+};
+KeyboardHandler.prototype.reset = function reset() {
+    this._active = false;
+};
+KeyboardHandler.prototype.keydown = function keydown(e) {
+    var this$1 = this;
     if (e.altKey || e.ctrlKey || e.metaKey) {
         return;
     }
@@ -37880,443 +38473,955 @@ KeyboardHandler.prototype._onKeyDown = function _onKeyDown(e) {
         if (e.shiftKey) {
             pitchDir = -1;
         } else {
-            yDir = 1;
             e.preventDefault();
+            yDir = 1;
         }
         break;
     default:
         return;
     }
-    var map = this._map;
-    var zoom = map.getZoom();
-    var easeOptions = {
-        duration: 300,
-        delayEndEvents: 500,
-        easing: easeOut,
-        zoom: zoomDir ? Math.round(zoom) + zoomDir * (e.shiftKey ? 2 : 1) : zoom,
-        bearing: map.getBearing() + bearingDir * bearingStep,
-        pitch: map.getPitch() + pitchDir * pitchStep,
-        offset: [
-            -xDir * panStep,
-            -yDir * panStep
-        ],
-        center: map.getCenter()
+    if (this._rotationDisabled) {
+        bearingDir = 0;
+        pitchDir = 0;
+    }
+    return {
+        cameraAnimation: function (map) {
+            var zoom = map.getZoom();
+            map.easeTo({
+                duration: 300,
+                easeId: 'keyboardHandler',
+                easing: easeOut,
+                zoom: zoomDir ? Math.round(zoom) + zoomDir * (e.shiftKey ? 2 : 1) : zoom,
+                bearing: map.getBearing() + bearingDir * this$1._bearingStep,
+                pitch: map.getPitch() + pitchDir * this$1._pitchStep,
+                offset: [
+                    -xDir * this$1._panStep,
+                    -yDir * this$1._panStep
+                ],
+                center: map.getCenter()
+            }, { originalEvent: e });
+        }
     };
-    map.easeTo(easeOptions, { originalEvent: e });
+};
+KeyboardHandler.prototype.enable = function enable() {
+    this._enabled = true;
+};
+KeyboardHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+KeyboardHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+KeyboardHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+KeyboardHandler.prototype.disableRotation = function disableRotation() {
+    this._rotationDisabled = true;
+};
+KeyboardHandler.prototype.enableRotation = function enableRotation() {
+    this._rotationDisabled = false;
 };
 function easeOut(t) {
     return t * (2 - t);
 }
 
-var maxDist = 30;
-var DoubleClickZoomHandler = function DoubleClickZoomHandler(map) {
-    this._map = map;
-    performance.bindAll([
-        '_onDblClick',
-        '_onZoomEnd'
-    ], this);
-};
-DoubleClickZoomHandler.prototype.isEnabled = function isEnabled() {
-    return !!this._enabled;
-};
-DoubleClickZoomHandler.prototype.isActive = function isActive() {
-    return !!this._active;
-};
-DoubleClickZoomHandler.prototype.enable = function enable() {
-    if (this.isEnabled()) {
-        return;
-    }
-    this._enabled = true;
-};
-DoubleClickZoomHandler.prototype.disable = function disable() {
-    if (!this.isEnabled()) {
-        return;
-    }
-    this._enabled = false;
-};
-DoubleClickZoomHandler.prototype.onTouchStart = function onTouchStart(e) {
-    var this$1 = this;
-    if (!this.isEnabled()) {
-        return;
-    }
-    if (e.points.length > 1) {
-        return;
-    }
-    if (!this._tapped) {
-        this._tappedPoint = e.points[0];
-        this._tapped = setTimeout(function () {
-            this$1._tapped = null;
-            this$1._tappedPoint = null;
-        }, 300);
-    } else {
-        var newTap = e.points[0];
-        var firstTap = this._tappedPoint;
-        if (firstTap && firstTap.dist(newTap) <= maxDist) {
-            e.originalEvent.preventDefault();
-            var onTouchEnd = function () {
-                if (this$1._tapped) {
-                    this$1._zoom(e);
-                }
-                this$1._map.off('touchcancel', onTouchCancel);
-                this$1._resetTapped();
-            };
-            var onTouchCancel = function () {
-                this$1._map.off('touchend', onTouchEnd);
-                this$1._resetTapped();
-            };
-            this._map.once('touchend', onTouchEnd);
-            this._map.once('touchcancel', onTouchCancel);
-        } else {
-            this._resetTapped();
-        }
-    }
-};
-DoubleClickZoomHandler.prototype._resetTapped = function _resetTapped() {
-    clearTimeout(this._tapped);
-    this._tapped = null;
-    this._tappedPoint = null;
-};
-DoubleClickZoomHandler.prototype.onDblClick = function onDblClick(e) {
-    if (!this.isEnabled()) {
-        return;
-    }
-    e.originalEvent.preventDefault();
-    this._zoom(e);
-};
-DoubleClickZoomHandler.prototype._zoom = function _zoom(e) {
-    this._active = true;
-    this._map.on('zoomend', this._onZoomEnd);
-    this._map.zoomTo(this._map.getZoom() + (e.originalEvent.shiftKey ? -1 : 1), { around: e.lngLat }, e);
-};
-DoubleClickZoomHandler.prototype._onZoomEnd = function _onZoomEnd() {
-    this._active = false;
-    this._map.off('zoomend', this._onZoomEnd);
-};
-
-var inertiaLinearity$1 = 0.15, inertiaEasing$1 = performance.bezier(0, 0, inertiaLinearity$1, 1), inertiaDeceleration$1 = 12, inertiaMaxSpeed$1 = 2.5, significantScaleThreshold = 0.15, significantRotateThreshold = 10;
-var TouchZoomRotateHandler = function TouchZoomRotateHandler(map) {
+var wheelZoomDelta = 4.000244140625;
+var defaultZoomRate = 1 / 100;
+var wheelZoomRate = 1 / 450;
+var maxScalePerFrame = 2;
+var ScrollZoomHandler = function ScrollZoomHandler(map, handler) {
     this._map = map;
     this._el = map.getCanvasContainer();
-    performance.bindAll([
-        '_onMove',
-        '_onEnd',
-        '_onTouchFrame'
-    ], this);
+    this._handler = handler;
+    this._delta = 0;
+    this._defaultZoomRate = defaultZoomRate;
+    this._wheelZoomRate = wheelZoomRate;
+    performance.bindAll(['_onTimeout'], this);
 };
-TouchZoomRotateHandler.prototype.isEnabled = function isEnabled() {
+ScrollZoomHandler.prototype.setZoomRate = function setZoomRate(zoomRate) {
+    this._defaultZoomRate = zoomRate;
+};
+ScrollZoomHandler.prototype.setWheelZoomRate = function setWheelZoomRate(wheelZoomRate) {
+    this._wheelZoomRate = wheelZoomRate;
+};
+ScrollZoomHandler.prototype.isEnabled = function isEnabled() {
     return !!this._enabled;
 };
-TouchZoomRotateHandler.prototype.enable = function enable(options) {
+ScrollZoomHandler.prototype.isActive = function isActive() {
+    return !!this._active || this._finishTimeout !== undefined;
+};
+ScrollZoomHandler.prototype.isZooming = function isZooming() {
+    return !!this._zooming;
+};
+ScrollZoomHandler.prototype.enable = function enable(options) {
     if (this.isEnabled()) {
         return;
     }
-    this._el.classList.add('mapboxgl-touch-zoom-rotate');
     this._enabled = true;
-    this._aroundCenter = !!options && options.around === 'center';
+    this._aroundCenter = options && options.around === 'center';
 };
-TouchZoomRotateHandler.prototype.disable = function disable() {
+ScrollZoomHandler.prototype.disable = function disable() {
     if (!this.isEnabled()) {
         return;
     }
-    this._el.classList.remove('mapboxgl-touch-zoom-rotate');
     this._enabled = false;
 };
-TouchZoomRotateHandler.prototype.disableRotation = function disableRotation() {
-    this._rotationDisabled = true;
-};
-TouchZoomRotateHandler.prototype.enableRotation = function enableRotation() {
-    this._rotationDisabled = false;
-};
-TouchZoomRotateHandler.prototype.isActive = function isActive() {
-    return this.isEnabled() && !!this._gestureIntent;
-};
-TouchZoomRotateHandler.prototype.onStart = function onStart(e) {
+ScrollZoomHandler.prototype.wheel = function wheel(e) {
     if (!this.isEnabled()) {
         return;
     }
-    if (e.touches.length !== 2) {
-        return;
-    }
-    var p0 = DOM.mousePos(this._el, e.touches[0]), p1 = DOM.mousePos(this._el, e.touches[1]), center = p0.add(p1).div(2);
-    this._startVec = p0.sub(p1);
-    this._startAround = this._map.transform.pointLocation(center);
-    this._gestureIntent = undefined;
-    this._inertia = [];
-    DOM.addEventListener(performance.window.document, 'touchmove', this._onMove, { passive: false });
-    DOM.addEventListener(performance.window.document, 'touchend', this._onEnd);
-};
-TouchZoomRotateHandler.prototype._getTouchEventData = function _getTouchEventData(e) {
-    var p0 = DOM.mousePos(this._el, e.touches[0]), p1 = DOM.mousePos(this._el, e.touches[1]);
-    var vec = p0.sub(p1);
-    return {
-        vec: vec,
-        center: p0.add(p1).div(2),
-        scale: vec.mag() / this._startVec.mag(),
-        bearing: this._rotationDisabled ? 0 : vec.angleWith(this._startVec) * 180 / Math.PI
-    };
-};
-TouchZoomRotateHandler.prototype._onMove = function _onMove(e) {
-    if (e.touches.length !== 2) {
-        return;
-    }
-    var ref = this._getTouchEventData(e);
-    var vec = ref.vec;
-    var scale = ref.scale;
-    var bearing = ref.bearing;
-    if (!this._gestureIntent) {
-        var scalingSignificantly = this._rotationDisabled && scale !== 1 || Math.abs(1 - scale) > significantScaleThreshold, rotatingSignificantly = Math.abs(bearing) > significantRotateThreshold;
-        if (rotatingSignificantly) {
-            this._gestureIntent = 'rotate';
-        } else if (scalingSignificantly) {
-            this._gestureIntent = 'zoom';
-        }
-        if (this._gestureIntent) {
-            this._map.fire(new performance.Event(this._gestureIntent + 'start', { originalEvent: e }));
-            this._map.fire(new performance.Event('movestart', { originalEvent: e }));
-            this._startVec = vec;
+    var value = e.deltaMode === performance.window.WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY;
+    var now = performance.browser.now(), timeDelta = now - (this._lastWheelEventTime || 0);
+    this._lastWheelEventTime = now;
+    if (value !== 0 && value % wheelZoomDelta === 0) {
+        this._type = 'wheel';
+    } else if (value !== 0 && Math.abs(value) < 4) {
+        this._type = 'trackpad';
+    } else if (timeDelta > 400) {
+        this._type = null;
+        this._lastValue = value;
+        this._timeout = setTimeout(this._onTimeout, 40, e);
+    } else if (!this._type) {
+        this._type = Math.abs(timeDelta * value) < 200 ? 'trackpad' : 'wheel';
+        if (this._timeout) {
+            clearTimeout(this._timeout);
+            this._timeout = null;
+            value += this._lastValue;
         }
     }
-    this._lastTouchEvent = e;
-    if (!this._frameId) {
-        this._frameId = this._map._requestRenderFrame(this._onTouchFrame);
+    if (e.shiftKey && value) {
+        value = value / 4;
+    }
+    if (this._type) {
+        this._lastWheelEvent = e;
+        this._delta -= value;
+        if (!this._active) {
+            this._start(e);
+        }
     }
     e.preventDefault();
 };
-TouchZoomRotateHandler.prototype._onTouchFrame = function _onTouchFrame() {
+ScrollZoomHandler.prototype._onTimeout = function _onTimeout(initialEvent) {
+    this._type = 'wheel';
+    this._delta -= this._lastValue;
+    if (!this._active) {
+        this._start(initialEvent);
+    }
+};
+ScrollZoomHandler.prototype._start = function _start(e) {
+    if (!this._delta) {
+        return;
+    }
+    if (this._frameId) {
+        this._frameId = null;
+    }
+    this._active = true;
+    if (!this.isZooming()) {
+        this._zooming = true;
+    }
+    if (this._finishTimeout) {
+        clearTimeout(this._finishTimeout);
+        delete this._finishTimeout;
+    }
+    var pos = DOM.mousePos(this._el, e);
+    this._around = performance.LngLat.convert(this._aroundCenter ? this._map.getCenter() : this._map.unproject(pos));
+    this._aroundPoint = this._map.transform.locationPoint(this._around);
+    if (!this._frameId) {
+        this._frameId = true;
+        this._handler._triggerRenderFrame();
+    }
+};
+ScrollZoomHandler.prototype.renderFrame = function renderFrame() {
+    var this$1 = this;
+    if (!this._frameId) {
+        return;
+    }
     this._frameId = null;
-    var gestureIntent = this._gestureIntent;
-    if (!gestureIntent) {
+    if (!this.isActive()) {
         return;
     }
     var tr = this._map.transform;
-    if (!this._startScale) {
-        this._startScale = tr.scale;
-        this._startBearing = tr.bearing;
+    if (this._delta !== 0) {
+        var zoomRate = this._type === 'wheel' && Math.abs(this._delta) > wheelZoomDelta ? this._wheelZoomRate : this._defaultZoomRate;
+        var scale = maxScalePerFrame / (1 + Math.exp(-Math.abs(this._delta * zoomRate)));
+        if (this._delta < 0 && scale !== 0) {
+            scale = 1 / scale;
+        }
+        var fromScale = typeof this._targetZoom === 'number' ? tr.zoomScale(this._targetZoom) : tr.scale;
+        this._targetZoom = Math.min(tr.maxZoom, Math.max(tr.minZoom, tr.scaleZoom(fromScale * scale)));
+        if (this._type === 'wheel') {
+            this._startZoom = tr.zoom;
+            this._easing = this._smoothOutEasing(200);
+        }
+        this._delta = 0;
     }
-    var ref = this._getTouchEventData(this._lastTouchEvent);
-    var center = ref.center;
-    var bearing = ref.bearing;
-    var scale = ref.scale;
-    var around = tr.pointLocation(center);
-    var aroundPoint = tr.locationPoint(around);
-    if (gestureIntent === 'rotate') {
-        tr.bearing = this._startBearing + bearing;
-    }
-    tr.zoom = tr.scaleZoom(this._startScale * scale);
-    tr.setLocationAtPoint(this._startAround, aroundPoint);
-    this._map.fire(new performance.Event(gestureIntent, { originalEvent: this._lastTouchEvent }));
-    this._map.fire(new performance.Event('move', { originalEvent: this._lastTouchEvent }));
-    this._drainInertiaBuffer();
-    this._inertia.push([
-        performance.browser.now(),
-        scale,
-        center
-    ]);
-};
-TouchZoomRotateHandler.prototype._onEnd = function _onEnd(e) {
-    DOM.removeEventListener(performance.window.document, 'touchmove', this._onMove, { passive: false });
-    DOM.removeEventListener(performance.window.document, 'touchend', this._onEnd);
-    var gestureIntent = this._gestureIntent;
-    var startScale = this._startScale;
-    if (this._frameId) {
-        this._map._cancelRenderFrame(this._frameId);
-        this._frameId = null;
-    }
-    delete this._gestureIntent;
-    delete this._startScale;
-    delete this._startBearing;
-    delete this._lastTouchEvent;
-    if (!gestureIntent) {
-        return;
-    }
-    this._map.fire(new performance.Event(gestureIntent + 'end', { originalEvent: e }));
-    this._drainInertiaBuffer();
-    var inertia = this._inertia, map = this._map;
-    if (inertia.length < 2) {
-        map.snapToNorth({}, { originalEvent: e });
-        return;
-    }
-    var last = inertia[inertia.length - 1], first = inertia[0], lastScale = map.transform.scaleZoom(startScale * last[1]), firstScale = map.transform.scaleZoom(startScale * first[1]), scaleOffset = lastScale - firstScale, scaleDuration = (last[0] - first[0]) / 1000, p = last[2];
-    if (scaleDuration === 0 || lastScale === firstScale) {
-        map.snapToNorth({}, { originalEvent: e });
-        return;
-    }
-    var speed = scaleOffset * inertiaLinearity$1 / scaleDuration;
-    if (Math.abs(speed) > inertiaMaxSpeed$1) {
-        if (speed > 0) {
-            speed = inertiaMaxSpeed$1;
+    var targetZoom = typeof this._targetZoom === 'number' ? this._targetZoom : tr.zoom;
+    var startZoom = this._startZoom;
+    var easing = this._easing;
+    var finished = false;
+    var zoom;
+    if (this._type === 'wheel' && startZoom && easing) {
+        var t = Math.min((performance.browser.now() - this._lastWheelEventTime) / 200, 1);
+        var k = easing(t);
+        zoom = performance.number(startZoom, targetZoom, k);
+        if (t < 1) {
+            if (!this._frameId) {
+                this._frameId = true;
+            }
         } else {
-            speed = -inertiaMaxSpeed$1;
+            finished = true;
+        }
+    } else {
+        zoom = targetZoom;
+        finished = true;
+    }
+    this._active = true;
+    if (finished) {
+        this._active = false;
+        this._finishTimeout = setTimeout(function () {
+            this$1._zooming = false;
+            this$1._handler._triggerRenderFrame();
+            delete this$1._targetZoom;
+            delete this$1._finishTimeout;
+        }, 200);
+    }
+    return {
+        noInertia: true,
+        needsRenderFrame: !finished,
+        zoomDelta: zoom - tr.zoom,
+        around: this._aroundPoint,
+        originalEvent: this._lastWheelEvent
+    };
+};
+ScrollZoomHandler.prototype._smoothOutEasing = function _smoothOutEasing(duration) {
+    var easing = performance.ease;
+    if (this._prevEase) {
+        var ease = this._prevEase, t = (performance.browser.now() - ease.start) / ease.duration, speed = ease.easing(t + 0.01) - ease.easing(t), x = 0.27 / Math.sqrt(speed * speed + 0.0001) * 0.01, y = Math.sqrt(0.27 * 0.27 - x * x);
+        easing = performance.bezier(x, y, 0.25, 1);
+    }
+    this._prevEase = {
+        start: performance.browser.now(),
+        duration: duration,
+        easing: easing
+    };
+    return easing;
+};
+ScrollZoomHandler.prototype.blur = function blur() {
+    this.reset();
+};
+ScrollZoomHandler.prototype.reset = function reset() {
+    this._active = false;
+};
+
+var DoubleClickZoomHandler = function DoubleClickZoomHandler(clickZoom, TapZoom) {
+    this._clickZoom = clickZoom;
+    this._tapZoom = TapZoom;
+};
+DoubleClickZoomHandler.prototype.enable = function enable() {
+    this._clickZoom.enable();
+    this._tapZoom.enable();
+};
+DoubleClickZoomHandler.prototype.disable = function disable() {
+    this._clickZoom.disable();
+    this._tapZoom.disable();
+};
+DoubleClickZoomHandler.prototype.isEnabled = function isEnabled() {
+    return this._clickZoom.isEnabled() && this._tapZoom.isEnabled();
+};
+DoubleClickZoomHandler.prototype.isActive = function isActive() {
+    return this._clickZoom.isActive() || this._tapZoom.isActive();
+};
+
+var ClickZoomHandler = function ClickZoomHandler() {
+    this.reset();
+};
+ClickZoomHandler.prototype.reset = function reset() {
+    this._active = false;
+};
+ClickZoomHandler.prototype.blur = function blur() {
+    this.reset();
+};
+ClickZoomHandler.prototype.dblclick = function dblclick(e, point) {
+    e.preventDefault();
+    return {
+        cameraAnimation: function (map) {
+            map.easeTo({
+                duration: 300,
+                zoom: map.getZoom() + (e.shiftKey ? -1 : 1),
+                around: map.unproject(point)
+            }, { originalEvent: e });
+        }
+    };
+};
+ClickZoomHandler.prototype.enable = function enable() {
+    this._enabled = true;
+};
+ClickZoomHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+ClickZoomHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+ClickZoomHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+
+var TapDragZoomHandler = function TapDragZoomHandler() {
+    this._tap = new TapRecognizer({
+        numTouches: 1,
+        numTaps: 1
+    });
+    this.reset();
+};
+TapDragZoomHandler.prototype.reset = function reset() {
+    this._active = false;
+    delete this._swipePoint;
+    delete this._swipeTouch;
+    delete this._tapTime;
+    this._tap.reset();
+};
+TapDragZoomHandler.prototype.touchstart = function touchstart(e, points, mapTouches) {
+    if (this._swipePoint) {
+        return;
+    }
+    if (this._tapTime && e.timeStamp - this._tapTime > MAX_TAP_INTERVAL) {
+        this.reset();
+    }
+    if (!this._tapTime) {
+        this._tap.touchstart(e, points, mapTouches);
+    } else if (mapTouches.length > 0) {
+        this._swipePoint = points[0];
+        this._swipeTouch = mapTouches[0].identifier;
+    }
+};
+TapDragZoomHandler.prototype.touchmove = function touchmove(e, points, mapTouches) {
+    if (!this._tapTime) {
+        this._tap.touchmove(e, points, mapTouches);
+    } else if (this._swipePoint) {
+        if (mapTouches[0].identifier !== this._swipeTouch) {
+            return;
+        }
+        var newSwipePoint = points[0];
+        var dist = newSwipePoint.y - this._swipePoint.y;
+        this._swipePoint = newSwipePoint;
+        e.preventDefault();
+        this._active = true;
+        return { zoomDelta: dist / 128 };
+    }
+};
+TapDragZoomHandler.prototype.touchend = function touchend(e, points, mapTouches) {
+    if (!this._tapTime) {
+        var point = this._tap.touchend(e, points, mapTouches);
+        if (point) {
+            this._tapTime = e.timeStamp;
+        }
+    } else if (this._swipePoint) {
+        if (mapTouches.length === 0) {
+            this.reset();
         }
     }
-    var duration = Math.abs(speed / (inertiaDeceleration$1 * inertiaLinearity$1)) * 1000;
-    var targetScale = lastScale + speed * duration / 2000;
-    map.easeTo({
-        zoom: targetScale,
-        duration: duration,
-        easing: inertiaEasing$1,
-        around: this._aroundCenter ? map.getCenter() : map.unproject(p),
-        noMoveStart: true
-    }, { originalEvent: e });
 };
-TouchZoomRotateHandler.prototype._drainInertiaBuffer = function _drainInertiaBuffer() {
-    var inertia = this._inertia, now = performance.browser.now(), cutoff = 160;
-    while (inertia.length > 2 && now - inertia[0][0] > cutoff) {
-        inertia.shift();
+TapDragZoomHandler.prototype.touchcancel = function touchcancel() {
+    this.reset();
+};
+TapDragZoomHandler.prototype.enable = function enable() {
+    this._enabled = true;
+};
+TapDragZoomHandler.prototype.disable = function disable() {
+    this._enabled = false;
+    this.reset();
+};
+TapDragZoomHandler.prototype.isEnabled = function isEnabled() {
+    return this._enabled;
+};
+TapDragZoomHandler.prototype.isActive = function isActive() {
+    return this._active;
+};
+
+var DragPanHandler = function DragPanHandler(el, mousePan, touchPan) {
+    this._el = el;
+    this._mousePan = mousePan;
+    this._touchPan = touchPan;
+};
+DragPanHandler.prototype.enable = function enable(options) {
+    this._inertiaOptions = options || {};
+    this._mousePan.enable();
+    this._touchPan.enable();
+    this._el.classList.add('mapboxgl-touch-drag-pan');
+};
+DragPanHandler.prototype.disable = function disable() {
+    this._mousePan.disable();
+    this._touchPan.disable();
+    this._el.classList.remove('mapboxgl-touch-drag-pan');
+};
+DragPanHandler.prototype.isEnabled = function isEnabled() {
+    return this._mousePan.isEnabled() && this._touchPan.isEnabled();
+};
+DragPanHandler.prototype.isActive = function isActive() {
+    return this._mousePan.isActive() || this._touchPan.isActive();
+};
+
+var DragRotateHandler = function DragRotateHandler(options, mouseRotate, mousePitch) {
+    this._pitchWithRotate = options.pitchWithRotate;
+    this._mouseRotate = mouseRotate;
+    this._mousePitch = mousePitch;
+};
+DragRotateHandler.prototype.enable = function enable() {
+    this._mouseRotate.enable();
+    if (this._pitchWithRotate) {
+        this._mousePitch.enable();
+    }
+};
+DragRotateHandler.prototype.disable = function disable() {
+    this._mouseRotate.disable();
+    this._mousePitch.disable();
+};
+DragRotateHandler.prototype.isEnabled = function isEnabled() {
+    return this._mouseRotate.isEnabled() && (!this._pitchWithRotate || this._mousePitch.isEnabled());
+};
+DragRotateHandler.prototype.isActive = function isActive() {
+    return this._mouseRotate.isActive() || this._mousePitch.isActive();
+};
+
+var TouchZoomRotateHandler = function TouchZoomRotateHandler(el, touchZoom, touchRotate, tapDragZoom) {
+    this._el = el;
+    this._touchZoom = touchZoom;
+    this._touchRotate = touchRotate;
+    this._tapDragZoom = tapDragZoom;
+    this._rotationDisabled = false;
+    this._enabled = true;
+};
+TouchZoomRotateHandler.prototype.enable = function enable(options) {
+    this._touchZoom.enable(options);
+    if (!this._rotationDisabled) {
+        this._touchRotate.enable(options);
+    }
+    this._tapDragZoom.enable();
+    this._el.classList.add('mapboxgl-touch-zoom-rotate');
+};
+TouchZoomRotateHandler.prototype.disable = function disable() {
+    this._touchZoom.disable();
+    this._touchRotate.disable();
+    this._tapDragZoom.disable();
+    this._el.classList.remove('mapboxgl-touch-zoom-rotate');
+};
+TouchZoomRotateHandler.prototype.isEnabled = function isEnabled() {
+    return this._touchZoom.isEnabled() && (this._rotationDisabled || this._touchRotate.isEnabled()) && this._tapDragZoom.isEnabled();
+};
+TouchZoomRotateHandler.prototype.isActive = function isActive() {
+    return this._touchZoom.isActive() || this._touchRotate.isActive() || this._tapDragZoom.isActive();
+};
+TouchZoomRotateHandler.prototype.disableRotation = function disableRotation() {
+    this._rotationDisabled = true;
+    this._touchRotate.disable();
+};
+TouchZoomRotateHandler.prototype.enableRotation = function enableRotation() {
+    this._rotationDisabled = false;
+    if (this._touchZoom.isEnabled()) {
+        this._touchRotate.enable();
     }
 };
 
-var handlers = {
-    scrollZoom: ScrollZoomHandler,
-    boxZoom: BoxZoomHandler,
-    dragRotate: DragRotateHandler,
-    dragPan: DragPanHandler,
-    keyboard: KeyboardHandler,
-    doubleClickZoom: DoubleClickZoomHandler,
-    touchZoomRotate: TouchZoomRotateHandler
+var isMoving = function (p) {
+    return p.zoom || p.drag || p.pitch || p.rotate;
 };
-function bindHandlers(map, options) {
+var RenderFrameEvent = function (Event) {
+    function RenderFrameEvent() {
+        Event.apply(this, arguments);
+    }
+    if (Event)
+        RenderFrameEvent.__proto__ = Event;
+    RenderFrameEvent.prototype = Object.create(Event && Event.prototype);
+    RenderFrameEvent.prototype.constructor = RenderFrameEvent;
+    return RenderFrameEvent;
+}(performance.Event);
+function hasChange(result) {
+    return result.panDelta && result.panDelta.mag() || result.zoomDelta || result.bearingDelta || result.pitchDelta;
+}
+var HandlerManager = function HandlerManager(map, options) {
+    this._map = map;
+    this._el = this._map.getCanvasContainer();
+    this._handlers = [];
+    this._handlersById = {};
+    this._changes = [];
+    this._inertia = new HandlerInertia(map);
+    this._bearingSnap = options.bearingSnap;
+    this._previousActiveHandlers = {};
+    this._eventsInProgress = {};
+    this._addDefaultHandlers(options);
+    performance.bindAll([
+        'handleEvent',
+        'handleWindowEvent'
+    ], this);
+    var el = this._el;
+    this._listeners = [
+        [
+            el,
+            'touchstart',
+            { passive: true }
+        ],
+        [
+            el,
+            'touchmove',
+            { passive: false }
+        ],
+        [
+            el,
+            'touchend',
+            undefined
+        ],
+        [
+            el,
+            'touchcancel',
+            undefined
+        ],
+        [
+            el,
+            'mousedown',
+            undefined
+        ],
+        [
+            el,
+            'mousemove',
+            undefined
+        ],
+        [
+            el,
+            'mouseup',
+            undefined
+        ],
+        [
+            performance.window.document,
+            'mousemove',
+            { capture: true }
+        ],
+        [
+            performance.window.document,
+            'mouseup',
+            undefined
+        ],
+        [
+            el,
+            'mouseover',
+            undefined
+        ],
+        [
+            el,
+            'mouseout',
+            undefined
+        ],
+        [
+            el,
+            'dblclick',
+            undefined
+        ],
+        [
+            el,
+            'click',
+            undefined
+        ],
+        [
+            el,
+            'keydown',
+            { capture: false }
+        ],
+        [
+            el,
+            'keyup',
+            undefined
+        ],
+        [
+            el,
+            'wheel',
+            { passive: false }
+        ],
+        [
+            el,
+            'contextmenu',
+            undefined
+        ],
+        [
+            performance.window,
+            'blur',
+            undefined
+        ]
+    ];
+    for (var i = 0, list = this._listeners; i < list.length; i += 1) {
+        var ref = list[i];
+        var target = ref[0];
+        var type = ref[1];
+        var listenerOptions = ref[2];
+        DOM.addEventListener(target, type, target === performance.window.document ? this.handleWindowEvent : this.handleEvent, listenerOptions);
+    }
+};
+HandlerManager.prototype.destroy = function destroy() {
+    for (var i = 0, list = this._listeners; i < list.length; i += 1) {
+        var ref = list[i];
+        var target = ref[0];
+        var type = ref[1];
+        var listenerOptions = ref[2];
+        DOM.removeEventListener(target, type, target === performance.window.document ? this.handleWindowEvent : this.handleEvent, listenerOptions);
+    }
+};
+HandlerManager.prototype._addDefaultHandlers = function _addDefaultHandlers(options) {
+    var map = this._map;
     var el = map.getCanvasContainer();
-    var contextMenuEvent = null;
-    var mouseDown = false;
-    var startPos = null;
-    for (var name in handlers) {
-        map[name] = new handlers[name](map, options);
+    this._add('mapEvent', new MapEventHandler(map, options));
+    var boxZoom = map.boxZoom = new BoxZoomHandler(map, options);
+    this._add('boxZoom', boxZoom);
+    var tapZoom = new TapZoomHandler();
+    var clickZoom = new ClickZoomHandler();
+    map.doubleClickZoom = new DoubleClickZoomHandler(clickZoom, tapZoom);
+    this._add('tapZoom', tapZoom);
+    this._add('clickZoom', clickZoom);
+    var tapDragZoom = new TapDragZoomHandler();
+    this._add('tapDragZoom', tapDragZoom);
+    var touchPitch = map.touchPitch = new TouchPitchHandler();
+    this._add('touchPitch', touchPitch);
+    var mouseRotate = new MouseRotateHandler(options);
+    var mousePitch = new MousePitchHandler(options);
+    map.dragRotate = new DragRotateHandler(options, mouseRotate, mousePitch);
+    this._add('mouseRotate', mouseRotate, ['mousePitch']);
+    this._add('mousePitch', mousePitch, ['mouseRotate']);
+    var mousePan = new MousePanHandler(options);
+    var touchPan = new TouchPanHandler(options);
+    map.dragPan = new DragPanHandler(el, mousePan, touchPan);
+    this._add('mousePan', mousePan);
+    this._add('touchPan', touchPan, [
+        'touchZoom',
+        'touchRotate'
+    ]);
+    var touchRotate = new TouchRotateHandler();
+    var touchZoom = new TouchZoomHandler();
+    map.touchZoomRotate = new TouchZoomRotateHandler(el, touchZoom, touchRotate, tapDragZoom);
+    this._add('touchRotate', touchRotate, [
+        'touchPan',
+        'touchZoom'
+    ]);
+    this._add('touchZoom', touchZoom, [
+        'touchPan',
+        'touchRotate'
+    ]);
+    var scrollZoom = map.scrollZoom = new ScrollZoomHandler(map, this);
+    this._add('scrollZoom', scrollZoom, ['mousePan']);
+    var keyboard = map.keyboard = new KeyboardHandler();
+    this._add('keyboard', keyboard);
+    this._add('blockableMapEvent', new BlockableMapEventHandler(map));
+    for (var i = 0, list = [
+                'boxZoom',
+                'doubleClickZoom',
+                'tapDragZoom',
+                'touchPitch',
+                'dragRotate',
+                'dragPan',
+                'touchZoomRotate',
+                'scrollZoom',
+                'keyboard'
+            ]; i < list.length; i += 1) {
+        var name = list[i];
         if (options.interactive && options[name]) {
             map[name].enable(options[name]);
         }
     }
-    DOM.addEventListener(el, 'mouseout', onMouseOut);
-    DOM.addEventListener(el, 'mousedown', onMouseDown);
-    DOM.addEventListener(el, 'mouseup', onMouseUp);
-    DOM.addEventListener(el, 'mousemove', onMouseMove);
-    DOM.addEventListener(el, 'mouseover', onMouseOver);
-    DOM.addEventListener(el, 'touchstart', onTouchStart, { passive: false });
-    DOM.addEventListener(el, 'touchmove', onTouchMove, { passive: false });
-    DOM.addEventListener(el, 'touchend', onTouchEnd);
-    DOM.addEventListener(el, 'touchcancel', onTouchCancel);
-    DOM.addEventListener(el, 'click', onClick);
-    DOM.addEventListener(el, 'dblclick', onDblClick);
-    DOM.addEventListener(el, 'contextmenu', onContextMenu);
-    DOM.addEventListener(el, 'wheel', onWheel, { passive: false });
-    function onMouseDown(e) {
-        mouseDown = true;
-        startPos = DOM.mousePos(el, e);
-        var mapEvent = new MapMouseEvent('mousedown', map, e);
-        map.fire(mapEvent);
-        if (mapEvent.defaultPrevented) {
-            return;
-        }
-        if (options.interactive && !map.doubleClickZoom.isActive()) {
-            map.stop();
-        }
-        map.boxZoom.onMouseDown(e);
-        if (!map.boxZoom.isActive() && !map.dragPan.isActive()) {
-            map.dragRotate.onMouseDown(e);
-        }
-        if (!map.boxZoom.isActive() && !map.dragRotate.isActive()) {
-            map.dragPan.onMouseDown(e);
+};
+HandlerManager.prototype._add = function _add(handlerName, handler, allowed) {
+    this._handlers.push({
+        handlerName: handlerName,
+        handler: handler,
+        allowed: allowed
+    });
+    this._handlersById[handlerName] = handler;
+};
+HandlerManager.prototype.stop = function stop(allowEndAnimation) {
+    if (this._updatingCamera) {
+        return;
+    }
+    for (var i = 0, list = this._handlers; i < list.length; i += 1) {
+        var ref = list[i];
+        var handler = ref.handler;
+        handler.reset();
+    }
+    this._inertia.clear();
+    this._fireEvents({}, {}, allowEndAnimation);
+    this._changes = [];
+};
+HandlerManager.prototype.isActive = function isActive() {
+    for (var i = 0, list = this._handlers; i < list.length; i += 1) {
+        var ref = list[i];
+        var handler = ref.handler;
+        if (handler.isActive()) {
+            return true;
         }
     }
-    function onMouseUp(e) {
-        var rotating = map.dragRotate.isActive();
-        if (contextMenuEvent && !rotating) {
-            map.fire(new MapMouseEvent('contextmenu', map, contextMenuEvent));
+    return false;
+};
+HandlerManager.prototype.isZooming = function isZooming() {
+    return !!this._eventsInProgress.zoom || this._map.scrollZoom.isZooming();
+};
+HandlerManager.prototype.isRotating = function isRotating() {
+    return !!this._eventsInProgress.rotate;
+};
+HandlerManager.prototype.isMoving = function isMoving$1() {
+    return Boolean(isMoving(this._eventsInProgress)) || this.isZooming();
+};
+HandlerManager.prototype._blockedByActive = function _blockedByActive(activeHandlers, allowed, myName) {
+    for (var name in activeHandlers) {
+        if (name === myName) {
+            continue;
         }
-        contextMenuEvent = null;
-        mouseDown = false;
-        map.fire(new MapMouseEvent('mouseup', map, e));
-    }
-    function onMouseMove(e) {
-        if (map.dragPan.isActive()) {
-            return;
-        }
-        if (map.dragRotate.isActive()) {
-            return;
-        }
-        var target = e.target;
-        while (target && target !== el) {
-            target = target.parentNode;
-        }
-        if (target !== el) {
-            return;
-        }
-        map.fire(new MapMouseEvent('mousemove', map, e));
-    }
-    function onMouseOver(e) {
-        var target = e.target;
-        while (target && target !== el) {
-            target = target.parentNode;
-        }
-        if (target !== el) {
-            return;
-        }
-        map.fire(new MapMouseEvent('mouseover', map, e));
-    }
-    function onMouseOut(e) {
-        map.fire(new MapMouseEvent('mouseout', map, e));
-    }
-    function onTouchStart(e) {
-        var mapEvent = new MapTouchEvent('touchstart', map, e);
-        map.fire(mapEvent);
-        if (mapEvent.defaultPrevented) {
-            return;
-        }
-        if (options.interactive) {
-            map.stop();
-        }
-        if (!map.boxZoom.isActive() && !map.dragRotate.isActive()) {
-            map.dragPan.onTouchStart(e);
-        }
-        map.touchZoomRotate.onStart(e);
-        map.doubleClickZoom.onTouchStart(mapEvent);
-    }
-    function onTouchMove(e) {
-        map.fire(new MapTouchEvent('touchmove', map, e));
-    }
-    function onTouchEnd(e) {
-        map.fire(new MapTouchEvent('touchend', map, e));
-    }
-    function onTouchCancel(e) {
-        map.fire(new MapTouchEvent('touchcancel', map, e));
-    }
-    function onClick(e) {
-        var pos = DOM.mousePos(el, e);
-        if (!startPos || pos.equals(startPos) || pos.dist(startPos) < options.clickTolerance) {
-            map.fire(new MapMouseEvent('click', map, e));
+        if (!allowed || allowed.indexOf(name) < 0) {
+            return true;
         }
     }
-    function onDblClick(e) {
-        var mapEvent = new MapMouseEvent('dblclick', map, e);
-        map.fire(mapEvent);
-        if (mapEvent.defaultPrevented) {
-            return;
-        }
-        map.doubleClickZoom.onDblClick(mapEvent);
-    }
-    function onContextMenu(e) {
-        var rotating = map.dragRotate.isActive();
-        if (!mouseDown && !rotating) {
-            map.fire(new MapMouseEvent('contextmenu', map, e));
-        } else if (mouseDown) {
-            contextMenuEvent = e;
-        }
-        if (map.dragRotate.isEnabled() || map.listens('contextmenu')) {
-            e.preventDefault();
+    return false;
+};
+HandlerManager.prototype.handleWindowEvent = function handleWindowEvent(e) {
+    this.handleEvent(e, e.type + 'Window');
+};
+HandlerManager.prototype._getMapTouches = function _getMapTouches(touches) {
+    var mapTouches = [];
+    for (var i = 0, list = touches; i < list.length; i += 1) {
+        var t = list[i];
+        var target = t.target;
+        if (this._el.contains(target)) {
+            mapTouches.push(t);
         }
     }
-    function onWheel(e) {
-        if (options.interactive) {
-            map.stop();
+    return mapTouches;
+};
+HandlerManager.prototype.handleEvent = function handleEvent(e, eventName) {
+    this._updatingCamera = true;
+    var inputEvent = e.type === 'renderFrame' ? undefined : e;
+    var mergedHandlerResult = { needsRenderFrame: false };
+    var eventsInProgress = {};
+    var activeHandlers = {};
+    var mapTouches = e.touches ? this._getMapTouches(e.touches) : undefined;
+    var points = mapTouches ? DOM.touchPos(this._el, mapTouches) : DOM.mousePos(this._el, e);
+    for (var i = 0, list = this._handlers; i < list.length; i += 1) {
+        var ref = list[i];
+        var handlerName = ref.handlerName;
+        var handler = ref.handler;
+        var allowed = ref.allowed;
+        if (!handler.isEnabled()) {
+            continue;
         }
-        var mapEvent = new MapWheelEvent('wheel', map, e);
-        map.fire(mapEvent);
-        if (mapEvent.defaultPrevented) {
-            return;
+        var data = void 0;
+        if (this._blockedByActive(activeHandlers, allowed, handlerName)) {
+            handler.reset();
+        } else {
+            if (handler[eventName || e.type]) {
+                data = handler[eventName || e.type](e, points, mapTouches);
+                this.mergeHandlerResult(mergedHandlerResult, eventsInProgress, data, handlerName, inputEvent);
+                if (data && data.needsRenderFrame) {
+                    this._triggerRenderFrame();
+                }
+            }
         }
-        map.scrollZoom.onWheel(e);
+        if (data || handler.isActive()) {
+            activeHandlers[handlerName] = handler;
+        }
     }
-}
+    var deactivatedHandlers = {};
+    for (var name in this._previousActiveHandlers) {
+        if (!activeHandlers[name]) {
+            deactivatedHandlers[name] = inputEvent;
+        }
+    }
+    this._previousActiveHandlers = activeHandlers;
+    if (Object.keys(deactivatedHandlers).length || hasChange(mergedHandlerResult)) {
+        this._changes.push([
+            mergedHandlerResult,
+            eventsInProgress,
+            deactivatedHandlers
+        ]);
+        this._triggerRenderFrame();
+    }
+    if (Object.keys(activeHandlers).length || hasChange(mergedHandlerResult)) {
+        this._map._stop(true);
+    }
+    this._updatingCamera = false;
+    var cameraAnimation = mergedHandlerResult.cameraAnimation;
+    if (cameraAnimation) {
+        this._inertia.clear();
+        this._fireEvents({}, {}, true);
+        this._changes = [];
+        cameraAnimation(this._map);
+    }
+};
+HandlerManager.prototype.mergeHandlerResult = function mergeHandlerResult(mergedHandlerResult, eventsInProgress, handlerResult, name, e) {
+    if (!handlerResult) {
+        return;
+    }
+    performance.extend(mergedHandlerResult, handlerResult);
+    var eventData = {
+        handlerName: name,
+        originalEvent: handlerResult.originalEvent || e
+    };
+    if (handlerResult.zoomDelta !== undefined) {
+        eventsInProgress.zoom = eventData;
+    }
+    if (handlerResult.panDelta !== undefined) {
+        eventsInProgress.drag = eventData;
+    }
+    if (handlerResult.pitchDelta !== undefined) {
+        eventsInProgress.pitch = eventData;
+    }
+    if (handlerResult.bearingDelta !== undefined) {
+        eventsInProgress.rotate = eventData;
+    }
+};
+HandlerManager.prototype._applyChanges = function _applyChanges() {
+    var combined = {};
+    var combinedEventsInProgress = {};
+    var combinedDeactivatedHandlers = {};
+    for (var i = 0, list = this._changes; i < list.length; i += 1) {
+        var ref = list[i];
+        var change = ref[0];
+        var eventsInProgress = ref[1];
+        var deactivatedHandlers = ref[2];
+        if (change.panDelta) {
+            combined.panDelta = (combined.panDelta || new performance.Point(0, 0))._add(change.panDelta);
+        }
+        if (change.zoomDelta) {
+            combined.zoomDelta = (combined.zoomDelta || 0) + change.zoomDelta;
+        }
+        if (change.bearingDelta) {
+            combined.bearingDelta = (combined.bearingDelta || 0) + change.bearingDelta;
+        }
+        if (change.pitchDelta) {
+            combined.pitchDelta = (combined.pitchDelta || 0) + change.pitchDelta;
+        }
+        if (change.around !== undefined) {
+            combined.around = change.around;
+        }
+        if (change.pinchAround !== undefined) {
+            combined.pinchAround = change.pinchAround;
+        }
+        if (change.noInertia) {
+            combined.noInertia = change.noInertia;
+        }
+        performance.extend(combinedEventsInProgress, eventsInProgress);
+        performance.extend(combinedDeactivatedHandlers, deactivatedHandlers);
+    }
+    this._updateMapTransform(combined, combinedEventsInProgress, combinedDeactivatedHandlers);
+    this._changes = [];
+};
+HandlerManager.prototype._updateMapTransform = function _updateMapTransform(combinedResult, combinedEventsInProgress, deactivatedHandlers) {
+    var map = this._map;
+    var tr = map.transform;
+    if (!hasChange(combinedResult)) {
+        return this._fireEvents(combinedEventsInProgress, deactivatedHandlers, true);
+    }
+    var panDelta = combinedResult.panDelta;
+    var zoomDelta = combinedResult.zoomDelta;
+    var bearingDelta = combinedResult.bearingDelta;
+    var pitchDelta = combinedResult.pitchDelta;
+    var around = combinedResult.around;
+    var pinchAround = combinedResult.pinchAround;
+    if (pinchAround !== undefined) {
+        around = pinchAround;
+    }
+    map._stop(true);
+    around = around || map.transform.centerPoint;
+    var loc = tr.pointLocation(panDelta ? around.sub(panDelta) : around);
+    if (bearingDelta) {
+        tr.bearing += bearingDelta;
+    }
+    if (pitchDelta) {
+        tr.pitch += pitchDelta;
+    }
+    if (zoomDelta) {
+        tr.zoom += zoomDelta;
+    }
+    tr.setLocationAtPoint(loc, around);
+    this._map._update();
+    if (!combinedResult.noInertia) {
+        this._inertia.record(combinedResult);
+    }
+    this._fireEvents(combinedEventsInProgress, deactivatedHandlers, true);
+};
+HandlerManager.prototype._fireEvents = function _fireEvents(newEventsInProgress, deactivatedHandlers, allowEndAnimation) {
+    var this$1 = this;
+    var wasMoving = isMoving(this._eventsInProgress);
+    var nowMoving = isMoving(newEventsInProgress);
+    var startEvents = {};
+    for (var eventName in newEventsInProgress) {
+        var ref = newEventsInProgress[eventName];
+        var originalEvent = ref.originalEvent;
+        if (!this._eventsInProgress[eventName]) {
+            startEvents[eventName + 'start'] = originalEvent;
+        }
+        this._eventsInProgress[eventName] = newEventsInProgress[eventName];
+    }
+    if (!wasMoving && nowMoving) {
+        this._fireEvent('movestart', nowMoving.originalEvent);
+    }
+    for (var name in startEvents) {
+        this._fireEvent(name, startEvents[name]);
+    }
+    if (nowMoving) {
+        this._fireEvent('move', nowMoving.originalEvent);
+    }
+    for (var eventName$1 in newEventsInProgress) {
+        var ref$1 = newEventsInProgress[eventName$1];
+        var originalEvent$1 = ref$1.originalEvent;
+        this._fireEvent(eventName$1, originalEvent$1);
+    }
+    var endEvents = {};
+    var originalEndEvent;
+    for (var eventName$2 in this._eventsInProgress) {
+        var ref$2 = this._eventsInProgress[eventName$2];
+        var handlerName = ref$2.handlerName;
+        var originalEvent$2 = ref$2.originalEvent;
+        if (!this._handlersById[handlerName].isActive()) {
+            delete this._eventsInProgress[eventName$2];
+            originalEndEvent = deactivatedHandlers[handlerName] || originalEvent$2;
+            endEvents[eventName$2 + 'end'] = originalEndEvent;
+        }
+    }
+    for (var name$1 in endEvents) {
+        this._fireEvent(name$1, endEvents[name$1]);
+    }
+    var stillMoving = isMoving(this._eventsInProgress);
+    if (allowEndAnimation && (wasMoving || nowMoving) && !stillMoving) {
+        this._updatingCamera = true;
+        var inertialEase = this._inertia._onMoveEnd(this._map.dragPan._inertiaOptions);
+        var shouldSnapToNorth = function (bearing) {
+            return bearing !== 0 && -this$1._bearingSnap < bearing && bearing < this$1._bearingSnap;
+        };
+        if (inertialEase) {
+            if (shouldSnapToNorth(inertialEase.bearing || this._map.getBearing())) {
+                inertialEase.bearing = 0;
+            }
+            this._map.easeTo(inertialEase, { originalEvent: originalEndEvent });
+        } else {
+            this._map.fire(new performance.Event('moveend', { originalEvent: originalEndEvent }));
+            if (shouldSnapToNorth(this._map.getBearing())) {
+                this._map.resetNorth();
+            }
+        }
+        this._updatingCamera = false;
+    }
+};
+HandlerManager.prototype._fireEvent = function _fireEvent(type, e) {
+    this._map.fire(new performance.Event(type, e ? { originalEvent: e } : {}));
+};
+HandlerManager.prototype._requestFrame = function _requestFrame() {
+    var this$1 = this;
+    this._map.triggerRepaint();
+    return this._map._renderTaskQueue.add(function (timeStamp) {
+        delete this$1._frameId;
+        this$1.handleEvent(new RenderFrameEvent('renderFrame', { timeStamp: timeStamp }));
+        this$1._applyChanges();
+    });
+};
+HandlerManager.prototype._triggerRenderFrame = function _triggerRenderFrame() {
+    if (this._frameId === undefined) {
+        this._frameId = this._requestFrame();
+    }
+};
 
 var Camera = function (Evented) {
     function Camera(transform, options) {
@@ -38406,7 +39511,8 @@ var Camera = function (Evented) {
     };
     Camera.prototype.cameraForBounds = function cameraForBounds(bounds, options) {
         bounds = performance.LngLatBounds.convert(bounds);
-        return this._cameraForBoxAndBearing(bounds.getNorthWest(), bounds.getSouthEast(), 0, options);
+        var bearing = options && options.bearing || 0;
+        return this._cameraForBoxAndBearing(bounds.getNorthWest(), bounds.getSouthEast(), bearing, options);
     };
     Camera.prototype._cameraForBoxAndBearing = function _cameraForBoxAndBearing(p0, p1, bearing, options) {
         var defaultPadding = {
@@ -38449,10 +39555,12 @@ var Camera = function (Evented) {
             return;
         }
         var zoom = Math.min(tr.scaleZoom(tr.scale * Math.min(scaleX, scaleY)), options.maxZoom);
-        var offset = performance.Point.convert(options.offset);
+        var offset = typeof options.offset.x === 'number' ? new performance.Point(options.offset.x, options.offset.y) : performance.Point.convert(options.offset);
         var paddingOffsetX = (options.padding.left - options.padding.right) / 2;
         var paddingOffsetY = (options.padding.top - options.padding.bottom) / 2;
-        var offsetAtInitialZoom = new performance.Point(offset.x + paddingOffsetX, offset.y + paddingOffsetY);
+        var paddingOffset = new performance.Point(paddingOffsetX, paddingOffsetY);
+        var rotatedPaddingOffset = paddingOffset.rotate(bearing * Math.PI / 180);
+        var offsetAtInitialZoom = offset.add(rotatedPaddingOffset);
         var offsetAtFinalZoom = offsetAtInitialZoom.mult(tr.scale / tr.zoomScale(zoom));
         var center = tr.unproject(p0world.add(p1world).div(2).sub(offsetAtFinalZoom));
         return {
@@ -38511,7 +39619,7 @@ var Camera = function (Evented) {
     };
     Camera.prototype.easeTo = function easeTo(options, eventData) {
         var this$1 = this;
-        this.stop();
+        this._stop(false, options.easeId);
         options = performance.extend({
             offset: [
                 0,
@@ -38537,12 +39645,18 @@ var Camera = function (Evented) {
             around = performance.LngLat.convert(options.around);
             aroundPoint = tr.locationPoint(around);
         }
-        this._zooming = zoom !== startZoom;
-        this._rotating = startBearing !== bearing;
-        this._pitching = pitch !== startPitch;
+        var currently = {
+            moving: this._moving,
+            zooming: this._zooming,
+            rotating: this._rotating,
+            pitching: this._pitching
+        };
+        this._zooming = this._zooming || zoom !== startZoom;
+        this._rotating = this._rotating || startBearing !== bearing;
+        this._pitching = this._pitching || pitch !== startPitch;
         this._padding = !tr.isPaddingEqual(padding);
-        this._prepareEase(eventData, options.noMoveStart);
-        clearTimeout(this._easeEndTimeoutID);
+        this._easeId = options.easeId;
+        this._prepareEase(eventData, options.noMoveStart, currently);
         this._ease(function (k) {
             if (this$1._zooming) {
                 tr.zoom = performance.number(startZoom, zoom, k);
@@ -38567,29 +39681,25 @@ var Camera = function (Evented) {
                 tr.setLocationAtPoint(tr.renderWorldCopies ? newCenter.wrap() : newCenter, pointAtOffset);
             }
             this$1._fireMoveEvents(eventData);
-        }, function () {
-            if (options.delayEndEvents) {
-                this$1._easeEndTimeoutID = setTimeout(function () {
-                    return this$1._afterEase(eventData);
-                }, options.delayEndEvents);
-            } else {
-                this$1._afterEase(eventData);
-            }
+        }, function (interruptingEaseId) {
+            this$1._afterEase(eventData, interruptingEaseId);
         }, options);
         return this;
     };
-    Camera.prototype._prepareEase = function _prepareEase(eventData, noMoveStart) {
+    Camera.prototype._prepareEase = function _prepareEase(eventData, noMoveStart, currently) {
+        if (currently === void 0)
+            currently = {};
         this._moving = true;
-        if (!noMoveStart) {
+        if (!noMoveStart && !currently.moving) {
             this.fire(new performance.Event('movestart', eventData));
         }
-        if (this._zooming) {
+        if (this._zooming && !currently.zooming) {
             this.fire(new performance.Event('zoomstart', eventData));
         }
-        if (this._rotating) {
+        if (this._rotating && !currently.rotating) {
             this.fire(new performance.Event('rotatestart', eventData));
         }
-        if (this._pitching) {
+        if (this._pitching && !currently.pitching) {
             this.fire(new performance.Event('pitchstart', eventData));
         }
     };
@@ -38605,7 +39715,11 @@ var Camera = function (Evented) {
             this.fire(new performance.Event('pitch', eventData));
         }
     };
-    Camera.prototype._afterEase = function _afterEase(eventData) {
+    Camera.prototype._afterEase = function _afterEase(eventData, easeId) {
+        if (this._easeId && easeId && this._easeId === easeId) {
+            return;
+        }
+        delete this._easeId;
         var wasZooming = this._zooming;
         var wasRotating = this._rotating;
         var wasPitching = this._pitching;
@@ -38742,6 +39856,9 @@ var Camera = function (Evented) {
         return !!this._easeFrameId;
     };
     Camera.prototype.stop = function stop() {
+        return this._stop();
+    };
+    Camera.prototype._stop = function _stop(allowGestures, easeId) {
         if (this._easeFrameId) {
             this._cancelRenderFrame(this._easeFrameId);
             delete this._easeFrameId;
@@ -38750,7 +39867,13 @@ var Camera = function (Evented) {
         if (this._onEaseEnd) {
             var onEaseEnd = this._onEaseEnd;
             delete this._onEaseEnd;
-            onEaseEnd.call(this);
+            onEaseEnd.call(this, easeId);
+        }
+        if (!allowGestures) {
+            var handlers = this.handlers;
+            if (handlers) {
+                handlers.stop(false);
+            }
         }
         return this;
     };
@@ -38802,6 +39925,7 @@ var AttributionControl = function AttributionControl(options) {
         options = {};
     this.options = options;
     performance.bindAll([
+        '_toggleAttribution',
         '_updateEditLink',
         '_updateData',
         '_updateCompact'
@@ -38814,7 +39938,11 @@ AttributionControl.prototype.onAdd = function onAdd(map) {
     var compact = this.options && this.options.compact;
     this._map = map;
     this._container = DOM.create('div', 'mapboxgl-ctrl mapboxgl-ctrl-attrib');
+    this._compactButton = DOM.create('button', 'mapboxgl-ctrl-attrib-button', this._container);
+    this._compactButton.addEventListener('click', this._toggleAttribution);
+    this._setElementTitle(this._compactButton, 'ToggleAttribution');
     this._innerContainer = DOM.create('div', 'mapboxgl-ctrl-attrib-inner', this._container);
+    this._innerContainer.setAttribute('role', 'list');
     if (compact) {
         this._container.classList.add('mapboxgl-compact');
     }
@@ -38837,6 +39965,20 @@ AttributionControl.prototype.onRemove = function onRemove() {
     this._map.off('resize', this._updateCompact);
     this._map = undefined;
     this._attribHTML = undefined;
+};
+AttributionControl.prototype._setElementTitle = function _setElementTitle(element, title) {
+    var str = this._map._getUIString('AttributionControl.' + title);
+    element.title = str;
+    element.setAttribute('aria-label', str);
+};
+AttributionControl.prototype._toggleAttribution = function _toggleAttribution() {
+    if (this._container.classList.contains('mapboxgl-compact-show')) {
+        this._container.classList.remove('mapboxgl-compact-show');
+        this._compactButton.setAttribute('aria-pressed', 'false');
+    } else {
+        this._container.classList.add('mapboxgl-compact-show');
+        this._compactButton.setAttribute('aria-pressed', 'true');
+    }
 };
 AttributionControl.prototype._updateEditLink = function _updateEditLink() {
     var editLink = this._editLink;
@@ -38866,10 +40008,11 @@ AttributionControl.prototype._updateEditLink = function _updateEditLink() {
         }, '?');
         editLink.href = performance.config.FEEDBACK_URL + '/' + paramString + (this._map._hash ? this._map._hash.getHashString(true) : '');
         editLink.rel = 'noopener nofollow';
+        this._setElementTitle(editLink, 'MapFeedback');
     }
 };
 AttributionControl.prototype._updateData = function _updateData(e) {
-    if (e && (e.sourceDataType === 'metadata' || e.dataType === 'style')) {
+    if (e && (e.sourceDataType === 'metadata' || e.sourceDataType === 'visibility' || e.dataType === 'style')) {
         this._updateAttributions();
         this._updateEditLink();
     }
@@ -38934,7 +40077,7 @@ AttributionControl.prototype._updateCompact = function _updateCompact() {
     if (this._map.getCanvasContainer().offsetWidth <= 640) {
         this._container.classList.add('mapboxgl-compact');
     } else {
-        this._container.classList.remove('mapboxgl-compact');
+        this._container.classList.remove('mapboxgl-compact', 'mapboxgl-compact-show');
     }
 };
 
@@ -39024,7 +40167,9 @@ TaskQueue.prototype.remove = function remove(id) {
         }
     }
 };
-TaskQueue.prototype.run = function run() {
+TaskQueue.prototype.run = function run(timeStamp) {
+    if (timeStamp === void 0)
+        timeStamp = 0;
     var queue = this._currentlyRunning = this._queue;
     this._queue = [];
     for (var i = 0, list = queue; i < list.length; i += 1) {
@@ -39032,7 +40177,7 @@ TaskQueue.prototype.run = function run() {
         if (task.cancelled) {
             continue;
         }
-        task.callback();
+        task.callback(timeStamp);
         if (this._cleared) {
             break;
         }
@@ -39048,6 +40193,8 @@ TaskQueue.prototype.clear = function clear() {
 };
 
 var defaultLocale = {
+    'AttributionControl.ToggleAttribution': 'Toggle attribution',
+    'AttributionControl.MapFeedback': 'Map feedback',
     'FullscreenControl.Enter': 'Enter fullscreen',
     'FullscreenControl.Exit': 'Exit fullscreen',
     'GeolocateControl.FindMyLocation': 'Find my location',
@@ -39070,7 +40217,7 @@ var defaultMinZoom = -2;
 var defaultMaxZoom = 22;
 var defaultMinPitch = 0;
 var defaultMaxPitch = 60;
-var defaultOptions = {
+var defaultOptions$1 = {
     center: [
         0,
         0
@@ -39090,8 +40237,10 @@ var defaultOptions = {
     keyboard: true,
     doubleClickZoom: true,
     touchZoomRotate: true,
+    touchPitch: true,
     bearingSnap: 7,
     clickTolerance: 3,
+    pitchWithRotate: true,
     hash: false,
     attributionControl: true,
     failIfMajorPerformanceCaveat: false,
@@ -39109,7 +40258,7 @@ var defaultOptions = {
 var Map = function (Camera) {
     function Map(options) {
         var this$1 = this;
-        options = performance.extend({}, defaultOptions, options);
+        options = performance.extend({}, defaultOptions$1, options);
         if (options.minZoom != null && options.maxZoom != null && options.minZoom > options.maxZoom) {
             throw new Error('maxZoom must be greater than or equal to minZoom');
         }
@@ -39140,6 +40289,7 @@ var Map = function (Camera) {
         this._controls = [];
         this._mapId = performance.uniqueId();
         this._locale = performance.extend({}, defaultLocale, options.locale);
+        this._clickTolerance = options.clickTolerance;
         this._requestManager = new performance.RequestManager(options.transformRequest, options.accessToken);
         if (typeof options.container === 'string') {
             this._container = performance.window.document.getElementById(options.container);
@@ -39157,6 +40307,7 @@ var Map = function (Camera) {
         performance.bindAll([
             '_onWindowOnline',
             '_onWindowResize',
+            '_onMapScroll',
             '_contextLost',
             '_contextRestored'
         ], this);
@@ -39177,8 +40328,9 @@ var Map = function (Camera) {
         if (typeof performance.window !== 'undefined') {
             performance.window.addEventListener('online', this._onWindowOnline, false);
             performance.window.addEventListener('resize', this._onWindowResize, false);
+            performance.window.addEventListener('orientationchange', this._onWindowResize, false);
         }
-        bindHandlers(this, options);
+        this.handlers = new HandlerManager(this, options);
         var hashName = typeof options.hash === 'string' && options.hash || undefined;
         this._hash = options.hash && new Hash(hashName).addTo(this);
         if (!this._hash || !this._hash._onHashChange()) {
@@ -39232,11 +40384,12 @@ var Map = function (Camera) {
         return this._mapId;
     };
     Map.prototype.addControl = function addControl(control, position) {
-        if (position === undefined && control.getDefaultPosition) {
-            position = control.getDefaultPosition();
-        }
         if (position === undefined) {
-            position = 'top-right';
+            if (control.getDefaultPosition) {
+                position = control.getDefaultPosition();
+            } else {
+                position = 'top-right';
+            }
         }
         if (!control || !control.onAdd) {
             return this.fire(new performance.ErrorEvent(new Error('Invalid argument to map.addControl(). Argument must be a control with onAdd and onRemove methods.')));
@@ -39262,14 +40415,27 @@ var Map = function (Camera) {
         control.onRemove(this);
         return this;
     };
+    Map.prototype.hasControl = function hasControl(control) {
+        return this._controls.indexOf(control) > -1;
+    };
     Map.prototype.resize = function resize(eventData) {
-        var dimensions = this._containerDimensions();
-        var width = dimensions[0];
-        var height = dimensions[1];
+        var ref = this._containerDimensions();
+        var width = ref[0];
+        var height = ref[1];
+        if (width === this.transform.width && height === this.transform.height) {
+            return this;
+        }
         this._resizeCanvas(width, height);
         this.transform.resize(width, height);
         this.painter.resize(width, height);
-        this.fire(new performance.Event('movestart', eventData)).fire(new performance.Event('move', eventData)).fire(new performance.Event('resize', eventData)).fire(new performance.Event('moveend', eventData));
+        var fireMoving = !this._moving;
+        if (fireMoving) {
+            this.fire(new performance.Event('movestart', eventData)).fire(new performance.Event('move', eventData));
+        }
+        this.fire(new performance.Event('resize', eventData));
+        if (fireMoving) {
+            this.fire(new performance.Event('moveend', eventData));
+        }
         return this;
     };
     Map.prototype.getBounds = function getBounds() {
@@ -39366,13 +40532,13 @@ var Map = function (Camera) {
         return this.transform.pointLocation(performance.Point.convert(point));
     };
     Map.prototype.isMoving = function isMoving() {
-        return this._moving || this.dragPan.isActive() || this.dragRotate.isActive() || this.scrollZoom.isActive();
+        return this._moving || this.handlers.isMoving();
     };
     Map.prototype.isZooming = function isZooming() {
-        return this._zooming || this.scrollZoom.isZooming();
+        return this._zooming || this.handlers.isZooming();
     };
     Map.prototype.isRotating = function isRotating() {
-        return this._rotating || this.dragRotate.isActive();
+        return this._rotating || this.handlers.isRotating();
     };
     Map.prototype._createDelegatedListener = function _createDelegatedListener(type, layerId, listener) {
         var this$1 = this;
@@ -39843,6 +41009,7 @@ var Map = function (Camera) {
         this._canvas.addEventListener('webglcontextrestored', this._contextRestored, false);
         this._canvas.setAttribute('tabindex', '0');
         this._canvas.setAttribute('aria-label', 'Map');
+        this._canvas.setAttribute('role', 'region');
         var dimensions = this._containerDimensions();
         this._resizeCanvas(dimensions[0], dimensions[1]);
         var controlContainer = this._controlContainer = DOM.create('div', 'mapboxgl-control-container', container);
@@ -39855,6 +41022,7 @@ var Map = function (Camera) {
         ].forEach(function (positionName) {
             positions[positionName] = DOM.create('div', 'mapboxgl-ctrl-' + positionName, controlContainer);
         });
+        this._container.addEventListener('scroll', this._onMapScroll, false);
     };
     Map.prototype._resizeCanvas = function _resizeCanvas(width, height) {
         var pixelRatio = performance.browser.devicePixelRatio || 1;
@@ -39891,6 +41059,14 @@ var Map = function (Camera) {
         this._update();
         this.fire(new performance.Event('webglcontextrestored', { originalEvent: event }));
     };
+    Map.prototype._onMapScroll = function _onMapScroll(event) {
+        if (event.target !== this._container) {
+            return;
+        }
+        this._container.scrollTop = 0;
+        this._container.scrollLeft = 0;
+        return false;
+    };
     Map.prototype.loaded = function loaded() {
         return !this._styleDirty && !this._sourcesDirty && !!this.style && this.style.loaded();
     };
@@ -39910,7 +41086,7 @@ var Map = function (Camera) {
     Map.prototype._cancelRenderFrame = function _cancelRenderFrame(id) {
         this._renderTaskQueue.remove(id);
     };
-    Map.prototype._render = function _render() {
+    Map.prototype._render = function _render(paintStartTimeStamp) {
         var this$1 = this;
         var gpuTimer, frameStartTime = 0;
         var extTimerQuery = this.painter.context.extTimerQuery;
@@ -39921,7 +41097,10 @@ var Map = function (Camera) {
         }
         this.painter.context.setDirty();
         this.painter.setBaseState();
-        this._renderTaskQueue.run();
+        this._renderTaskQueue.run(paintStartTimeStamp);
+        if (this._removed) {
+            return;
+        }
         var crossFading = false;
         if (this.style && this._styleDirty) {
             this._styleDirty = false;
@@ -39990,10 +41169,10 @@ var Map = function (Camera) {
         if (somethingDirty || this._repaint) {
             this.triggerRepaint();
         } else if (!this.isMoving() && this.loaded()) {
-            if (!this._fullyLoaded) {
-                this._fullyLoaded = true;
-            }
             this.fire(new performance.Event('idle'));
+        }
+        if (this._loaded && !this._fullyLoaded && !somethingDirty) {
+            this._fullyLoaded = true;
         }
         return this;
     };
@@ -40012,9 +41191,12 @@ var Map = function (Camera) {
         }
         this._renderTaskQueue.clear();
         this.painter.destroy();
+        this.handlers.destroy();
+        delete this.handlers;
         this.setStyle(null);
         if (typeof performance.window !== 'undefined') {
             performance.window.removeEventListener('resize', this._onWindowResize, false);
+            performance.window.removeEventListener('orientationchange', this._onWindowResize, false);
             performance.window.removeEventListener('online', this._onWindowOnline, false);
         }
         var extension = this.painter.context.gl.getExtension('WEBGL_lose_context');
@@ -40025,14 +41207,15 @@ var Map = function (Camera) {
         removeNode(this._controlContainer);
         removeNode(this._missingCSSCanary);
         this._container.classList.remove('mapboxgl-map');
+        this._removed = true;
         this.fire(new performance.Event('remove'));
     };
     Map.prototype.triggerRepaint = function triggerRepaint() {
         var this$1 = this;
         if (this.style && !this._frame) {
-            this._frame = performance.browser.frame(function (paintStartTimestamp) {
+            this._frame = performance.browser.frame(function (paintStartTimeStamp) {
                 this$1._frame = null;
-                this$1._render();
+                this$1._render(paintStartTimeStamp);
             });
         }
     };
@@ -40119,14 +41302,14 @@ function removeNode(node) {
     }
 }
 
-var defaultOptions$1 = {
+var defaultOptions$2 = {
     showCompass: true,
     showZoom: true,
     visualizePitch: false
 };
 var NavigationControl = function NavigationControl(options) {
     var this$1 = this;
-    this.options = performance.extend({}, defaultOptions$1, options);
+    this.options = performance.extend({}, defaultOptions$2, options);
     this._container = DOM.create('div', 'mapboxgl-ctrl mapboxgl-ctrl-group');
     this._container.addEventListener('contextmenu', function (e) {
         return e.preventDefault();
@@ -40160,8 +41343,12 @@ var NavigationControl = function NavigationControl(options) {
 };
 NavigationControl.prototype._updateZoomButtons = function _updateZoomButtons() {
     var zoom = this._map.getZoom();
-    this._zoomInButton.disabled = zoom === this._map.getMaxZoom();
-    this._zoomOutButton.disabled = zoom === this._map.getMinZoom();
+    var isMax = zoom === this._map.getMaxZoom();
+    var isMin = zoom === this._map.getMinZoom();
+    this._zoomInButton.disabled = isMax;
+    this._zoomOutButton.disabled = isMin;
+    this._zoomInButton.setAttribute('aria-disabled', isMax.toString());
+    this._zoomOutButton.setAttribute('aria-disabled', isMin.toString());
 };
 NavigationControl.prototype._rotateCompassArrow = function _rotateCompassArrow() {
     var rotate = this.options.visualizePitch ? 'scale(' + 1 / Math.pow(Math.cos(this._map.transform.pitch * (Math.PI / 180)), 0.5) + ') rotateX(' + this._map.transform.pitch + 'deg) rotateZ(' + this._map.transform.angle * (180 / Math.PI) + 'deg)' : 'rotate(' + this._map.transform.angle * (180 / Math.PI) + 'deg)';
@@ -40182,14 +41369,7 @@ NavigationControl.prototype.onAdd = function onAdd(map) {
         }
         this._map.on('rotate', this._rotateCompassArrow);
         this._rotateCompassArrow();
-        this._handler = new DragRotateHandler(map, {
-            button: 'left',
-            element: this._compass,
-            clickTolerance: map.dragRotate._clickTolerance
-        });
-        DOM.addEventListener(this._compass, 'mousedown', this._handler.onMouseDown);
-        DOM.addEventListener(this._compass, 'touchstart', this._handler.onMouseDown, { passive: false });
-        this._handler.enable();
+        this._handler = new MouseRotateWrapper(this._map, this._compass, this.options.visualizePitch);
     }
     return this._container;
 };
@@ -40203,9 +41383,7 @@ NavigationControl.prototype.onRemove = function onRemove() {
             this._map.off('pitch', this._rotateCompassArrow);
         }
         this._map.off('rotate', this._rotateCompassArrow);
-        DOM.removeEventListener(this._compass, 'mousedown', this._handler.onMouseDown);
-        DOM.removeEventListener(this._compass, 'touchstart', this._handler.onMouseDown, { passive: false });
-        this._handler.disable();
+        this._handler.off();
         delete this._handler;
     }
     delete this._map;
@@ -40220,6 +41398,127 @@ NavigationControl.prototype._setButtonTitle = function _setButtonTitle(button, t
     var str = this._map._getUIString('NavigationControl.' + title);
     button.title = str;
     button.setAttribute('aria-label', str);
+};
+var MouseRotateWrapper = function MouseRotateWrapper(map, element, pitch) {
+    if (pitch === void 0)
+        pitch = false;
+    this._clickTolerance = 10;
+    this.element = element;
+    this.mouseRotate = new MouseRotateHandler({ clickTolerance: map.dragRotate._mouseRotate._clickTolerance });
+    this.map = map;
+    if (pitch) {
+        this.mousePitch = new MousePitchHandler({ clickTolerance: map.dragRotate._mousePitch._clickTolerance });
+    }
+    performance.bindAll([
+        'mousedown',
+        'mousemove',
+        'mouseup',
+        'touchstart',
+        'touchmove',
+        'touchend',
+        'reset'
+    ], this);
+    DOM.addEventListener(element, 'mousedown', this.mousedown);
+    DOM.addEventListener(element, 'touchstart', this.touchstart, { passive: false });
+    DOM.addEventListener(element, 'touchmove', this.touchmove);
+    DOM.addEventListener(element, 'touchend', this.touchend);
+    DOM.addEventListener(element, 'touchcancel', this.reset);
+};
+MouseRotateWrapper.prototype.down = function down(e, point) {
+    this.mouseRotate.mousedown(e, point);
+    if (this.mousePitch) {
+        this.mousePitch.mousedown(e, point);
+    }
+    DOM.disableDrag();
+};
+MouseRotateWrapper.prototype.move = function move(e, point) {
+    var map = this.map;
+    var r = this.mouseRotate.mousemoveWindow(e, point);
+    if (r && r.bearingDelta) {
+        map.setBearing(map.getBearing() + r.bearingDelta);
+    }
+    if (this.mousePitch) {
+        var p = this.mousePitch.mousemoveWindow(e, point);
+        if (p && p.pitchDelta) {
+            map.setPitch(map.getPitch() + p.pitchDelta);
+        }
+    }
+};
+MouseRotateWrapper.prototype.off = function off() {
+    var element = this.element;
+    DOM.removeEventListener(element, 'mousedown', this.mousedown);
+    DOM.removeEventListener(element, 'touchstart', this.touchstart, { passive: false });
+    DOM.removeEventListener(element, 'touchmove', this.touchmove);
+    DOM.removeEventListener(element, 'touchend', this.touchend);
+    DOM.removeEventListener(element, 'touchcancel', this.reset);
+    this.offTemp();
+};
+MouseRotateWrapper.prototype.offTemp = function offTemp() {
+    DOM.enableDrag();
+    DOM.removeEventListener(performance.window, 'mousemove', this.mousemove);
+    DOM.removeEventListener(performance.window, 'mouseup', this.mouseup);
+};
+MouseRotateWrapper.prototype.mousedown = function mousedown(e) {
+    this.down(performance.extend({}, e, {
+        ctrlKey: true,
+        preventDefault: function () {
+            return e.preventDefault();
+        }
+    }), DOM.mousePos(this.element, e));
+    DOM.addEventListener(performance.window, 'mousemove', this.mousemove);
+    DOM.addEventListener(performance.window, 'mouseup', this.mouseup);
+};
+MouseRotateWrapper.prototype.mousemove = function mousemove(e) {
+    this.move(e, DOM.mousePos(this.element, e));
+};
+MouseRotateWrapper.prototype.mouseup = function mouseup(e) {
+    this.mouseRotate.mouseupWindow(e);
+    if (this.mousePitch) {
+        this.mousePitch.mouseupWindow(e);
+    }
+    this.offTemp();
+};
+MouseRotateWrapper.prototype.touchstart = function touchstart(e) {
+    if (e.targetTouches.length !== 1) {
+        this.reset();
+    } else {
+        this._startPos = this._lastPos = DOM.touchPos(this.element, e.targetTouches)[0];
+        this.down({
+            type: 'mousedown',
+            button: 0,
+            ctrlKey: true,
+            preventDefault: function () {
+                return e.preventDefault();
+            }
+        }, this._startPos);
+    }
+};
+MouseRotateWrapper.prototype.touchmove = function touchmove(e) {
+    if (e.targetTouches.length !== 1) {
+        this.reset();
+    } else {
+        this._lastPos = DOM.touchPos(this.element, e.targetTouches)[0];
+        this.move({
+            preventDefault: function () {
+                return e.preventDefault();
+            }
+        }, this._lastPos);
+    }
+};
+MouseRotateWrapper.prototype.touchend = function touchend(e) {
+    if (e.targetTouches.length === 0 && this._startPos && this._lastPos && this._startPos.dist(this._lastPos) < this._clickTolerance) {
+        this.element.click();
+    }
+    this.reset();
+};
+MouseRotateWrapper.prototype.reset = function reset() {
+    this.mouseRotate.reset();
+    if (this.mousePitch) {
+        this.mousePitch.reset();
+    }
+    delete this._startPos;
+    delete this._lastPos;
+    this.offTemp();
 };
 
 function smartWrap (lngLat, priorPos, transform) {
@@ -40269,7 +41568,6 @@ function applyAnchorClass(element, anchor, prefix) {
 
 var Marker = function (Evented) {
     function Marker(options, legacyOptions) {
-        var this$1 = this;
         Evented.call(this);
         if (options instanceof performance.window.HTMLElement || legacyOptions) {
             options = performance.extend({ element: options }, legacyOptions);
@@ -40284,7 +41582,10 @@ var Marker = function (Evented) {
         ], this);
         this._anchor = options && options.anchor || 'center';
         this._color = options && options.color || '#3FB1CE';
+        this._scale = options && options.scale || 1;
         this._draggable = options && options.draggable || false;
+        this._clickTolerance = options && options.clickTolerance || 0;
+        this._isDragging = false;
         this._state = 'inactive';
         this._rotation = options && options.rotation || 0;
         this._rotationAlignment = options && options.rotationAlignment || 'auto';
@@ -40294,10 +41595,12 @@ var Marker = function (Evented) {
             this._element = DOM.create('div');
             this._element.setAttribute('aria-label', 'Map marker');
             var svg = DOM.createNS('http://www.w3.org/2000/svg', 'svg');
+            var defaultHeight = 41;
+            var defaultWidth = 27;
             svg.setAttributeNS(null, 'display', 'block');
-            svg.setAttributeNS(null, 'height', '41px');
-            svg.setAttributeNS(null, 'width', '27px');
-            svg.setAttributeNS(null, 'viewBox', '0 0 27 41');
+            svg.setAttributeNS(null, 'height', defaultHeight + 'px');
+            svg.setAttributeNS(null, 'width', defaultWidth + 'px');
+            svg.setAttributeNS(null, 'viewBox', '0 0 ' + defaultWidth + ' ' + defaultHeight);
             var markerLarge = DOM.createNS('http://www.w3.org/2000/svg', 'g');
             markerLarge.setAttributeNS(null, 'stroke', 'none');
             markerLarge.setAttributeNS(null, 'stroke-width', '1');
@@ -40387,6 +41690,8 @@ var Marker = function (Evented) {
             page1.appendChild(maki);
             page1.appendChild(circleContainer);
             svg.appendChild(page1);
+            svg.setAttributeNS(null, 'height', defaultHeight * this._scale + 'px');
+            svg.setAttributeNS(null, 'width', defaultWidth * this._scale + 'px');
             this._element.appendChild(svg);
             this._offset = performance.Point.convert(options && options.offset || [
                 0,
@@ -40405,11 +41710,6 @@ var Marker = function (Evented) {
         });
         this._element.addEventListener('mousedown', function (e) {
             e.preventDefault();
-        });
-        this._element.addEventListener('focus', function () {
-            var el = this$1._map.getContainer();
-            el.scrollTop = 0;
-            el.scrollLeft = 0;
         });
         applyAnchorClass(this._element, this._anchor, 'marker');
         this._popup = null;
@@ -40586,6 +41886,13 @@ var Marker = function (Evented) {
         return this;
     };
     Marker.prototype._onMove = function _onMove(e) {
+        if (!this._isDragging) {
+            var clickTolerance = this._clickTolerance || this._map._clickTolerance;
+            this._isDragging = e.point.dist(this._pointerdownPos) >= clickTolerance;
+        }
+        if (!this._isDragging) {
+            return;
+        }
         this._pos = e.point.sub(this._positionDelta);
         this._lngLat = this._map.unproject(this._pos);
         this.setLngLat(this._lngLat);
@@ -40599,6 +41906,8 @@ var Marker = function (Evented) {
     Marker.prototype._onUp = function _onUp() {
         this._element.style.pointerEvents = 'auto';
         this._positionDelta = null;
+        this._pointerdownPos = null;
+        this._isDragging = false;
         this._map.off('mousemove', this._onMove);
         this._map.off('touchmove', this._onMove);
         if (this._state === 'active') {
@@ -40610,6 +41919,7 @@ var Marker = function (Evented) {
         if (this._element.contains(e.originalEvent.target)) {
             e.preventDefault();
             this._positionDelta = e.point.sub(this._pos).add(this._offset);
+            this._pointerdownPos = e.point;
             this._state = 'pending';
             this._map.on('mousemove', this._onMove);
             this._map.on('touchmove', this._onMove);
@@ -40660,7 +41970,7 @@ var Marker = function (Evented) {
     return Marker;
 }(performance.Evented);
 
-var defaultOptions$2 = {
+var defaultOptions$3 = {
     positionOptions: {
         enableHighAccuracy: false,
         maximumAge: 0,
@@ -40690,7 +42000,7 @@ var noTimeout = false;
 var GeolocateControl = function (Evented) {
     function GeolocateControl(options) {
         Evented.call(this);
-        this.options = performance.extend({}, defaultOptions$2, options);
+        this.options = performance.extend({}, defaultOptions$3, options);
         performance.bindAll([
             '_onSuccess',
             '_onError',
@@ -41016,12 +42326,12 @@ var GeolocateControl = function (Evented) {
     return GeolocateControl;
 }(performance.Evented);
 
-var defaultOptions$3 = {
+var defaultOptions$4 = {
     maxWidth: 100,
     unit: 'metric'
 };
 var ScaleControl = function ScaleControl(options) {
-    this.options = performance.extend({}, defaultOptions$3, options);
+    this.options = performance.extend({}, defaultOptions$4, options);
     performance.bindAll([
         '_onMove',
         'setUnit'
@@ -41190,20 +42500,33 @@ FullscreenControl.prototype._onClickFullscreen = function _onClickFullscreen() {
     }
 };
 
-var defaultOptions$4 = {
+var defaultOptions$5 = {
     closeButton: true,
     closeOnClick: true,
+    focusAfterOpen: true,
     className: '',
     maxWidth: '240px'
 };
+var focusQuerySelector = [
+    'a[href]',
+    '[tabindex]:not([tabindex=\'-1\'])',
+    '[contenteditable]:not([contenteditable=\'false\'])',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])'
+].join(', ');
 var Popup = function (Evented) {
     function Popup(options) {
         Evented.call(this);
-        this.options = performance.extend(Object.create(defaultOptions$4), options);
+        this.options = performance.extend(Object.create(defaultOptions$5), options);
         performance.bindAll([
             '_update',
             '_onClose',
-            'remove'
+            'remove',
+            '_onMouseMove',
+            '_onMouseUp',
+            '_onDrag'
         ], this);
     }
     if (Evented)
@@ -41211,7 +42534,9 @@ var Popup = function (Evented) {
     Popup.prototype = Object.create(Evented && Evented.prototype);
     Popup.prototype.constructor = Popup;
     Popup.prototype.addTo = function addTo(map) {
-        var this$1 = this;
+        if (this._map) {
+            this.remove();
+        }
         this._map = map;
         if (this.options.closeOnClick) {
             this._map.on('click', this._onClose);
@@ -41221,13 +42546,10 @@ var Popup = function (Evented) {
         }
         this._map.on('remove', this.remove);
         this._update();
+        this._focusFirstElement();
         if (this._trackPointer) {
-            this._map.on('mousemove', function (e) {
-                this$1._update(e.point);
-            });
-            this._map.on('mouseup', function (e) {
-                this$1._update(e.point);
-            });
+            this._map.on('mousemove', this._onMouseMove);
+            this._map.on('mouseup', this._onMouseUp);
             if (this._container) {
                 this._container.classList.add('mapboxgl-popup-track-pointer');
             }
@@ -41254,7 +42576,9 @@ var Popup = function (Evented) {
             this._map.off('move', this._onClose);
             this._map.off('click', this._onClose);
             this._map.off('remove', this.remove);
-            this._map.off('mousemove');
+            this._map.off('mousemove', this._onMouseMove);
+            this._map.off('mouseup', this._onMouseUp);
+            this._map.off('drag', this._onDrag);
             delete this._map;
         }
         this.fire(new performance.Event('close'));
@@ -41270,7 +42594,7 @@ var Popup = function (Evented) {
         this._update();
         if (this._map) {
             this._map.on('move', this._update);
-            this._map.off('mousemove');
+            this._map.off('mousemove', this._onMouseMove);
             if (this._container) {
                 this._container.classList.remove('mapboxgl-popup-track-pointer');
             }
@@ -41279,18 +42603,13 @@ var Popup = function (Evented) {
         return this;
     };
     Popup.prototype.trackPointer = function trackPointer() {
-        var this$1 = this;
         this._trackPointer = true;
         this._pos = null;
         this._update();
         if (this._map) {
             this._map.off('move', this._update);
-            this._map.on('mousemove', function (e) {
-                this$1._update(e.point);
-            });
-            this._map.on('drag', function (e) {
-                this$1._update(e.point);
-            });
+            this._map.on('mousemove', this._onMouseMove);
+            this._map.on('drag', this._onDrag);
             if (this._container) {
                 this._container.classList.add('mapboxgl-popup-track-pointer');
             }
@@ -41327,9 +42646,19 @@ var Popup = function (Evented) {
         return this;
     };
     Popup.prototype.setDOMContent = function setDOMContent(htmlNode) {
-        this._createContent();
+        if (this._content) {
+            while (this._content.hasChildNodes()) {
+                if (this._content.firstChild) {
+                    this._content.removeChild(this._content.firstChild);
+                }
+            }
+        } else {
+            this._content = DOM.create('div', 'mapboxgl-popup-content', this._container);
+        }
         this._content.appendChild(htmlNode);
+        this._createCloseButton();
         this._update();
+        this._focusFirstElement();
         return this;
     };
     Popup.prototype.addClassName = function addClassName(className) {
@@ -41342,6 +42671,11 @@ var Popup = function (Evented) {
             this._container.classList.remove(className);
         }
     };
+    Popup.prototype.setOffset = function setOffset(offset) {
+        this.options.offset = offset;
+        this._update();
+        return this;
+    };
     Popup.prototype.toggleClassName = function toggleClassName(className) {
         if (this._container) {
             return this._container.classList.toggle(className);
@@ -41351,7 +42685,8 @@ var Popup = function (Evented) {
         if (this._content) {
             DOM.remove(this._content);
         }
-        this._content = DOM.create('div', 'mapboxgl-popup-content', this._container);
+    };
+    Popup.prototype._createCloseButton = function _createCloseButton() {
         if (this.options.closeButton) {
             this._closeButton = DOM.create('button', 'mapboxgl-popup-close-button', this._content);
             this._closeButton.type = 'button';
@@ -41359,6 +42694,15 @@ var Popup = function (Evented) {
             this._closeButton.innerHTML = '&#215;';
             this._closeButton.addEventListener('click', this._onClose);
         }
+    };
+    Popup.prototype._onMouseUp = function _onMouseUp(event) {
+        this._update(event.point);
+    };
+    Popup.prototype._onMouseMove = function _onMouseMove(event) {
+        this._update(event.point);
+    };
+    Popup.prototype._onDrag = function _onDrag(event) {
+        this._update(event.point);
     };
     Popup.prototype._update = function _update(cursor) {
         var this$1 = this;
@@ -41416,6 +42760,15 @@ var Popup = function (Evented) {
         var offsetedPos = pos.add(offset[anchor]).round();
         DOM.setTransform(this._container, anchorTranslate[anchor] + ' translate(' + offsetedPos.x + 'px,' + offsetedPos.y + 'px)');
         applyAnchorClass(this._container, anchor, 'popup');
+    };
+    Popup.prototype._focusFirstElement = function _focusFirstElement() {
+        if (!this.options.focusAfterOpen || !this._container) {
+            return;
+        }
+        var firstFocusable = this._container.querySelector(focusQuerySelector);
+        if (firstFocusable) {
+            firstFocusable.focus();
+        }
     };
     Popup.prototype._onClose = function _onClose() {
         this.remove();
@@ -41513,6 +42866,8 @@ var exported = {
     MercatorCoordinate: performance.MercatorCoordinate,
     Evented: performance.Evented,
     config: performance.config,
+    prewarm: prewarm,
+    clearPrewarmedResources: clearPrewarmedResources,
     get accessToken() {
         return performance.config.ACCESS_TOKEN;
     },
