@@ -489,6 +489,12 @@ export default class Popup extends Evented {
         }
     }
 
+    _createContent() {
+        if (this._content) {
+            DOM.remove(this._content);
+        }
+    }
+
     _createCloseButton() {
         if (this.options.closeButton) {
             this._closeButton = DOM.create('button', 'mapboxgl-popup-close-button', this._content);

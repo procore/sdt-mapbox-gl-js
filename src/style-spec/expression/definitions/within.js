@@ -14,6 +14,7 @@ type GeoJSONPolygons =| GeoJSONPolygon | GeoJSONMultiPolygon;
 
 // minX, minY, maxX, maxY
 type BBox = [number, number, number, number];
+
 const EXTENT = 8192;
 
 function updateBBox(bbox: BBox, coord: Point) {
@@ -244,6 +245,7 @@ function pointsWithinPolygons(ctx: EvaluationContext, polygonGeometry: GeoJSONPo
     if (polygonGeometry.type === 'MultiPolygon') {
         const tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
         const tilePoints = getTilePoints(ctx.geometry(), pointBBox, polyBBox, canonical);
+
         if (!boxWithinBox(pointBBox, polyBBox)) return false;
 
         for (const point of tilePoints) {
@@ -272,6 +274,7 @@ function linesWithinPolygons(ctx: EvaluationContext, polygonGeometry: GeoJSONPol
     if (polygonGeometry.type === 'MultiPolygon') {
         const tilePolygons = getTilePolygons(polygonGeometry.coordinates, polyBBox, canonical);
         const tileLines = getTileLines(ctx.geometry(), lineBBox, polyBBox, canonical);
+
         if (!boxWithinBox(lineBBox, polyBBox)) return false;
 
         for (const line of tileLines) {
@@ -279,6 +282,7 @@ function linesWithinPolygons(ctx: EvaluationContext, polygonGeometry: GeoJSONPol
         }
     }
     return true;
+
 }
 
 class Within implements Expression {
